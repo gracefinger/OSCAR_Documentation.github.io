@@ -31,42 +31,386 @@
 
         <section>
             <h2>Command Setup</h2>
-            <div class="section-label">Command Layout</div>
+            <div class="section-label"></div>
             <div class="section-desc">
-                Command setup blah blah blah
+                The USB communication is set up to use standard UART protocol. Communications have 1 start bit, 1 stop bit, no parity, 
+                115200 baud rate, and 8 data bits. The PC and flight controller MCU are set up in a master slave configuration. 
+                Commands are sent from the master, the PC, to the slave, flight controller. Responses are expected to be sent back 
+                from the slave device. Commands are formatted with a command header to identify the command followed by any necessary 
+                data and a CRC redundancy check. The command header is 2 bytes and formatted as a hex number. The number will always 
+                start with an 0x8 followed by 3 more hex numbers to determine the ID of the command. Responses are formatted similarly 
+                where that is a 2 byte header dictating what the response is for. The CRC is a 16 bit (2 byte) calculation performed 
+                on the data being loaded into the packet. See CRC section for more details on the calculation. The maximum size of 
+                the transmission is 64 bytes. The following illustration shows the format in which a command is to be sent.
+                <br><br>Insert Image here<br><br>
+                Commands sent from the PC should be in the form of a standard array. The flight controller MCU will extract the first 
+                two bytes of the transmission to determine what the response needs to be. Any data that follows should be unique to the 
+                command. To prevent parsing errors updating data values should be done inside individual commands. For example, updating 
+                a variable P should be sent in a command specific to updating that variable P. It is not recommended to send data to update 
+                both variables P and X in a single command. <br><br>
+
+                Before the command is fully processed, the CRC is checked. Upon failure, a CRC failure response header is sent back to the host 
+                PC. The CRC is checked by running the full packet through the calculation and comparing it with the CRC that was sent along with 
+                the data. The CRC calculator excludes the CRC data that was sent. In this case, the length of the buffer being calculated needs 
+                two bytes subtracted from it.<br><br>
+
+                Data is sent through the usb in packets of up to 64 bytes. If the data or buffer being loaded is more than 64 bytes it will need 
+                to be split up into multiple packets. The line coding is set to use UART so the device behaves like a USB to serial device for the 
+                purposes of the host machine receiving and sending back data. 
             </div>
         </section>
 
         <section>
             <h2>Response Setup</h2>
             <div class="section-label">Overview</div>
-            <div class="section-desc"></div>
+            <div class="section-desc">
+                Once the fight controller MCU receives a command, it will parse through the input and either retrieve or update values. When it is 
+                ready to send a response, the flight controller code will build a JSON object to simplify data interpretation on the software side. 
+                As mentioned earlier, the response communications also have a command header. These will start with 0x5, followed by 3 more hex bits 
+                to identify the command they respond to. These headers are also 2 bytes in size. Following the header is the length of the packet being 
+                sent back to the host computer. This length is the size of the data and the CRC. It does not include the command header bytes nor the 
+                packet length byte.
+
+                <br><br>Insert Image Here<br><br>
+
+                To setup JSON responses we are using the cJSON library found on the GitHub page linked <a href="https://github.com/DaveGamble/cJSON?tab=readme-ov-file#welcome-to-cjson">here</a> 
+                
+                Multiple library calls are required to correctly build the JSON object. The following examples are derived from the GitHub ReadMe for easier access:
+                <br><br>
+            </div>
             <div class="section-label">Example JSON</div>
-            <div class="section-desc"></div>
+            <div class="section-desc">
+            <!-- TODO: Make look good -->
+             <code><pre>
+{
+    "name": "Awesome 4K",
+    "resolutions": [
+        {
+            "width": 1280,
+            "height": 720
+        },
+        {
+            "width": 1920,
+            "height": 1080
+        },
+        {
+            "width": 3840,
+            "height": 2160
+        }
+    ]
+}
+             </pre></code>
+            </div>
             <div class="section-label">Building JSON in C</div>
-            <div class="section-desc"></div>
+            <div class="section-desc">
+                <!-- TODO: Make look good -->
+                 <code><pre>
+//NOTE: Returns a heap allocated string, you are required to free it after use.
+char *create_monitor_with_helpers(void)
+{
+    const unsigned int resolution_numbers[3][2] = {
+        {1280, 720},
+        {1920, 1080},
+        {3840, 2160}
+    };
+    char *string = NULL;
+    cJSON *resolutions = NULL;
+    size_t index = 0;
+
+    cJSON *monitor = cJSON_CreateObject();
+
+    if (cJSON_AddStringToObject(monitor, "name", "Awesome 4K") == NULL)
+    {
+        goto end;
+    }
+
+    resolutions = cJSON_AddArrayToObject(monitor, "resolutions");
+    if (resolutions == NULL)
+    {
+        goto end;
+    }
+
+    for (index = 0; index < (sizeof(resolution_numbers) / (2 * sizeof(int))); ++index)
+    {
+        cJSON *resolution = cJSON_CreateObject();
+
+        if (cJSON_AddNumberToObject(resolution, "width", resolution_numbers[index][0]) == NULL)
+        {
+            goto end;
+        }
+
+        if (cJSON_AddNumberToObject(resolution, "height", resolution_numbers[index][1]) == NULL)
+        {
+            goto end;
+        }
+
+        cJSON_AddItemToArray(resolutions, resolution);
+    }
+
+    string = cJSON_Print(monitor);
+    if (string == NULL)
+    {
+        fprintf(stderr, "Failed to print monitor.\n");
+    }
+
+end:
+    cJSON_Delete(monitor);
+    return string;
+}
+                 </pre></code>
+
+                 When creating a JSON object it is important to add the elements to the object that you are needing to transmit. 
+                 This would be the important data Software needs to display.<strong> Make sure to communicate how your JSON is formatted 
+                 with the software team so that it can be parsed correctly.</strong> Moreover, creating JSON objects takes allocated memory. 
+                 Be sure to delete the JSON object after transmitting it over USB. Before the JSON object can be transmitted it 
+                 needs to be transferred into a standard string. The cJSON_Print function should be able to handle this. 
+            </div>
             <div class="section-label">Example JSON 2</div>
-            <div class="section-desc"></div>
+            <div class="section-desc">This JSON contains multiple pieces of data all labeled. This is useful for the initial get command that is done on system connect. 
+                <!-- TODO: Make look good -->
+                 <code><pre>
+{
+    "name": "Initial Values",
+        "VoltagePageValues": {
+            "VoltMeterSource": 5,
+            "CurrentMeterSource": 6,
+            "MinCellVoltage": 7,
+            "WarningCellColtage": 8,
+            "BatteryCapacity": 9,
+            "VoltageCalibrationOffset": 8,
+            "CurrentScale": 9,
+            "CurrentOffset": 10
+        }
+}
+                 </pre></code>
+            </div>
             <div class="section-label">Building JSON 2 in C</div>
-            <div class="section-desc"></div>
+            <div class="section-desc">
+                <!-- TODO: Make look good -->
+                <code><pre>
+//create the over-arching JSON object
+ResponseJSON = cJSON_CreateObject();
+cJSON_AddStringToObject(ResponseJSON, "name", "Initial Values");
+
+//create the JSON object that will hold all the data
+cJSON* VoltageJSON = cJSON_CreateObject();
+cJSON_AddStringToObject(VoltageJSON, "VoltMeterSource", "Jill");
+cJSON_AddStringToObject(VoltageJSON, "CurrentMeterSource", "Bob");
+
+//Create a JSON object for all the numbers to be used
+cJSON* JSONValue = cJSON_CreateNumber(5);
+cJSON* JSONValue2 = cJSON_CreateNumber(6);
+cJSON* JSONValue3 = cJSON_CreateNumber(7);
+cJSON* JSONValue4 = cJSON_CreateNumber(8);
+cJSON* JSONValue5 = cJSON_CreateNumber(9);
+cJSON* JSONValue6 = cJSON_CreateNumber(10);
+
+//Add each number with a name to the JSON that holds all the data
+cJSON_AddItemToObject(VoltageJSON, "MinCellVoltage", JSONValue);
+cJSON_AddItemToObject(VoltageJSON, "WarningCellVoltage", JSONValue2);
+cJSON_AddItemToObject(VoltageJSON, "BatteryCapacity", JSONValue3);
+cJSON_AddItemToObject(VoltageJSON, "VoltageCalibrationOffset", JSONValue4);
+cJSON_AddItemToObject(VoltageJSON, "CurrentScale", JSONValue5);
+cJSON_AddItemToObject(VoltageJSON, "CurrentOffset", JSONValue6);
+
+
+//Add the data JSON to the over-arching JSON
+cJSON_AddItemToObject(ResponseJSON, "VoltagePageValues", VoltageJSON);
+                   
+                </pre></code>
+            </div>
         </section>
 
         <section>
             <h2>CRC Calculation</h2>
+            <div class="section-desc">The CRC calculator follows the standard crc16_ccitt format. It takes in a buffer and its length. 
+                Each element in the buffer is xor’ed with the polynomial. The polynomial used is as follows:
+                <br><br>Replace equation with image - x^16+ x^12+x^5+1 <br><br>
+                It is used in the hexadecimal form 0x1021u. The CRC is formatted in a 16 bit integer.
+            </div>
         </section>
 
         <section>
             <h2>Command Headers</h2>
+            <div class="section-desc">
+                This will be an ever-growing list of command headers. If you notice this list is out of data please update it! 
+                <!-- TODO: Make look good  - includes fixing spacing-->
+                 <code><pre>
+// IPower and battery Stuff – Power and Battery Page  0x80xx series
+
+	e_GetConnection =			    0x8000u,
+
+	//Power and Battery Section
+	e_SetVoltMeterSource =		    0x8001u,
+	e_SetCurrentMeterSource =	    0x8002u,
+	e_SetMinCellVoltage =		    0x8003u,
+	e_SetWarningCellVoltage =	    0x8004u,
+	e_SetBatteryCapacity =		    0x8005u,
+	e_SetVoltageCalibrationOffset =	0x8006u,
+	e_SetCurrentScale =			    0x8007u,
+	e_SetCurrentOffset =			0x8008u,
+	e_GetInitalValuesVolt =		    0x8009u,
+
+	//Power and Battery Section - Power State info
+	e_GetPowerStateConnection =	    0x800Au,
+	e_GetPowerStateBatVolt = 		0x800Bu,
+	e_GetPowerStatemAhUsed =  	    0x800Cu,
+	e_GetPowerStateCurrentDraw =	0x800Du,
+
+// IMU & Mag  Section – Setup and Ports Page 0x81xx series
+	e_GetSetupPortPageData = 		0x8100u,
+    e_GetAccelCal = 			    0x8101u,
+    e_GetGyroCal = 			        0x8102u,
+    e_GetMagCal = 			        0x8103u,
+    e_GetResetCalToDefault =        0x8104u,
+
+// Configuration Stuff  – Configuration Page 0x82xx series
+	e_GetConfigPageData= 		    0x8200u,
+	e_SetGyroUpdateFreq= 		    0x8201u, //included on get page data
+	e_SetAccelEnable= 			    0x8203u,  //included on get page data
+	e_SetBarometerEnable=		    0x8204u,  //included on get page data
+	e_SetMagEnable=			        0x8205u,  //included on get page data
+	e_SetRollDeg	=			    0x8206u,  //included on get page data
+	e_SetPitchDeg=			        0x8207u,  //included on get page data
+	e_SetYawDeg	=			        0x8208u,  //included on get page data
+	e_SetMagAlign=			        0x8209u,  //included on get page data
+	e_SetPilotName = 			    0x820Au, //included on get page data
+	e_SetDroneName = 			    0x820Bu, //included on get page data
+    e_SetGPSEnabled= 			    0x820Cu, //included on get page data
+
+
+
+//PID – PID Page 0x83xx series
+    //Currently in-progress
+
+//Motors Page 0x84xx series
+	e_GetMotorPage=				    0x8400u,
+
+    //Motor Features
+	e_SetDShotSpeed =				0x8401u,
+	e_SetMotorStop=				    0x8402u,
+	e_ReleaseMotorStop=			    0x8403u, //currently non functional
+	e_SetUARTTelemetryLineEnabled=	0x8404u, //currently non functional
+	e_SetUARTTelemetryLineDisabled=	0x8405u, //currently non functional
+	e_SetMotorIdleValue=			0x840Eu,
+
+	//Motor Direction
+	e_SetMotorsReversed=			0x8406u,
+	e_SetMotorsDefault=				0x8407u,
+
+	//Motor Outputs
+	e_SetMotorOneThrottle=			0x8408u,
+	e_SetMotorTwoThrottle=			0x8409u,
+	e_SetMotorThreeThrottle=		0x840Au,
+	e_SetMotorFourThrottle=			0x840Bu,
+	e_SetMasterThrottle=			0x840Fu,
+
+	//Motor Control
+	e_SetMotorControlEnable=		0x840Cu,
+	e_SetMotorControlDisable=		0x840Du,
+
+//Streaming Features
+    e_StartQuaternionStream	=		0x8500u,
+    e_StopQuaternionStream	=		0x8501u,
+                 </pre></code>
+            </div>
         </section>
 
 
         <section>
             <h2>Response Headers</h2>
+            <div class="section-desc">This will be an ever-growing list of response headers. If you notice this list is out of data please update it! 
+                <!-- TODO: Make look good - includes weird spacing -->
+                 <code><pre>
+//General connection check
+// Power and battery Stuff – Power and Battery Page  0x50xx series
+	e_ResGetConnection =			    0x5000u,
+
+	//Power and Battery Section
+	e_ResSetVoltMeterSource =			0x5001u,
+	e_ResSetCurrentMeterSource =		0x5002u,
+	e_ResSetMinCellVoltage =			0x5003u,
+	e_ResSetWarningCellVoltage =		0x5004u,
+	e_ResSetBatteryCapacity =			0x5005u,
+	e_ResSetVoltageCalibrationOffset =	0x5006u,
+	e_ResSetCurrentScale =			    0x5007u,
+	e_ResSetCurrentOffset =			    0x5008u,
+	e_ResGetInitalValuesVolt = 			0x5009u,
+
+	//Power and Battery Section - Power State info
+	e_ResGetPowerStateConnection =		0x500Au,
+	e_ResGetPowerStateBatVolt = 		0x500Bu,
+	e_ResGetPowerStatemAhUsed =  		0x500Cu,
+	e_ResGetPowerStateCurrentDraw =		0x500Du,
+	
+//IMU and Mag Section  – Setup and Ports Page 0x51xx series
+	e_ResSendSetupPortPageData = 	    0x5100u,
+    e_ResAccelCal = 			        0x5101u,
+    e_ResGyroCal = 			            0x5102u,
+    e_ResMagCal = 			            0x5103u,
+
+// Configuration Stuff  – Configuration Page 0x52xx series
+	e_ResGetConfigPageData= 			0x5200u,
+	e_ResSetGyroUpdateFreq= 			0x5201u, //included on get page data
+	e_ResSetAccelEnable= 			    0x5203u,  //included on get page data
+	e_ResSetBarometerEnable=			0x5204u,  //included on get page data
+	e_ResSetMagEnable=			        0x5205u,  //included on get page data
+	e_ResSetRollDeg	=			        0x5206u,  //included on get page data
+	e_ResSetPitchDeg=				    0x5207u,  //included on get page data
+	e_ResSetYawDeg	=			        0x5208u,  //included on get page data
+	e_ResSetMagAlign=				    0x5209u,  //included on get page data
+	e_ResSetPilotName = 			    0x520Au, //included on get page data
+	e_ResSetDroneName = 			    0x520Bu, //included on get page data
+    e_ResSetGPSEnabled= 			    0x520Cu, //included on get page data
+
+//PID – PID Page 0x53xx series
+    //Currently in-progress
+
+//Motors Page 0x54xx series
+	e_ResGetMotorPage=				    0x5400u,
+
+    //Motor Features
+	e_ResSetDShotSpeed =				0x5401u,
+	e_ResSetMotorStop=					0x5402u,
+	e_ResReleaseMotorStop=				0x5403u, //currently non functional
+	e_ResSetUARTTelemetryLineEnabled=	0x5404u, //currently non functional
+	e_ResSetUARTTelemetryLineDisabled=	0x5405u, //currently non functional
+	e_SetMotorIdleValue=				0x540Eu,
+
+	//Motor Direction
+	e_ResSetMotorsReversed=				0x5406u,
+	e_ResSetMotorsDefault=				0x5407u,
+
+	//Motor Outputs
+	e_ResSetMotorOneThrottle=			0x5408u,
+	e_ResSetMotorTwoThrottle=			0x5409u,
+	e_ResSetMotorThreeThrottle=			0x540Au,
+	e_ResSetMotorFourThrottle=			0x540Bu,
+	e_ResSetMasterThrottle=				0x540Fu,
+
+	//Motor Control
+	e_ResSetMotorControlEnable=			0x540Cu,
+	e_ResSetMotorControlDisable=		0x540Du,
+
+//Streaming
+        e_ResStartQuaternionStream	=		0x5500u,
+        e_ResStopQuaternionStream	=		0x5501u,
+                 </pre></code>
+            </div>
         </section>
 
 
         <section>
             <h2>Error Headers</h2>
+            <div class="section-desc">
+                This will be an ever-growing list of error headers. If you notice this list is out of date please update it! 
+            
+                <!-- TODO: Make look good - fix spacing -->
+                 <code><pre>
+    e_ErrorUknownCommand =				0xFFFFu,
+	e_CRCFailure =					    0xFFFEu,
+                 </pre></code>
+            </div>
         </section>
 
 
