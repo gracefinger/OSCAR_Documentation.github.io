@@ -19,15 +19,38 @@
     </nav>
 
     <main>
+
         <h1>USB Communication</h1>
         <section>
-            <h2>Setup for USB Communication</h2>
+            
+<!-- #region Data Flow -->
+            <h1>Data Flow</h1>
+            <h2>Overview</h2>
+            <p>This section will provide information about the USB communication and data flow. For actual implementation steps 
+                involving the UI we will be implementing, check out the Frontend USB Communication section. This Data Flow section,
+                however, will be similar across both pages. This document will focus more on the C side of things. 
+                We will start by going over the overall flow of the data.</p>
+            <!-- DIFFERENT -->
+            <h2>Communication Flow & Diagram</h2>
+
+            <h3>Command Transmission Flow (PC to Flight Controller)</h3>
+            <h3>Response Transmission Flow (Flight Controller to PC)</h3>
+            <h3>Flow Diagram</h3>
+            <h2>Native C Module</h2>
             <h3>Overview</h3>
+            <h2>Streaming Data</h2>
+            <h3>Overview</h3>
+            <h3>Streaming Flow</h3>
+<!-- #endregion -->
+
+
+<!-- #region Backend -->
+            <h1>Backend</h1>
             <p>The desktop application is built with Electron, and USB communication is handled by a C module 
                 linked into the application. Because of this architecture, several libraries must be installed. The required libraries 
                 include libserialport (maintained by sigrok) and Node-API (node_api). Both are required for integration within the Electron 
                 project environment. However, only libserialport is required to compile the standalone C module independently of Electron.</p>
-            <h3>Installing libserialport</h3>
+            <h2>Installing libserialport</h2>
             <p>The first step is to follow the installation instructions <a href="https://sigrok.org/wiki/Libserialport">here</a>
                 <br><br>
                 After following those instructions, build libserialport using a Windows-compatible toolchain such as MinGW, MSYS2, Cygwin, or MSVC Build Tools. 
@@ -43,7 +66,7 @@
   
             </p><p>Make note of their file paths, as they will be referenced later in binding.gyp.
             </p>
-            <h3>Installing node-gyp</h3>
+            <h2>Installing node-gyp</h2>
             <p>Next, inside the Electron project (where Node has already been initialized with package.json), install node-gyp globally: </p>
                 <div class="terminal">
                     <div class="terminal-body">
@@ -79,7 +102,7 @@
                     </div>
                 </div>
             </p>
-            <h3>Configuring binding.gyp</h3>
+            <h2>Configuring binding.gyp</h2>
             <p>Open the binding.gyp file. In this file, you will manually map libserialport and your C module.
                 <br><br>target_name defines the name of the generated .node file. It does not need to match the C source file name, but it 
                 must be referenced consistently throughout the project.
@@ -128,7 +151,7 @@
                     <li>library links require Windows system libraries.</li>
                     <li>The libserialport source files are compiled directly into the addon.</li>
                 </ul>
-            <h3>Building the Native Module</h3>
+            <h2>Building the Native Module</h2>
             <p>
                 Navigate to the Electron project root folder and run: </p>
 
@@ -156,7 +179,7 @@
                         <div class="t-cmd">build/Release/serial_addon.node</div>
                     </div>
                 </div>
-            <h3>Rebuilding for Electron</h3>
+            <h2>Rebuilding for Electron</h2>
             <p>
                 Electron uses its own Node runtime version, so the module must be rebuilt against Electron headers.
                 <br><br>To rebuild run:
@@ -176,7 +199,7 @@
                     </div>
                 </div>
                 <p>This ensures compatibility between Electron and the compiled native module.</p>
-            <h3>Loading the Native Module in Electron</h3>
+            <h2>Loading the Native Module in Electron</h2>
             <p>
                 Create a file named preload.js and add the following code:
                 
@@ -200,30 +223,16 @@
                 </ul>
                 </p>
 
-            <!-- <h2>Desktop USB Communication Architecture</h2>
-            <div class="section-label">Communication Flow Diagram</div>
-            <div class="section-desc"></div>
-            <div class="section-label">Desktop to Flight Controller</div>
-            <div class="section-desc"></div>
-            <div class="section-label">Flight Controller to Desktop</div>
-            <div class="section-desc"></div>
-            <div class="section-label">Flow Diagram</div>
-            <div class="section-desc"></div>
-            <div class="section-label">Native C Module</div>
-            <div class="section-desc"></div>
-            <div class="section-label">Error Handling & Recovery</div>
-            <div class="section-desc"></div>
-            <div class="section-label">Device Detection & Verification</div>
-            <div class="section-desc"></div>
-            <div class="section-label">Command Validation & Response Verification</div>
-            <div class="section-desc"></div>
-            <div class="section-label">Length & CRC Validation</div>
-            <div class="section-desc"></div>
-            <div class="section-label">Timeout Handling & Memory Safety</div>
-            <div class="section-desc"></div>
-            <div class="section-label">Error Propogation to the Electron UI</div>
-            <div class="section-desc"></div> -->
+            <h2>Native C Module - Backend</h2>
 
+            <h2>Error Handling & Recovery - Backend</h2>
+            <h3>Device Detection & Verification</h3>
+            <h3>Command Validation & Response Verification</h3>
+            <h3>Length & CRC Validation</h3>
+            <h3>Timeout Handling</h3>
+            <h3>Error Propogation to the Frontend</h3>
+
+    <!-- #region Data Streaming-->
             <h2>Data Streaming Setup</h2>
             <p>
                 Data streaming within the Desktop Application is managed by the native C backend, which interfaces 
@@ -281,6 +290,9 @@
                 </ul>
                 </p>
             </p>
+
+    <!-- #endregion -->
+<!-- #endregion -->
         </section>
 
         <section>

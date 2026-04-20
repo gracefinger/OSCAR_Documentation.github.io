@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USB Communication</title>
+    <link rel="stylesheet" href="../styles/main.css">
+</head>
+
+<body>
+    <nav>
+        <ul class="nav-links">
+            <li><a href="../index.html"><span class="nav-dot"></span>Home</a></li>
+            <li><a href="./hardware.html"><span class="nav-dot"></span>Hardware</a></li>
+            <li><a href="./firmware.html"><span class="nav-dot"></span>Firmware</a></li>
+            <li><a href="./software.html" class="active"><span class="nav-dot"></span>Software</a></li>
+        </ul>
+    </nav>
+
+    <main>
+
+        <h1>USB Communication</h1>
+        <section>
+            
+<!-- #region Data Flow -->
+            <h1>Data Flow</h1>
+            <h2>Overview</h2>
+            <p>This section will provide information about the USB communication and data flow. For actual implementation steps 
+                involving the C module we will be implementing, check out the Backend USB Communication section. This Data Flow section,
+                however, will be the same across both pages. This document will focus more on the JavaScript side of things. 
+                We will start by going over the overall flow of the data.</p>
+            <h2>Communication Flow & Diagram</h2>
+            <p>The USB communication system consists of three major layers:
+                <ul>
+                    <li>Desktop Application (Electron / JavaScript)</li>
+                    <li>Native Communication Layer (C module using libserialport)</li>
+                    <li>Flight Controller Firmware (MCU)</li>
+                </ul>
+
+            </p>
+            <p>
+                Each layer has a defined role in the communication pipeline. Commands originate from the desktop application, are 
+                transmitted through the native C module using UART over USB, processed by the firmware, and then a response is 
+                returned following the same path in reverse. <br><br>
+                
+                The communication flow ensures that high-level application logic remains separated from low-level serial communication.
+            </p>
+            <h3>Command Transmission Flow (PC to Flight Controller)</h3>
+            <p>
+                <ul>
+                    <li>User Action in Desktop Application: A user interacts with the Electron UI (for example clicking a button to request battery information).</li>
+                    <li>JavaScript Calls Native Function: The JavaScript code calls an exposed API function through the Electron contextBridge.</li>
+                    <li>Node-API Bridge: The call is forwarded through Node-API to the compiled native module (serial_addon.node).</li>
+                    <li>Native C Module Builds Command: The native C code constructs the command packet:
+                        <ul>
+                            <li>[CMD Header (0x800X)] + [Command Data]</li>
+                            <li>The packet is prepared as a byte array before transmission.</li>
+                        </ul>
+                    </li>
+                    <li>USB UART Transmission: The C module sends the command through libserialport using the configured UART settings:
+                        <ul>
+                            <li>115200 baud</li>
+                            <li>8 data bits</li>
+                            <li>no parity</li>
+                            <li>1 stop bit</li>
+                        </ul>
+                    </li>
+                    <li>Firmware Receives Command: The flight controller firmware reads the incoming bytes from the UART buffer.</li>
+                    <li>Command Parsing: The firmware extracts the first 2 bytes to determine the command ID.
+                        <ul>
+                            <li>Example: 0x8009 → e_GetInitialValuesVolt</li>
+                        </ul>
+                    </li>
+                    <li>Command Execution: The firmware processes the command by either.
+                        <ul>
+                            <li>retrieving stored values</li>
+                            <li>updating configuration parameters</li>
+                            <li>requesting sensor data</li>
+                        </ul>
+                    </li>
+                </ul>
+            </p>
+            <h3>Response Transmission Flow (Flight Controller to PC)</h3>
+            <h3>Flow Diagram</h3>
+            <h2>Native C Module</h2>
+            <h3>Overview</h3>
+            <h2>Streaming Data</h2>
+            <h3>Overview</h3>
+            <h3>Streaming Flow</h3>
+<!-- #endregion -->
+
+<!-- #region Frontend -->
+            <h1>Frontend</h1>
+            <h2>Native C Module - Frontend</h2>
+            <h3>High-Level Responsibilities</h3>
+            <h3>Node-API Integration</h3>
+            <h3>Caommand Mapping</h3>
+            <h3>Packet Structure</h3>
+            <h3>CRC Validation</h3>
+            <h3>Port Discovery & Handshake</h3>
+            <h3>Command Execution Flow</h3>
+            <h3>Reliable Communication</h3>
+            <h3>Response Handling</h3>
+            <h3>Error Handling</h3>
+
+            <h2>Preload & IPC Bridge</h2>
+            <h3>Inter-Process Communication</h3>
+
+            <h2>Streaming Data - Frontend</h2>
+            <h3>Architecture & Threading</h3>
+            <h3>Stream Initialization</h3>
+            <h3>Native Streaming Mode</h3>
+            <h4>Streaming Loop Behavior</h4>
+            <h3>Thread Separation</h3>
+            <h3>Streaming Data Delviery to Frontend</h3>
+            <h3>Error Handling & Recovery - Frontend</h3>
+
+            <h2>UI Integration</h2>
+            <h3>How Response Data is Fed into the UI</h3>
+            <h4>Settings Population</h4>
+            <h4>Telemetry Display</h4>
+            <h3>Event-Based Updates</h3>
+            <h4>Debouncing</h4>
+            <h4>Change Detection</h4>
+
+            <h2>Error Handling & Recovery</h2>
+            <h3>Frontend Error Handling</h3>
+            <h3>Error Propogation to Backend</h3>
+            <h4>Communication Failure Handling</h4>
+            <h4>Recovery Strategies</h4>
+<!-- #endregion -->
+
+        </section>
+
+        <section>
+            <h2>Back to Software</h2>
+            <a href="./software.html" class="back-link">← Return to Software Overview</a>
+        </section>
+    </main>
+
+</body>
+
+<footer>
+    <div class="footer-brand">OSCAR <span>Docs</span></div>
+    <ul class="footer-links">
+        <li><a href="./contact.html">Contact Us</a></li>
+        <li><a href="https://sddec26-05.sd.ece.iastate.edu/">Senior Design Website</a></li>
+        <li><a href="https://github.com/gracefinger/OSCAR_Documentation.github.io">GitHub</a></li>
+    </ul>
+</footer>
+
+</html>
