@@ -4,8 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>USB Communication</title>
+    <title>Backend USB Communication</title>
     <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/tableOfContents.css">
+    <link rel="stylesheet" href="../styles/chloeWorking.css">
 </head>
 
 <body>
@@ -18,39 +20,195 @@
         </ul>
     </nav>
 
-    <main>
+   <div class="page-layout">
 
-        <h1>USB Communication</h1>
+        <!-- ── Sidebar ── -->
+        <aside id="doc-sidebar">
+            <div class="sidebar-title">On this page</div>
+            <ul id="sidebar-nav"></ul>
+        </aside>
+
+        <!-- ── Main content ── -->
+        <main class="doc-content">
+
+            <h1>Backend USB Communication</h1>
+
+            <!-- Table of Contents -->
+            <div id="toc-block">
+                <h2>Table of Contents</h2>
+                <ol>
+                    <li><a href="#data-flow">Data Flow</a>
+                        <ol>
+                            <li><a href="#overview">Overview</a></li>
+                            <li><a href="#communication-flow">Communication Flow &amp; Diagram</a>
+                            <ol>
+                                <li><a href="#command-transmission">Command Transmission Flow</a></li>
+                                <li><a href="#response-transmission">Response Transmission Flow</a></li>
+                            </ol></li>
+                            <li><a href="#native-c-module-overview">Native C Module</a></li>
+                            <li><a href="#streaming-overview">Streaming Data</a></li>
+                        </ol>
+                    </li>
+                    <li>
+                        <a href="#backend">Backend</a>
+                        <ol>
+                            <li><a href="#installing-libserialport">Installing libserialport</a></li>
+                            <li><a href="#installing-node-gyp">Installing node-gyp</a></li>
+                            <li><a href="#configuring-binding">Configuring binding.gyp</a></li>
+                            <li><a href="#building-native-module">Building the Native Module</a></li>
+                            <li><a href="#rebuilding-for-electron">Rebuilding for Electron</a></li>
+                            <li><a href="#loading-native-module">Loading the Native Module in Electron</a></li>
+                            <li><a href="#native-c-module-backend">Native C Module - Backend</a></li>
+                            <ol>
+                                <li><a href="error-handling-recovery">Error Handling & Recovery - Backend</a></li>
+                                <li><a href="device-detection">Device Detection & Verification</a></li>
+                                <li><a href="command-validation">Command Validation & Response Verification</a></li>
+                                <li><a href="error-propogation-to-frontend">Error Propogation to the Frontend</a></li>
+                            </ol>
+                            <li><a href="#data-streaming">Data Streaming Setup</a>
+                                <ol>
+                                    <li><a href="com-port-verification">COM Port Identification & Differentiation</a></li>
+                                    <li><a href="triggering-streaming-start-stop">Triggering Streaming Start & Stop</a></li>
+                                    <li><a href="multi-threaded-steup">Multi-Threading Setup</a></li>
+                                    <li><a href="forwarding-to-frontend">Forwarding Data to Frontend</a></li>
+                                </ol>
+                            </li>
+                        </ol>
+                    </ol>
+                </li>
+            </ol>
+            </div>
+
         <section>
             
 <!-- #region Data Flow -->
-            <h1>Data Flow</h1>
-            <h2>Overview</h2>
-            <p>This section will provide information about the USB communication and data flow. For actual implementation steps 
-                involving the UI we will be implementing, check out the Frontend USB Communication section. This Data Flow section,
-                however, will be similar across both pages. This document will focus more on the C side of things. 
-                We will start by going over the overall flow of the data.</p>
-            <!-- DIFFERENT -->
-            <h2>Communication Flow & Diagram</h2>
-
-            <h3>Command Transmission Flow (PC to Flight Controller)</h3>
-            <h3>Response Transmission Flow (Flight Controller to PC)</h3>
-            <h3>Flow Diagram</h3>
-            <h2>Native C Module</h2>
-            <h3>Overview</h3>
-            <h2>Streaming Data</h2>
-            <h3>Overview</h3>
-            <h3>Streaming Flow</h3>
+                <h1 id="data-flow">Data Flow</h1>
+                <h2 id="overview">Overview</h2>
+                <p>This section will provide information about the USB communication and data flow. For actual implementation steps 
+                    involving JavScript and Electron, check out the <a href="./usb-communication-sw-frontend.html">Frontend USB Communication </a>section. This Data Flow section,
+                    however, will be the same across both pages. This document will focus more on the C side of things. 
+                    We will start by going over the overall flow of the data.</p>
+                <h2 id="communication-flow">Communication Flow &amp; Diagram</h2>
+                <p>The USB communication system consists of three major layers:
+                    <ul>
+                        <li>Desktop Application (Electron / JavaScript)</li>
+                        <li>Native Communication Layer (C module using libserialport)</li>
+                        <li>Flight Controller Firmware (MCU)</li>
+                    </ul>
+                </p>
+                <p>
+                    Each layer has a defined role in the communication pipeline. Commands originate from the desktop application, are 
+                    transmitted through the native C module using UART over USB, processed by the firmware, and then a response is 
+                    returned following the same path in reverse. <br><br>
+                    
+                    The communication flow ensures that high-level application logic remains separated from low-level serial communication.
+                </p>
+                <h3 id="command-transmission">Command Transmission Flow (PC to Flight Controller)</h3>
+                <p>
+                    <ol class="numbered-list">
+                        <li>User Action in Desktop Application: A user interacts with the Electron UI (for example clicking a button to request battery information).</li>
+                        <li>JavaScript Calls Native Function: The JavaScript code calls an exposed API function through the Electron contextBridge.</li>
+                        <li>Node-API Bridge: The call is forwarded through Node-API to the compiled native module (serial_addon.node).</li>
+                        <li>Native C Module Builds Command: The native C code constructs the command packet:
+                            <ul>
+                                <li>[CMD Header (0x800X)] + [Command Data]</li>
+                                <li>The packet is prepared as a byte array before transmission.</li>
+                            </ul>
+                        </li>
+                        <li>USB UART Transmission: The C module sends the command through libserialport using the configured UART settings:
+                            <ul>
+                                <li>115200 baud</li>
+                                <li>8 data bits</li>
+                                <li>no parity</li>
+                                <li>1 stop bit</li>
+                            </ul>
+                        </li>
+                        <li>Firmware Receives Command: The flight controller firmware reads the incoming bytes from the UART buffer.</li>
+                        <li>Command Parsing: The firmware extracts the first 2 bytes to determine the command ID.
+                            <ul>
+                                <li>Example: 0x8009 → e_GetInitialValuesVolt</li>
+                            </ul>
+                        </li>
+                        <li>Command Execution: The firmware processes the command by either:
+                            <ul>
+                                <li>retrieving stored values</li>
+                                <li>updating configuration parameters</li>
+                                <li>requesting sensor data</li>
+                            </ul>
+                        </li>
+                    </ol>
+                </p>
+                <h3 id="response-transmission">Response Transmission Flow (Flight Controller to PC)</h3>
+                <p>
+                    <ol class="numbered-list">
+                        <li>Response Construction: After processing the command, the firmware constructs a response packet containing:
+                            <ul>
+                                <li>[Response Header (0x500X)] + [JSON Data]</li>
+                            </ul>
+                        </li>
+                        <li>JSON Creation: The firmware uses the cJSON library to construct a JSON object containing labeled data values.</li>
+                        <li>Serialize JSON: The JSON object is converted to a string using:
+                            <ul>
+                                <li>cJSON_Print()</li>
+                            </ul>
+                        </li>
+                        <li>Transmit Response: The response packet is transmitted back over USB UART to the PC.</li>
+                        <li>Native C Module Receives Data: The C module reads the incoming serial buffer using libserialport.</li>
+                        <li>Response Verification: The first two bytes are checked to confirm the response header.</li>
+                        <li>Pass Data to JavaScript: The received JSON string is forwarded through the Node-API layer to the Electron application.</li>
+                        <li>Application Parses JSON: The Electron application parses the JSON and updates the UI accordingly.</li>
+                    </ol>
+                </p>
+                <h3>Flow Diagram</h3>
+                <img src="../SoftwareImages/DataFlowDiagram.png" alt="Diagram showing flow of data from Desktop Application to Firmware">
+                <h2 id="native-c-module-overview">Native C Module</h2>
+                <h3>Overview</h3>
+                <p>The native C module serves as the communication bridge between the Electron application and the flight controller hardware. It is responsible for:
+                    <ul>
+                        <li>Constructing command packets</li>
+                        <li>Handling USB UART communication</li>
+                        <li>Verifying responses (CRC, headers, length)</li>
+                        <li>Returning structured JSON data to JavaScript</li>
+                        <li>Triggering and forwarding data streaming</li>
+                    </ul>
+                    <p>
+                       This module is compiled as a Node.js addon using Node-API (N-API), allowing it to be called directly from JavaScript. 
+                    </p>
+                </p>
+                <h2 id="streaming-overview">Streaming Data</h2>
+                <h3>Overview</h3>
+                <p>In addition to standard request-response communication, the OSCAR Ground Station supports continuous data streaming from the flight controller. 
+                    This is primarily used for real-time telemetry, such as gyroscope orientation data, which must be updated frequently without requiring repeated 
+                    manual requests from the user.
+                    <br><br>Unlike discrete commands (such as populateAll or updateValue), streaming operates continuously in the background and pushes updates 
+                    to the frontend as new data becomes available.
+                    </p>
+                <h3>Streaming Flow</h3>
+                <p>The streaming pipeline is structured as follows:
+                    <ol class="numbered-list">
+                        <li>Renderer (UI) → </li>
+                        <li>ipcRenderer → </li>
+                        <li>Main Process → </li>
+                        <li>ipcMain → </li>
+                        <li>Worker Thread (Command Controller) → </li>
+                        <li>Streaming Thread (continuous data handler) → </li>
+                        <li>Native C Module (continuous serial read via libserialport) → </li>
+                        <li>Flight Controller</li>
+                    </ol>
+                    <p>The native module maintains an active serial connection and continuously reads incoming telemetry data. This data is forwarded through the streaming 
+                        thread, which parses and routes updates back through the Electron IPC system to the renderer process for UI updates.</p>
+                </p>
 <!-- #endregion -->
 
 
+
 <!-- #region Backend -->
-            <h1>Backend</h1>
+            <h1 id="backend">Backend</h1>
             <p>The desktop application is built with Electron, and USB communication is handled by a C module 
                 linked into the application. Because of this architecture, several libraries must be installed. The required libraries 
                 include libserialport (maintained by sigrok) and Node-API (node_api). Both are required for integration within the Electron 
                 project environment. However, only libserialport is required to compile the standalone C module independently of Electron.</p>
-            <h2>Installing libserialport</h2>
+            <h2 id="installing-libserialport">Installing libserialport</h2>
             <p>The first step is to follow the installation instructions <a href="https://sigrok.org/wiki/Libserialport">here</a>
                 <br><br>
                 After following those instructions, build libserialport using a Windows-compatible toolchain such as MinGW, MSYS2, Cygwin, or MSVC Build Tools. 
@@ -66,7 +224,7 @@
   
             </p><p>Make note of their file paths, as they will be referenced later in binding.gyp.
             </p>
-            <h2>Installing node-gyp</h2>
+            <h2 id="installing-node-gyp">Installing node-gyp</h2>
             <p>Next, inside the Electron project (where Node has already been initialized with package.json), install node-gyp globally: </p>
                 <div class="terminal">
                     <div class="terminal-body">
@@ -102,7 +260,7 @@
                     </div>
                 </div>
             </p>
-            <h2>Configuring binding.gyp</h2>
+            <h2 id="configuring-binding">Configuring binding.gyp</h2>
             <p>Open the binding.gyp file. In this file, you will manually map libserialport and your C module.
                 <br><br>target_name defines the name of the generated .node file. It does not need to match the C source file name, but it 
                 must be referenced consistently throughout the project.
@@ -151,7 +309,7 @@
                     <li>library links require Windows system libraries.</li>
                     <li>The libserialport source files are compiled directly into the addon.</li>
                 </ul>
-            <h2>Building the Native Module</h2>
+            <h2 id="building-native-module">Building the Native Module</h2>
             <p>
                 Navigate to the Electron project root folder and run: </p>
 
@@ -179,7 +337,7 @@
                         <div class="t-cmd">build/Release/serial_addon.node</div>
                     </div>
                 </div>
-            <h2>Rebuilding for Electron</h2>
+            <h2 id="rebuilding-for-electron">Rebuilding for Electron</h2>
             <p>
                 Electron uses its own Node runtime version, so the module must be rebuilt against Electron headers.
                 <br><br>To rebuild run:
@@ -199,7 +357,7 @@
                     </div>
                 </div>
                 <p>This ensures compatibility between Electron and the compiled native module.</p>
-            <h2>Loading the Native Module in Electron</h2>
+            <h2 id="loading-native-module">Loading the Native Module in Electron</h2>
             <p>
                 Create a file named preload.js and add the following code:
                 
@@ -223,24 +381,24 @@
                 </ul>
                 </p>
 
-            <h2>Native C Module - Backend</h2>
+            <h2 id="native-c-module-backend">Native C Module - Backend</h2>
 
-            <h2>Error Handling & Recovery - Backend</h2>
-            <h3>Device Detection & Verification</h3>
-            <h3>Command Validation & Response Verification</h3>
-            <h3>Length & CRC Validation</h3>
-            <h3>Timeout Handling</h3>
-            <h3>Error Propogation to the Frontend</h3>
+            <h3 id="error-handling-recovery">Error Handling & Recovery - Backend</h2>
+            <h3 id="device-detection">Device Detection & Verification</h3>
+            <h3 id="command-validation">Command Validation & Response Verification</h3>
+            <h4 id="length-crc-validation">Length & CRC Validation</h3>
+            <h4 id="timeout-handling">Timeout Handling</h3>
+            <h3 id="error-propogation-to-frontend">Error Propogation to the Frontend</h3>
 
     <!-- #region Data Streaming-->
-            <h2>Data Streaming Setup</h2>
+            <h2 id="data-streaming">Data Streaming Setup</h2>
             <p>
                 Data streaming within the Desktop Application is managed by the native C backend, which interfaces 
                 directly with the flight controller over USB serial communication. Unlike standard request–response 
                 interactions, streaming introduces a continuous data flow that is handled through a dedicated architecture 
                 involving dual COM ports, multithreading, and buffered data transfer to the frontend.
             </p>
-            <h3>COM Port Identification & Differentiation</h3>
+            <h3 id="com-port-verification">COM Port Identification & Differentiation</h3>
             <p>
                 The application dynamically identifies and verifies the correct COM ports using a handshake-based detection mechanism. 
                 The port used for data streaming is separate from the command port used for standard requests.
@@ -249,7 +407,7 @@
                 same process as the command port, but with a different handshake command. This allows the system to reliably 
                 distinguish between command and streaming channels without hardcoding port names.
             </p>
-            <h3>Triggering Streaming Start & Stop</h3>
+            <h3 id="triggering-streaming-start-stop">Triggering Streaming Start & Stop</h3>
             <p>
                 Streaming is initiated using the same command infrastructure as standard requests:
                 <ul>
@@ -263,7 +421,7 @@
                 existing packet structures and validation logic.
                 </p>
             </p>
-            <h3>Multi-Threading Setup</h3>
+            <h3 id="multi-threaded-steup">Multi-Threading Setup</h3>
             <p>
                 To prevent blocking the main application flow and other commands, streaming is handled on a separate thread using the Windows API.
                 <ul>
@@ -273,7 +431,7 @@
                 </ul>
                 <p>This allows real-time data to be processed without interfering with command execution or frontend responsiveness.</p>
             </p>
-            <h3>Forwarding Data to Frontend</h3>
+            <h3 id="forwarding-to-frontend">Forwarding Data to Frontend</h3>
             <p>
                 Incoming streaming data is processed and transferred to the frontend through a queue-based system.
                 <ul>
@@ -300,8 +458,7 @@
             <a href="./software.html" class="back-link">← Return to Software Overview</a>
         </section>
     </main>
-
-</body>
+    </div>
 
 <footer>
     <div class="footer-brand">OSCAR <span>Docs</span></div>
@@ -311,5 +468,9 @@
         <li><a href="https://github.com/gracefinger/OSCAR_Documentation.github.io">GitHub</a></li>
     </ul>
 </footer>
+
+<script src="../components/main.js"></script>
+
+</body>
 
 </html>

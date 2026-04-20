@@ -11,8 +11,6 @@
 </head>
 
 <body>
-    <div id="reading-progress"></div>
-
     <nav>
         <ul class="nav-links">
             <li><a href="../index.html"><span class="nav-dot"></span>Home</a></li>
@@ -106,7 +104,7 @@
                 <h1 id="data-flow">Data Flow</h1>
                 <h2 id="overview">Overview</h2>
                 <p>This section will provide information about the USB communication and data flow. For actual implementation steps 
-                    involving the C module we will be implementing, check out the Backend USB Communication section. This Data Flow section,
+                    involving the C module we will be implementing, check out the <a href="./usb-communication-sw-backend.html">Backend USB Communication</a> section. This Data Flow section,
                     however, will be the same across both pages. This document will focus more on the JavaScript side of things. 
                     We will start by going over the overall flow of the data.</p>
                 <h2 id="communication-flow">Communication Flow &amp; Diagram</h2>
@@ -825,51 +823,7 @@
         </ul>
     </footer>
 
-    <script>
-        // ── Build sidebar from headings ──
-        const sidebar = document.getElementById('sidebar-nav');
-        const headings = document.querySelectorAll('.doc-content h1[id], .doc-content h2[id], .doc-content h3[id]');
-
-        headings.forEach(h => {
-            const li = document.createElement('li');
-            const tag = h.tagName.toLowerCase();
-            li.classList.add('sidebar-' + tag);
-            const a = document.createElement('a');
-            a.href = '#' + h.id;
-            a.textContent = h.textContent;
-            li.appendChild(a);
-            sidebar.appendChild(li);
-        });
-
-        // ── Active link on scroll ──
-        const allLinks = sidebar.querySelectorAll('a');
-
-        const observer = new IntersectionObserver(entries => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    allLinks.forEach(a => a.classList.remove('active'));
-                    const active = sidebar.querySelector('a[href="#' + entry.target.id + '"]');
-                    if (active) {
-                        active.classList.add('active');
-                        active.scrollIntoView({ block: 'nearest' });
-                    }
-                }
-            });
-        }, { rootMargin: '0px 0px -70% 0px', threshold: 0 });
-
-        headings.forEach(h => observer.observe(h));
-
-        // ── Smooth scroll ──
-        document.querySelectorAll('a[href^="#"]').forEach(a => {
-            a.addEventListener('click', e => {
-                const target = document.querySelector(a.getAttribute('href'));
-                if (target) {
-                    e.preventDefault();
-                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            });
-        });
-    </script>
+    <script src="../components/main.js"></script>
 
 </body>
 
