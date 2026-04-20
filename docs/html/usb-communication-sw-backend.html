@@ -61,9 +61,6 @@
                             <li><a href="#native-c-module-backend">Native C Module - Backend</a></li>
                             <ol>
                                 <li><a href="error-handling-recovery">Error Handling & Recovery - Backend</a></li>
-                                <li><a href="device-detection">Device Detection & Verification</a></li>
-                                <li><a href="command-validation">Command Validation & Response Verification</a></li>
-                                <li><a href="error-propogation-to-frontend">Error Propogation to the Frontend</a></li>
                             </ol>
                             <li><a href="#data-streaming">Data Streaming Setup</a>
                                 <ol>
@@ -74,9 +71,8 @@
                                 </ol>
                             </li>
                         </ol>
-                    </ol>
-                </li>
-            </ol>
+                    </li>
+                </ol>
             </div>
 
         <section>
@@ -382,13 +378,273 @@
                 </p>
 
             <h2 id="native-c-module-backend">Native C Module - Backend</h2>
+            <p>The native C module handles low-level USB communication between the Electron app and the flight controller firmware. It exposes a simple API to 
+                JavaScript while managing serial communication details. Responsibilities include: 
+                <ul>
+                    <li>Maps frontend command strings to protocol headers (e.g., "GetInitialValuesVolt" → 0x8009).</li>
+                    <li>Verifies and opens COM ports with a handshake (0x8000 → 0x5000).</li>
+                    <li>Constructing and sending packets with a header, length, payload, and CRC.</li>
+                    <li>Reading and validating responses using length fields and CRC checks.</li>
+                    <li>Returns JSON responses or structured error messages to the frontend.</li>
+                    <li>Handles errors such as invalid commands, CRC failures, port failures, timeouts, and memory allocation issues.</li>
+                </ul>
 
+                <p>The module is structured into the following layers:</p>
+                <ol class="numbered-list">
+                    <li>USB Communication Layer (libserialport)
+                        <ul>
+                            <li>Handles opening/closing ports, configuring baud rate, parity, stop bits, and reading/writing bytes.</li>
+                            <li>Provides blocking reads/writes with timeout handling.</li>
+                            <li>check() function is used to evaluate libserialport return codes for errors.</li>
+                        </ul>
+                    </li>
+                    <li>Command & Packet Layer
+                        <ul>
+                            <li>Command Mapping
+                                <ul>
+                                    <li>Maps frontend command strings to protocol headers using map_command().</li>
+                                    <li>Provides helper functions for sending commands with or without payloads.</li>
+                                    <li>If a command is invalid it returns: 0xFFFF.</li>
+                                </ul>
+                            </li>
+                            <li>Packet Structure 
+                                <ul>
+                                    <li>All communication follows the command packet setup listed on <a href="./usb-communication-sw-frontend.html">Frontend USB Communication</a></li>
+                                </ul>
+                            </li>
+                            <li>CRC Generation & Validation
+                                <ul>
+                                    <li>Before sending a packet:
+                                        <ul>
+                                            <li>A CRC value is computed over the header, length, and payload.</li>
+                                            <li>The CRC is appended to the end of the packet.</li>
+                                        </ul>
+                                    </li>
+                                    <li>After receiving a response:
+                                        <ul>
+                                            <li>The CRC is recomputed from the received data.</li>
+                                            <li>The computed CRC value is compared to the received CRC value.</li>
+                                        </ul>
+                                    </li>
+                                    <li>If the CRC does not match:
+                                        <ul>
+                                            <li>The packet is rejected.</li>
+                                            <li>The request either retries or fails with an error</li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li>Length-Based Reads
+                                <ul>
+                                    <li>Instead of relying solely on timeouts, the module uses the length field to determine how many bytes to read:
+                                        <ul>
+                                            <li>Read initial bytes (header + length)</li>
+                                            <li>Extract the expected message size</li>
+                                            <li>Continue reading until the full packet is received</li>
+                                        </ul>
+                                    </li>
+                                    <li>This improves:
+                                        <ul>
+                                            <li>Performance (avoids waiting for full timeout)</li>
+                                            <li>Reliability (ensures complete packet reads)</li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </li>
+                    <li>Application Interface (Node-API)
+                        <ul>
+                            <li>Exposes C functions to JavaScript via Electron’s contextBridge.</li>
+                            <li>Functions include populateAll() for reading an entire page and updateValue() for writing individual values.</li>
+                            <li>Returns JSON strings or error messages back to the frontend.</li>
+                        </ul>
+                    </li>
+                    <li>Verification & Handshake
+                        <ul>
+                        <ul>
+                            <li>find_com_port() iterates over all serial ports and performs handshake validation with firmware (0x8000 → 0x5000).</li>
+                            <li>Stores verified port in verified_port for subsequent communication.</li>
+                        </ul>
+                    </li>
+                </ol>
+
+                <p>Functions exposed to the frontend include:</p>
+                <ul>
+                    <li>populateAll(command)
+                        <ul>
+                            <li>Reads all page values from the device; returns JSON or error.</li>
+                        </ul>
+                    </li>
+                    <li>updateValue(command, payload)
+                        <ul>
+                            <li>Sends a single value update; returns JSON or error.</li>
+                        </ul>
+                    </li>
+                    <li>startStreaming(command)
+                        <ul>
+                            <li>Starts streaming data for specified page (command); returns 1 on success, 0 on failure.</li>
+                        </ul>
+                    </li>
+                    <li>stopStreaming()
+                        <ul>
+                            <li>Signals to the streaming loop that it should stop. Triggers the stop streaming request to be sent to firmware; returns 1 on success, 0 on failure.</li>
+                        </ul>
+                    </li>
+                    <li>GetNextStreamPacket()
+                        <ul>
+                            <li>Internal backend function implemented in the C module that retrieves the next available data packet from a thread-safe queue. This function does not directly communicate with the frontend; instead, it is repeatedly called by the backend polling loop, and any returned data is then forwarded to the frontend through streamData events.</li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <p><strong>Note:</strong> There are many other functions in the C module. These are just the ones that the frontend Electron project has access to.</p>
+
+                <p>The module uses Node-API (napi) to bridge between C and JavaScript:</p>
+                <ul>
+                    <li>PopulateAll
+                        <ul>
+                            <li>calls populateAll() and converts the C string to a JavaScript string and vice versa.</li>
+                        </ul>
+                    </li>
+                    <li>UpdateValue
+                        <ul>
+                            <li>calls updateValue() and converts the C string to a JavaScript string and vice versa.</li>
+                        </ul>
+                    </li>
+                    <li>StartStreaming
+                        <ul>
+                            <li>calls startStreaming and converts the C string to JavaScript string and vice versa</li>
+                        </ul>
+                    </li>
+                    <li>StopStreaming
+                        <ul>
+                            <li>calls stopStreaming.</li>
+                        </ul>
+                    </li>
+                    <li>GetNextStreamPacket
+                        <ul>
+                            <li>calls getNextStreamPacket and allows forwarding of packets to frontend.</li>
+                        </ul>
+                    </li>
+                    <li>All wrappers handle NULL values and memory allocation errors safely.</li>
+                </ul>
+
+                <p>This allows JavaScript code to call the native functions as if they were regular async functions, while keeping the low-level details encapsulated.</p>
+            </p>
             <h3 id="error-handling-recovery">Error Handling & Recovery - Backend</h2>
-            <h3 id="device-detection">Device Detection & Verification</h3>
-            <h3 id="command-validation">Command Validation & Response Verification</h3>
-            <h4 id="length-crc-validation">Length & CRC Validation</h3>
-            <h4 id="timeout-handling">Timeout Handling</h3>
-            <h3 id="error-propogation-to-frontend">Error Propogation to the Frontend</h3>
+            <p>The USB communication system includes error detection and recovery mechanisms at multiple layers. These mechanisms ensure that failures such as missing 
+                devices, invalid responses, or serial communication errors do not crash the desktop application and instead return structured error messages that can
+                 be handled by the Electron UI.
+                
+                <br><br>Errors are handled in three stages:
+                <ol class="numbered-list">
+                    <li>Serial communication errors (libserialport layer)</li>
+                    <li>Device verification failures</li>
+                    <li>Application-level protocol errors</li>
+                </ol>
+
+                <p>The native C module uses libserialport for all UART communication. Most configuration calls return a value of type sp_return, which indicates
+                     whether the operation succeeded. To simplify error handling, there is a helper function used. This function is int check(enum sp_return result). 
+                     Upon error, this function prints an error message and aborts execution. Possible error conditions include:</p>
+
+                <ul>
+                    <li>SP_ERR_ARG - Invalid argument passed to libserialport function</li>
+                    <li>SP_ERR_FAIL - Generic failure reported by the driver</li>
+                    <li>SP_ERR_SUPP - Operation not supported</li>
+                    <li>SP_ERR_MEM - Memory allocation failure</li>
+                </ul>
+            </p>
+
+            <h4 id="device-detection">Device Detection & Verification</h4>
+            <p>Before any commands are transmitted, the application verifies that the correct USB device is connected. This process is handled by the function: find_com_port().
+            <br><br>The function performs the following steps:
+                <ol class="numbered-list">
+                    <li>Enumerates all available serial ports using sp_list_ports().</li>
+                    <li>Attempts to open each port.</li>
+                    <li>Sends a handshake command (0x8000).</li>
+                    <li>Waits for the expected acknowledgment 0x5000 from the firmware.</li>
+                    <li>If the correct response is received, the port name is stored in verified_port.</li>
+                </ol>
+
+                <p>If no device responds with the expected handshake, the function returns failure. The application then returns the following JSON error to the Electron frontend 
+                    allowing the UI to display an error message.</p>
+
+            </p>
+            <h4 id="command-validation">Command Validation & Response Verification</h4>
+            <p>
+                Before sending a command to the firmware, the command string provided by the JavaScript layer is translated into a command header using: map_command(). 
+                If the command does not exist in the mapping table, then the function returns 0xFFFF to signify an error occurred.
+
+                <br><br>After sending a command packet, the system waits for a response from the firmware. All valid responses must contain a header beginning 
+                with: 0x50XX. The header is checked using: (response_header & 0xFF00) != 0x5000 and response_header == 0xFFFE. If the response header does not 
+                match this format, the message is considered invalid and the request fails. This prevents corrupted or unrelated serial data from being 
+                interpreted as valid JSON.
+            </p>
+            <h4 id="length-crc-validation">Length & CRC Validation</h4>
+            <p>In addition to header validation, all packets are now validated using both a length field and a CRC value.
+                <br><br>After receiving the initial portion of a packet (header and length):
+                <ul>
+                    <li>The length field is used to determine the expected total size of the remaining data</li>
+                    <li>The system continues reading until the full packet is received</li>
+                </ul>
+
+                <p>This prevents incomplete reads and reduces reliance on timeout-based detection.
+
+                    <br><br>Once the full packet is received:
+                    <ul>
+                        <li>A CRC value is computed over the received data (excluding the received CRC field)</li>
+                        <li>The computed CRC is compared against the CRC included in the packet
+                            <ul>
+                                <li>If:
+                                    <ul>
+                                        <li>The received data length does not match the expected length, or</li>
+                                        <li>The CRC values do not match</li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </p>
+
+                <p>Then the packet is considered invalid and is discarded. This ensures that:</p>
+                <ul>
+                    <li>Corrupted packets are not processed</li>
+                    <li>Partial transmissions are rejected</li>
+                    <li>Only fully valid responses are passed to higher layers</li>
+                </ul>
+            </p>
+            <h4 id="timeout-handling">Timeout Handling</h4>
+            <p>
+                The communication layer uses blocking reads with a timeout: sp_blocking_read(..., timeout_ms). 
+                For command responses, the timeout is set to 2000 ms. Possible outcomes include from this timeout function include:
+                <ul>
+                    <li>bytes_read > 0: Response received successfully</li>
+                    <li>bytes_read == 0: Timeout occurred (no response)</li>
+                    <li>bytes_read < 0: Serial read error</li>
+                </ul>
+
+                <p>Timeouts typically indicate:</p>
+                <ul>
+                    <li>device disconnection</li>
+                    <li>firmware crash</li>
+                    <li>incorrect COM port selection</li>
+                </ul>
+                <p><strong>Note:</strong> Timeouts are primarily used as a fallback method to determine message completion or error. The length-based packet handling is the primary method.
+                
+                    <br><br>All dynamic memory allocations are checked before use.If memory allocation fails, the system:
+                    <ol class="numbered-list">
+                        <li>Closes the serial port</li>
+                        <li>Frees allocated resources</li>
+                        <li>Returns NULL to the caller</li>
+                    </ol>
+                </p>
+                
+            </p>
+            <h4 id="error-propogation-to-frontend">Error Propogation to the Frontend</h4>
+            <p>Errors generated by the native module are returned to the JavaScript layer as JSON error objects. EX: { "ERROR": "error description" }. The Electron renderer checks for the
+                 presence of the ERROR field: If an error is present, a modal dialog is displayed to the user. This approach allows the native module to communicate failures without crashing the
+                 desktop application.</p>
 
     <!-- #region Data Streaming-->
             <h2 id="data-streaming">Data Streaming Setup</h2>
