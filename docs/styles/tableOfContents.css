@@ -143,7 +143,7 @@ body {
 
 #toc-block h2 {
     margin: 0 0 1rem;
-    font-size: 0.7rem;
+    font-size: 1.5rem;
     font-weight: 700;
     font-family: var(--font-mono);
     color: var(--green-accent);
@@ -158,7 +158,7 @@ body {
     padding-left: 1.25rem;
     line-height: 1.9;
     font-family: var(--font-mono);
-    font-size: 0.85rem;
+    font-size: 1.25rem;
     color: var(--text-secondary);
 }
 

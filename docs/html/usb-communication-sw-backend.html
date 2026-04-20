@@ -35,7 +35,7 @@
 
             <!-- Table of Contents -->
             <div id="toc-block">
-                <h2>Table of Contents</h2>
+                <h2 id=>Table of Contents</h2>
                 <ol>
                     <li><a href="#data-flow">Data Flow</a>
                         <ol>
@@ -60,14 +60,14 @@
                             <li><a href="#loading-native-module">Loading the Native Module in Electron</a></li>
                             <li><a href="#native-c-module-backend">Native C Module - Backend</a></li>
                             <ol>
-                                <li><a href="error-handling-recovery">Error Handling & Recovery - Backend</a></li>
+                                <li><a href="#error-handling-recovery">Error Handling & Recovery - Backend</a></li>
                             </ol>
                             <li><a href="#data-streaming">Data Streaming Setup</a>
                                 <ol>
-                                    <li><a href="com-port-verification">COM Port Identification & Differentiation</a></li>
-                                    <li><a href="triggering-streaming-start-stop">Triggering Streaming Start & Stop</a></li>
-                                    <li><a href="multi-threaded-steup">Multi-Threading Setup</a></li>
-                                    <li><a href="forwarding-to-frontend">Forwarding Data to Frontend</a></li>
+                                    <li><a href="#com-port-verification">COM Port Identification & Differentiation</a></li>
+                                    <li><a href="#triggering-streaming-start-stop">Triggering Streaming Start & Stop</a></li>
+                                    <li><a href="#multi-threaded-steup">Multi-Threading Setup</a></li>
+                                    <li><a href="#forwarding-to-frontend">Forwarding Data to Frontend</a></li>
                                 </ol>
                             </li>
                         </ol>
@@ -532,7 +532,7 @@
 
                 <p>This allows JavaScript code to call the native functions as if they were regular async functions, while keeping the low-level details encapsulated.</p>
             </p>
-            <h3 id="error-handling-recovery">Error Handling & Recovery - Backend</h2>
+            <h3 id="error-handling-recovery">Error Handling & Recovery - Backend</h3>
             <p>The USB communication system includes error detection and recovery mechanisms at multiple layers. These mechanisms ensure that failures such as missing 
                 devices, invalid responses, or serial communication errors do not crash the desktop application and instead return structured error messages that can
                  be handled by the Electron UI.
