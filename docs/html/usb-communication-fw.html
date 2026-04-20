@@ -32,7 +32,8 @@
                 where that is a 2 byte header dictating what the response is for. The CRC is a 16 bit (2 byte) calculation performed 
                 on the data being loaded into the packet. See CRC section for more details on the calculation. The maximum size of 
                 the transmission is 64 bytes. The following illustration shows the format in which a command is to be sent.
-                <br><br>Insert Image here<br><br>
+
+                <br><br><img src="../FirmwareImages/packetStructure.png" alt="USB Packect Structure"><br><br>
                 Commands sent from the PC should be in the form of a standard array. The flight controller MCU will extract the first 
                 two bytes of the transmission to determine what the response needs to be. Any data that follows should be unique to the 
                 command. To prevent parsing errors updating data values should be done inside individual commands. For example, updating 
@@ -58,9 +59,9 @@
                 sent back to the host computer. This length is the size of the data and the CRC. It does not include the command header bytes nor the 
                 packet length byte.
 
-                <br><br>Insert Image Here<br><br>
+                <br><br><img src="../FirmwareImages/packetStructure.png" alt="USB Packect Structure"><br><br>
 
-                To setup JSON responses we are using the cJSON library found on the GitHub page linked <a href="https://github.com/DaveGamble/cJSON?tab=readme-ov-file#welcome-to-cjson">here</a> 
+                To setup JSON responses we are using the cJSON library found on the GitHub page linked <a href="https://github.com/DaveGamble/cJSON?tab=readme-ov-file#welcome-to-cjson">here</a>. <br><br> 
                 
                 Multiple library calls are required to correctly build the JSON object. The following examples are derived from the GitHub ReadMe for easier access:
                 <br><br>
@@ -148,7 +149,6 @@
                         </div>
                     </div>
                 </div>
-
                 <p>
                  When creating a JSON object it is important to add the elements to the object that you are needing to transmit. 
                  This would be the important data Software needs to display.<strong> Make sure to communicate how your JSON is formatted 
@@ -178,7 +178,6 @@
                     </div>
                 </div>
             <h3>Building JSON 2 in C</h3>
-
                 <div class="terminal">
                     <div class="terminal-body">
                         <div class="t-cmd">
@@ -215,10 +214,9 @@
 
             <h2>CRC Calculation</h2>
             <p>The CRC calculator follows the standard crc16_ccitt format. It takes in a buffer and its length. 
-                Each element in the buffer is xor'ed with the polynomial. The polynomial used is as follows:
-                <br><br>Replace equation with image - x^16+ x^12+x^5+1 <br><br>
-                It is used in the hexadecimal form 0x1021u. The CRC is formatted in a 16 bit integer.
-            </p>
+                Each element in the buffer is xor'ed with the polynomial. The polynomial used is as follows: </p>
+                <p style="text-align: center;"><br> x<sup>16</sup> + x<sup>12</sup> + x<sup>5</sup> + 1<br><br></p>
+            <p>It is used in the hexadecimal form 0x1021u. The CRC is formatted in a 16 bit integer.</p>
 
             <h2>Command Headers</h2>
             <p>
@@ -229,78 +227,78 @@
                         <div class="t-cmd">
                             <span class="light-red">// IPower and battery Stuff – Power and Battery Page  0x80xx series</span><br>
                             <br>
-                            &emsp;&emsp;e_GetConnection =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8000u,<br>
+                            &emsp;&emsp;e_GetConnection =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8000u,<br>
                             <br>
                             &emsp;&emsp;<span class="light-red">//Power and Battery Section</span><br>
-                            &emsp;&emsp;e_SetVoltMeterSource =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8001u,<br>
-                            &emsp;&emsp;e_SetCurrentMeterSource =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8002u,<br>
-                            &emsp;&emsp;e_SetMinCellVoltage =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8003u,<br>
-                            &emsp;&emsp;e_SetWarningCellVoltage =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8004u,<br>
-                            &emsp;&emsp;e_SetBatteryCapacity =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8005u,<br>
+                            &emsp;&emsp;e_SetVoltMeterSource =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8001u,<br>
+                            &emsp;&emsp;e_SetCurrentMeterSource =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8002u,<br>
+                            &emsp;&emsp;e_SetMinCellVoltage =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8003u,<br>
+                            &emsp;&emsp;e_SetWarningCellVoltage =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8004u,<br>
+                            &emsp;&emsp;e_SetBatteryCapacity =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8005u,<br>
                             &emsp;&emsp;e_SetVoltageCalibrationOffset =&emsp;&emsp;0x8006u,<br>
-                            &emsp;&emsp;e_SetCurrentScale =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8007u,<br>
-                            &emsp;&emsp;e_SetCurrentOffset =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8008u,<br>
-                            &emsp;&emsp;e_GetInitalValuesVolt =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8009u,<br>
+                            &emsp;&emsp;e_SetCurrentScale =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8007u,<br>
+                            &emsp;&emsp;e_SetCurrentOffset =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8008u,<br>
+                            &emsp;&emsp;e_GetInitalValuesVolt =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8009u,<br>
                             <br>
                             &emsp;&emsp;<span class="light-red">//Power and Battery Section - Power State info</span><br>
-                            &emsp;&emsp;e_GetPowerStateConnection =&emsp;&emsp;&emsp;&emsp;0x800Au,<br>
-                            &emsp;&emsp;e_GetPowerStateBatVolt =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x800Bu,<br>
-                            &emsp;&emsp;e_GetPowerStatemAhUsed =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x800Cu,<br>
-                            &emsp;&emsp;e_GetPowerStateCurrentDraw =&emsp;&emsp;&emsp;&emsp;0x800Du,<br>
+                            &emsp;&emsp;e_GetPowerStateConnection =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x800Au,<br>
+                            &emsp;&emsp;e_GetPowerStateBatVolt =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x800Bu,<br>
+                            &emsp;&emsp;e_GetPowerStatemAhUsed =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x800Cu,<br>
+                            &emsp;&emsp;e_GetPowerStateCurrentDraw =&emsp;&emsp;&emsp;&emsp;&emsp;0x800Du,<br>
                             <br>
                             <span class="light-red">// IMU &amp; Mag  Section – Setup and Ports Page 0x81xx series</span><br>
-                            &emsp;&emsp;e_GetSetupPortPageData =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8100u,<br>
-                            &emsp;&emsp;e_GetAccelCal =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8101u,<br>
-                            &emsp;&emsp;e_GetGyroCal =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8102u,<br>
-                            &emsp;&emsp;e_GetMagCal =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8103u,<br>
-                            &emsp;&emsp;e_GetResetCalToDefault =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8104u,<br>
+                            &emsp;&emsp;e_GetSetupPortPageData =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8100u,<br>
+                            &emsp;&emsp;e_GetAccelCal =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8101u,<br>
+                            &emsp;&emsp;e_GetGyroCal =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8102u,<br>
+                            &emsp;&emsp;e_GetMagCal =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8103u,<br>
+                            &emsp;&emsp;e_GetResetCalToDefault =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8104u,<br>
                             <br>
                             <span class="light-red">// Configuration Stuff  – Configuration Page 0x82xx series</span><br>
-                            &emsp;&emsp;e_GetConfigPageData =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8200u,<br>
-                            &emsp;&emsp;e_SetGyroUpdateFreq =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8201u, <span class="light-red">//included on get page data</span><br>
-                            &emsp;&emsp;e_SetAccelEnable =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8203u, <span class="light-red">//included on get page data</span><br>
-                            &emsp;&emsp;e_SetBarometerEnable =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8204u, <span class="light-red">//included on get page data</span><br>
-                            &emsp;&emsp;e_SetMagEnable =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8205u, <span class="light-red">//included on get page data</span><br>
-                            &emsp;&emsp;e_SetRollDeg =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8206u, <span class="light-red">//included on get page data</span><br>
-                            &emsp;&emsp;e_SetPitchDeg =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8207u, <span class="light-red">//included on get page data</span><br>
-                            &emsp;&emsp;e_SetYawDeg =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8208u, <span class="light-red">//included on get page data</span><br>
-                            &emsp;&emsp;e_SetMagAlign =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8209u, <span class="light-red">//included on get page data</span><br>
-                            &emsp;&emsp;e_SetPilotName =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x820Au, <span class="light-red">//included on get page data</span><br>
-                            &emsp;&emsp;e_SetDroneName =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x820Bu, <span class="light-red">//included on get page data</span><br>
-                            &emsp;&emsp;e_SetGPSEnabled =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x820Cu, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_GetConfigPageData =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8200u,<br>
+                            &emsp;&emsp;e_SetGyroUpdateFreq =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8201u, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_SetAccelEnable =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8203u, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_SetBarometerEnable =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8204u, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_SetMagEnable =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8205u, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_SetRollDeg =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8206u, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_SetPitchDeg =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8207u, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_SetYawDeg =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8208u, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_SetMagAlign =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8209u, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_SetPilotName =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x820Au, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_SetDroneName =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x820Bu, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_SetGPSEnabled =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x820Cu, <span class="light-red">//included on get page data</span><br>
                             <br>
                             <span class="light-red">//PID – PID Page 0x83xx series</span><br>
                             &emsp;&emsp;<span class="light-red">//Currently in-progress</span><br>
                             <br>
                             <span class="light-red">//Motors Page 0x84xx series</span><br>
-                            &emsp;&emsp;e_GetMotorPage =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8400u,<br>
+                            &emsp;&emsp;e_GetMotorPage =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8400u,<br>
                             <br>
                             &emsp;&emsp;<span class="light-red">//Motor Features</span><br>
-                            &emsp;&emsp;e_SetDShotSpeed =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8401u,<br>
-                            &emsp;&emsp;e_SetMotorStop =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8402u,<br>
-                            &emsp;&emsp;e_ReleaseMotorStop =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8403u, <span class="light-red">//currently non functional</span><br>
-                            &emsp;&emsp;e_SetUARTTelemetryLineEnabled =&emsp;0x8404u, <span class="light-red">//currently non functional</span><br>
+                            &emsp;&emsp;e_SetDShotSpeed =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8401u,<br>
+                            &emsp;&emsp;e_SetMotorStop =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8402u,<br>
+                            &emsp;&emsp;e_ReleaseMotorStop =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8403u, <span class="light-red">//currently non functional</span><br>
+                            &emsp;&emsp;e_SetUARTTelemetryLineEnabled =&emsp;&emsp;0x8404u, <span class="light-red">//currently non functional</span><br>
                             &emsp;&emsp;e_SetUARTTelemetryLineDisabled =&emsp;0x8405u, <span class="light-red">//currently non functional</span><br>
-                            &emsp;&emsp;e_SetMotorIdleValue =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x840Eu,<br>
+                            &emsp;&emsp;e_SetMotorIdleValue =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x840Eu,<br>
                             <br>
                             &emsp;&emsp;<span class="light-red">//Motor Direction</span><br>
-                            &emsp;&emsp;e_SetMotorsReversed =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8406u,<br>
-                            &emsp;&emsp;e_SetMotorsDefault =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8407u,<br>
+                            &emsp;&emsp;e_SetMotorsReversed =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8406u,<br>
+                            &emsp;&emsp;e_SetMotorsDefault =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8407u,<br>
                             <br>
                             &emsp;&emsp;<span class="light-red">//Motor Outputs</span><br>
-                            &emsp;&emsp;e_SetMotorOneThrottle =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8408u,<br>
-                            &emsp;&emsp;e_SetMotorTwoThrottle =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8409u,<br>
-                            &emsp;&emsp;e_SetMotorThreeThrottle =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x840Au,<br>
-                            &emsp;&emsp;e_SetMotorFourThrottle =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x840Bu,<br>
-                            &emsp;&emsp;e_SetMasterThrottle =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x840Fu,<br>
+                            &emsp;&emsp;e_SetMotorOneThrottle =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8408u,<br>
+                            &emsp;&emsp;e_SetMotorTwoThrottle =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8409u,<br>
+                            &emsp;&emsp;e_SetMotorThreeThrottle =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x840Au,<br>
+                            &emsp;&emsp;e_SetMotorFourThrottle =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x840Bu,<br>
+                            &emsp;&emsp;e_SetMasterThrottle =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x840Fu,<br>
                             <br>
                             &emsp;&emsp;<span class="light-red">//Motor Control</span><br>
-                            &emsp;&emsp;e_SetMotorControlEnable =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x840Cu,<br>
-                            &emsp;&emsp;e_SetMotorControlDisable =&emsp;&emsp;&emsp;&emsp;&emsp;0x840Du,<br>
+                            &emsp;&emsp;e_SetMotorControlEnable =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x840Cu,<br>
+                            &emsp;&emsp;e_SetMotorControlDisable =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x840Du,<br>
                             <br>
                             <span class="light-red">//Streaming Features</span><br>
-                            &emsp;&emsp;e_StartQuaternionStream =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8500u,<br>
-                            &emsp;&emsp;e_StopQuaternionStream =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8501u,
+                            &emsp;&emsp;e_StartQuaternionStream =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8500u,<br>
+                            &emsp;&emsp;e_StopQuaternionStream =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8501u,
                         </div>
                     </div>
                 </div>
@@ -313,77 +311,77 @@
                         <div class="t-cmd">
                             <span class="light-red">//General connection check</span><br>
                             <span class="light-red">// Power and battery Stuff – Power and Battery Page  0x50xx series</span><br>
-                            &emsp;&emsp;e_ResGetConnection =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5000u,<br>
+                            &emsp;&emsp;e_ResGetConnection =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5000u,<br>
                             <br>
                             &emsp;&emsp;<span class="light-red">//Power and Battery Section</span><br>
                             &emsp;&emsp;e_ResSetVoltMeterSource =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5001u,<br>
-                            &emsp;&emsp;e_ResSetCurrentMeterSource =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5002u,<br>
+                            &emsp;&emsp;e_ResSetCurrentMeterSource =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5002u,<br>
                             &emsp;&emsp;e_ResSetMinCellVoltage =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5003u,<br>
-                            &emsp;&emsp;e_ResSetWarningCellVoltage =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5004u,<br>
+                            &emsp;&emsp;e_ResSetWarningCellVoltage =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5004u,<br>
                             &emsp;&emsp;e_ResSetBatteryCapacity =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5005u,<br>
-                            &emsp;&emsp;e_ResSetVoltageCalibrationOffset =&emsp;&emsp;0x5006u,<br>
-                            &emsp;&emsp;e_ResSetCurrentScale =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5007u,<br>
-                            &emsp;&emsp;e_ResSetCurrentOffset =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5008u,<br>
-                            &emsp;&emsp;e_ResGetInitalValuesVolt =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5009u,<br>
+                            &emsp;&emsp;e_ResSetVoltageCalibrationOffset= 0x5006u,<br>
+                            &emsp;&emsp;e_ResSetCurrentScale =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5007u,<br>
+                            &emsp;&emsp;e_ResSetCurrentOffset =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5008u,<br>
+                            &emsp;&emsp;e_ResGetInitalValuesVolt =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5009u,<br>
                             <br>
                             &emsp;&emsp;<span class="light-red">//Power and Battery Section - Power State info</span><br>
-                            &emsp;&emsp;e_ResGetPowerStateConnection =&emsp;&emsp;&emsp;&emsp;&emsp;0x500Au,<br>
-                            &emsp;&emsp;e_ResGetPowerStateBatVolt =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x500Bu,<br>
+                            &emsp;&emsp;e_ResGetPowerStateConnection =&emsp;&emsp;&emsp;&emsp;0x500Au,<br>
+                            &emsp;&emsp;e_ResGetPowerStateBatVolt =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x500Bu,<br>
                             &emsp;&emsp;e_ResGetPowerStatemAhUsed =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x500Cu,<br>
-                            &emsp;&emsp;e_ResGetPowerStateCurrentDraw =&emsp;&emsp;&emsp;&emsp;0x500Du,<br>
+                            &emsp;&emsp;e_ResGetPowerStateCurrentDraw =&emsp;&emsp;&emsp;0x500Du,<br>
                             <br>
                             <span class="light-red">//IMU and Mag Section  – Setup and Ports Page 0x51xx series</span><br>
                             &emsp;&emsp;e_ResSendSetupPortPageData =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5100u,<br>
-                            &emsp;&emsp;e_ResAccelCal =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5101u,<br>
-                            &emsp;&emsp;e_ResGyroCal =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5102u,<br>
-                            &emsp;&emsp;e_ResMagCal =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5103u,<br>
+                            &emsp;&emsp;e_ResAccelCal =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5101u,<br>
+                            &emsp;&emsp;e_ResGyroCal =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5102u,<br>
+                            &emsp;&emsp;e_ResMagCal =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5103u,<br>
                             <br>
                             <span class="light-red">// Configuration Stuff  – Configuration Page 0x52xx series</span><br>
                             &emsp;&emsp;e_ResGetConfigPageData =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5200u,<br>
                             &emsp;&emsp;e_ResSetGyroUpdateFreq =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5201u, <span class="light-red">//included on get page data</span><br>
-                            &emsp;&emsp;e_ResSetAccelEnable =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5203u, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_ResSetAccelEnable =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5203u, <span class="light-red">//included on get page data</span><br>
                             &emsp;&emsp;e_ResSetBarometerEnable =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5204u, <span class="light-red">//included on get page data</span><br>
-                            &emsp;&emsp;e_ResSetMagEnable =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5205u, <span class="light-red">//included on get page data</span><br>
-                            &emsp;&emsp;e_ResSetRollDeg =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5206u, <span class="light-red">//included on get page data</span><br>
-                            &emsp;&emsp;e_ResSetPitchDeg =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5207u, <span class="light-red">//included on get page data</span><br>
-                            &emsp;&emsp;e_ResSetYawDeg =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5208u, <span class="light-red">//included on get page data</span><br>
-                            &emsp;&emsp;e_ResSetMagAlign =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5209u, <span class="light-red">//included on get page data</span><br>
-                            &emsp;&emsp;e_ResSetPilotName =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x520Au, <span class="light-red">//included on get page data</span><br>
-                            &emsp;&emsp;e_ResSetDroneName =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x520Bu, <span class="light-red">//included on get page data</span><br>
-                            &emsp;&emsp;e_ResSetGPSEnabled =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x520Cu, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_ResSetMagEnable =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5205u, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_ResSetRollDeg =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5206u, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_ResSetPitchDeg =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5207u, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_ResSetYawDeg =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5208u, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_ResSetMagAlign =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5209u, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_ResSetPilotName =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x520Au, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_ResSetDroneName =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x520Bu, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_ResSetGPSEnabled =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x520Cu, <span class="light-red">//included on get page data</span><br>
                             <br>
                             <span class="light-red">//PID – PID Page 0x53xx series</span><br>
                             &emsp;&emsp;<span class="light-red">//Currently in-progress</span><br>
                             <br>
                             <span class="light-red">//Motors Page 0x54xx series</span><br>
-                            &emsp;&emsp;e_ResGetMotorPage =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5400u,<br>
+                            &emsp;&emsp;e_ResGetMotorPage =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5400u,<br>
                             <br>
                             &emsp;&emsp;<span class="light-red">//Motor Features</span><br>
-                            &emsp;&emsp;e_ResSetDShotSpeed =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5401u,<br>
-                            &emsp;&emsp;e_ResSetMotorStop =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5402u,<br>
-                            &emsp;&emsp;e_ResReleaseMotorStop =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5403u, <span class="light-red">//currently non functional</span><br>
-                            &emsp;&emsp;e_ResSetUARTTelemetryLineEnabled =&emsp;0x5404u, <span class="light-red">//currently non functional</span><br>
-                            &emsp;&emsp;e_ResSetUARTTelemetryLineDisabled =&emsp;0x5405u, <span class="light-red">//currently non functional</span><br>
-                            &emsp;&emsp;e_SetMotorIdleValue =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x540Eu,<br>
+                            &emsp;&emsp;e_ResSetDShotSpeed =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5401u,<br>
+                            &emsp;&emsp;e_ResSetMotorStop =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5402u,<br>
+                            &emsp;&emsp;e_ResReleaseMotorStop =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5403u, <span class="light-red">//currently non functional</span><br>
+                            &emsp;&emsp;e_ResSetUARTTelemetryLineEnabled= 0x5404u, <span class="light-red">//currently non functional</span><br>
+                            &emsp;&emsp;e_ResSetUARTTelemetryLineDisabled=0x5405u, <span class="light-red">//currently non functional</span><br>
+                            &emsp;&emsp;e_SetMotorIdleValue =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x540Eu,<br>
                             <br>
                             &emsp;&emsp;<span class="light-red">//Motor Direction</span><br>
                             &emsp;&emsp;e_ResSetMotorsReversed =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5406u,<br>
                             &emsp;&emsp;e_ResSetMotorsDefault =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5407u,<br>
                             <br>
                             &emsp;&emsp;<span class="light-red">//Motor Outputs</span><br>
-                            &emsp;&emsp;e_ResSetMotorOneThrottle =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5408u,<br>
-                            &emsp;&emsp;e_ResSetMotorTwoThrottle =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5409u,<br>
-                            &emsp;&emsp;e_ResSetMotorThreeThrottle =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x540Au,<br>
-                            &emsp;&emsp;e_ResSetMotorFourThrottle =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x540Bu,<br>
+                            &emsp;&emsp;e_ResSetMotorOneThrottle =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5408u,<br>
+                            &emsp;&emsp;e_ResSetMotorTwoThrottle =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5409u,<br>
+                            &emsp;&emsp;e_ResSetMotorThreeThrottle =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x540Au,<br>
+                            &emsp;&emsp;e_ResSetMotorFourThrottle =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x540Bu,<br>
                             &emsp;&emsp;e_ResSetMasterThrottle =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x540Fu,<br>
                             <br>
                             &emsp;&emsp;<span class="light-red">//Motor Control</span><br>
-                            &emsp;&emsp;e_ResSetMotorControlEnable =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x540Cu,<br>
-                            &emsp;&emsp;e_ResSetMotorControlDisable =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x540Du,<br>
+                            &emsp;&emsp;e_ResSetMotorControlEnable =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x540Cu,<br>
+                            &emsp;&emsp;e_ResSetMotorControlDisable =&emsp;&emsp;&emsp;&emsp;&emsp;0x540Du,<br>
                             <br>
                             <span class="light-red">//Streaming</span><br>
-                            &emsp;&emsp;e_ResStartQuaternionStream =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5500u,<br>
-                            &emsp;&emsp;e_ResStopQuaternionStream =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5501u,
+                            &emsp;&emsp;e_ResStartQuaternionStream =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5500u,<br>
+                            &emsp;&emsp;e_ResStopQuaternionStream =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5501u,
                         </div>
                     </div>
                 </div>
@@ -395,8 +393,8 @@
                 <div class="terminal">
                     <div class="terminal-body">
                         <div class="t-cmd">
-                            &emsp;&emsp;e_ErrorUknownCommand =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0xFFFFu,<br>
-                            &emsp;&emsp;e_CRCFailure =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0xFFFEu,
+                            &emsp;&emsp;e_ErrorUknownCommand =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0xFFFFu,<br>
+                            &emsp;&emsp;e_CRCFailure =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0xFFFEu,
                         </div>
                     </div>
                 </div>
