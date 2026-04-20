@@ -155,7 +155,7 @@ body {
 
 #toc-block ol {
     margin: 0;
-    padding-left: 1.25rem;
+    padding-left: .95rem;
     line-height: 1.9;
     font-family: var(--font-mono);
     font-size: 1.25rem;
