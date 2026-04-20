@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desktop Application Setup</title>
+    <link rel="stylesheet" href="../styles/main.css">
+</head>
+
+<body>
+    <nav>
+        <ul class="nav-links">
+            <li><a href="../index.html"><span class="nav-dot"></span>Home</a></li>
+            <li><a href="hardware.html"><span class="nav-dot"></span>Hardware</a></li>
+            <li><a href="firmware.html"><span class="nav-dot"></span>Firmware</a></li>
+            <li><a href="software.html"><span class="nav-dot"></span>Software</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <h1>Desktop Application Setup</h1>
+        <section>
+            <h2>Assumptions / Expectations</h2>
+            <p>You do not need to have prior coding experience to implement and use OSCAR Ground Station. This
+                documentation will either provide you with all the information you need to get started, or it will
+                direct you to helpful external resources if you need more assistance or background. While prior
+                experience or exposure to web development concepts and communication protocols is helpful, it is by no
+                means expected.</p>
+
+            <h2>Environment & Project Setup</h2>
+            <h3>Electron Project Initialization</h3>
+            <h4>What is Electron?</h4>
+            <p><a href="https://www.electronjs.org/">Electron</a> is the development framework under which OSCAR Ground
+                Station was designed. Electron acts as a wrapper layer for web applications using a <a
+                    href="https://nodejs.org/en">Node.js</a> environment. Combining <a
+                    href="https://www.chromium.org/chromium-projects/">Chromium</a> and Node.js, Electron allows the
+                desktop application to be packaged and built into a single binary file.</p>
+            <h4>Why Electron?</h4>
+            <p>Electron was chosen as the framework for OSCAR Ground Station because it is built upon a web development
+                environment, which has a less steep learning curve than other framework options. People often have more
+                familiarity with, or at least more exposure to, web development concepts than other desktop application
+                development frameworks. These web development technologies also have ample documentation available to
+                learn and grow.</p>
+            <h4>Other Resources</h4>
+            <p>Electron has a tutorial for setting up your own project <a
+                    href="https://www.electronjs.org/docs/latest/tutorial/tutorial-prerequisites">here</a>. An in-depth
+                tutorial specific to the OSCAR Ground Station application is provided in this document for simplicity.
+            </p>
+            <p>Minimal background with web development or Node.js is expected. However, if you would like to know more,
+                we recommend these resources:</p>
+            <ul>
+                <li><a href="https://nodejs.org/en/learn/getting-started/introduction-to-nodejs">Node.js</a></li>
+                <li><a href="https://www.w3schools.com/html/default.asp">HTML</a></li>
+                <li><a href="https://www.w3schools.com/css/default.asp">CSS</a></li>
+                <li><a href="https://www.w3schools.com/js/default.asp">JavaScript</a></li>
+                <li><a href="https://www.w3schools.com/whatis/whatis_json.asp">JSON</a></li>
+                <li><a href="https://nodesource.com/blog/an-absolute-beginners-guide-to-using-npm">npm</a></li>
+            </ul>
+            <h4>Tools Required</h4>
+            <ul>
+                <li>Code Editor</li>
+                <ul>
+                    <li>We recommend <a href="https://code.visualstudio.com/">Visual Studio Code</a>, but it is up to
+                        your preference.</li>
+                </ul>
+                <li>Terminal / Command Line</li>
+                <ul>
+                    <li>Windows: Command Prompt, Powershell, Git Bash, etc.</li>
+                </ul>
+                <li>Git and GitHub</li>
+                <ul>
+                    <li>If you do not already have a GitHub account, you can create one <a
+                            href="https://docs.github.com/en/get-started/start-your-journey/creating-an-account-on-github">here</a>.
+                    </li>
+                    <li>If you do not already have Git installed on your machine, <a
+                            href="https://github.com/git-guides/install-git">install Git</a>.</li>
+                </ul>
+                <li>Node.js and npm</li>
+                <li>Electron</li>
+            </ul>
+            <h4>How to Setup the Electron Project</h4>
+            <p>First, you need to ensure you have node.js. You can download node.js / npm for your machine's OS and
+                architecture <a href="https://nodejs.org/en/download/">here</a>.</p>
+            <p>Next, you should verify your installation in your terminal to ensure it installed correctly:</p>
+            <div class="terminal">
+                <div class="terminal-body">
+                    <div><span class="t-prompt">$</span> <span class="t-cmd">node -v</span></div>
+                    <div style="margin-top: 0.5rem;"><span class="t-prompt">$</span> <span class="t-cmd">npm -v</span>
+                    </div>
+                </div>
+            </div>
+            <p>Now you are ready to initialize your project. We've included instructions here for OSCAR specifically,
+                but additional relevant npm documentation can be found <a href="https://docs.npmjs.com/">here</a>.</p>
+            <p>First, create a new directory for your project and navigate into it:</p>
+            <div class="terminal">
+                <div class="terminal-body">
+                    <div><span class="t-prompt">$</span> <span class="t-cmd">mkdir my-electron-app</span></div>
+                    <div style="margin-top: 0.5rem;"><span class="t-prompt">$</span> <span class="t-cmd">cd
+                            my-electron-app</span>
+                    </div>
+                </div>
+            </div>
+            <p>Then, initialize your npm project:</p>
+            <div class="terminal">
+                <div class="terminal-body">
+                    <div><span class="t-prompt">$</span> <span class="t-cmd">npm init</span></div>
+                </div>
+            </div>
+            <p>This will start a command line questionnaire to help you set up your package.json file. You can press
+                enter to select the default for each question, but <strong class="red">make sure to
+                    set the entry point to "main.js"</strong>.</p>
+            <p>Once you complete the init process, a package.json file will be generated and placed in your current
+                directory. Your package.json file is essentially a manifest of your project that includes the packages
+                / applications it depends on, source control, and metadata.</p>
+            <p>To install packages into your project, you can use the following command:</p>
+            <div class="terminal">
+                <div class="terminal-body">
+                    <div><span class="t-prompt">$</span> <span class="t-cmd">npm install &lt;package-name&gt;</span>
+                    </div>
+                </div>
+            </div>
+            <p>You can add flags to the npm install command to specify the type of dependency you want to install.
+                <strong class="red">"--save"</strong> will add the package as a dependency in your package.json file.
+                <strong class="red">"--save-dev"</strong> will add the package as a development dependency. For example:
+            </p>
+            <div class="terminal">
+                <div class="terminal-body">
+                    <div><span class="t-prompt">$</span> <span class="t-cmd">npm install --save
+                            &lt;package-name&gt;</span>
+                    </div>
+                    <div style="margin-top: 0.5rem;"><span class="t-prompt">$</span> <span class="t-cmd">npm install
+                            --save-dev &lt;package-name&gt;</span>
+                    </div>
+                </div>
+            </div>
+            <p>For OSCAR Ground Station, you will need to install Electron as a development dependency:</p>
+            <div class="terminal">
+                <div class="terminal-body">
+                    <div><span class="t-prompt">$</span> <span class="t-cmd">npm install --save-dev
+                            electron</span>
+                    </div>
+                </div>
+            </div>
+            <p>The main.js file will be the entry point for your Electron application. We created it when we initialized
+                the project. It controls the main process, which runs in a Node.js environment, and is responsible for
+                the application life cycle, displaying native interfaces, performing privileged operations, and managing
+                renderer processes.</p>
+            <p>Add “electron .” to the start command in the scripts field of your package.json in order to run the
+                main.js file. For example:</p>
+            <div class="terminal">
+                <div class="terminal-body">
+                    <div class="t-cmd">
+                        {<br>
+                        &emsp;&emsp;"name": "my-electron-app",<br>
+                        &emsp;&emsp;"version": "1.0.0",<br>
+                        &emsp;&emsp;"description": "Hello World!",<br>
+                        &emsp;&emsp;"main": "main.js",<br>
+                        &emsp;&emsp;"scripts": {<br>
+                        &emsp;&emsp;<strong class="red">"start": "electron .",</strong><br>
+                        &emsp;&emsp;"test": "echo \"Error: no test specified\" && exit 1"<br>
+                        },<br>
+                        &emsp;&emsp;"author": "Jane Doe",<br>
+                        &emsp;&emsp;"license": "MIT",<br>
+                        &emsp;&emsp;"devDependencies": {<br>
+                        &emsp;&emsp;"electron": "23.1.3"<br>
+                        }
+                    </div>
+                </div>
+            </div>
+            <p>If you have not already done so, you should create a file called “index.html”. This file describes the
+                page that the application will open up to. Its contents should look something like this (for now - you
+                will update it later):</p>
+            <div class="terminal">
+                <div class="terminal-body">
+                    <div class="t-cmd">
+                        &lt;!DOCTYPE html&gt;<br>
+                        &lt;html&gt;<br>
+                        &emsp;&emsp;&lt;head&gt;<br>
+                        &emsp;&emsp;&emsp;&emsp;&lt;meta charset="UTF-8"/&gt;<br>
+                        &emsp;&emsp;&emsp;&emsp;&lt;meta<br>
+                        &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;http-equiv="Content-Security-Policy"<br>
+                        &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;content="default-src 'self'; script-src 'self'"<br>
+                        &emsp;&emsp;&emsp;&emsp;/&gt;<br>
+                        &emsp;&emsp;&emsp;&emsp;&lt;meta<br>
+                        &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;http-equiv="X-Content-Security-Policy"<br>
+                        &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;content="default-src 'self'; script-src 'self'"<br>
+                        &emsp;&emsp;&emsp;&emsp;/&gt;<br>
+                        &emsp;&emsp;&emsp;&emsp;&lt;title>Hello from Electron renderer!&lt;/title&gt;<br>
+                        &emsp;&emsp;&lt;/head&gt;<br>
+                        &emsp;&emsp;&lt;body&gt;<br>
+                        &emsp;&emsp;&emsp;&emsp;&lt;h1&gt;Hello from Electron renderer!&lt;/h1&gt;<br>
+                        &emsp;&emsp;&emsp;&emsp;&lt;p&gt;👋&lt;/p&gt;<br>
+                        &emsp;&emsp;&lt;/body&gt;<br>
+                        &lt;/html>
+                    </div>
+                </div>
+            </div>
+            <p>Now that you have your first webpage, you will need to update your main.js to look like this:</p>
+            <div class="terminal">
+                <div class="terminal-body">
+                    <div class="t-cmd">
+                        <div class="light-red">
+                            const { app, BrowserWindow } = require('electron')<br>
+                        </div>
+                        <br>
+                        <div class="light-green">
+                            const createWindow = () => {<br>
+                            &emsp;&emsp;const win = new BrowserWindow({<br>
+                            &emsp;&emsp;&emsp;&emsp;width: 800,<br>
+                            &emsp;&emsp;&emsp;&emsp;height: 600,<br>
+                            &emsp;&emsp;&emsp;&emsp;webPreferences: {<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;nodeIntegration: true<br>
+                            &emsp;&emsp;&emsp;&emsp;}<br>
+                            &emsp;&emsp;})<br>
+                            <br>
+                            &emsp;&emsp;win.loadFile('index.html')<br>
+                            }<br>
+                        </div>
+                        <br>
+                        <div class="light-blue">
+                            app.whenReady().then(() => <br>
+                            &emsp;&emsp;createWindow()<br>
+                            })<br>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <p>The <strong class=light-red>red</strong> section imports two modules: app and BrowserWindow using
+                CommonJS module syntax. app controls the application lifecycle, and BrowserWindow creates and manages
+                app windows.</p>
+            <p>The <strong class=light-green>green</strong> section defines the createWindow function, which loads your
+                webpage (index.html) into a new BrowserWindow instance.</p>
+            <p>The <strong class=light-blue>blue</strong> section waits for the application to be ready before creating
+                it.</p>
+
+            <h2>Project Structure & Architecture</h2>
+            <h3>Directory Layout</h3>
+            <p>The directory structure for OSCAR Ground Station is comprised of the following folders:</p>
+            <ul>
+                <li style="color:white">OSCAR-app/</li>
+                <ul>
+                    <li style="color:white">build/</li>
+                    <ul>
+                        <li>Contains the compiled serial addon C node.</li>
+                    </ul>
+                    <li style="color:white">Communication/</li>
+                    <ul>
+                        <li>Contains the C module for USB Communication.</li>
+                    </ul>
+                    <li style="color:white">Components/</li>
+                    <ul>
+                        <li>Contains all javaScript files.</li>
+                    </ul>
+                    <li style="color:white">HTML/</li>
+                    <ul>
+                        <li>Contains all HTML files</li>
+                    </ul>
+                    <li style="color:white">images/</li>
+                    <ul>
+                        <li>Contains the images embedded in the application.</li>
+                    </ul>
+                    <li style="color:white">models/</li>
+                    <ul>
+                        <li>Contains the 3D model, and textures for the model, found in the textures/ folder.</li>
+                    </ul>
+                    <li style="color:white">node_modules/</li>
+                    <ul>
+                        <li>This folder serves as a container for all of your external dependencies.</li>
+                    </ul>
+                    <li style="color:white">Styles/</li>
+                    <ul>
+                        <li>Contains the CSS files for your project.</li>
+                    </ul>
+                    <li style="color:white">binding.gyp</li>
+                    <ul>
+                        <li>This is an important file that defines the paths to important libraries on your local
+                            machine. This is necessary for the Electron application to bind to the Native C Module.</li>
+                    </ul>
+                    <li style="color:white">package-lock.json</li>
+                    <ul>
+                        <li>This file ensures that dependencies between machines are consistent. It is similar to
+                            package.json, but contains more detail.</li>
+                    </ul>
+                    <li style="color:white">package.json</li>
+                    <ul>
+                        <li>This is the official manifest for the project, defining the name, version, dependencies, and
+                            more.</li>
+                    </ul>
+                </ul>
+            </ul>
+
+            <h2>User Interface Architecture</h2>
+            <h3>UI Framework</h3>
+            <p>The OSCAR Ground Station user interface is built using standard web technologies: HTML, CSS, and
+                JavaScript. These technologies are executed within the Electron rendered process, which functions
+                similarly to a traditional web browser environment.</p>
+            <p>HTML is used to define the structure and content of each page while CSS is responsible for styling and
+                layout. JavaScript handles the dynamic behavior, even handling, and communication with the backend. This
+                approach allows for a modular and flexible UI while leveraging widely understood and well-documented
+                technologies.</p>
+            <p>Since Electron integrates with Chromium, the application can use modern JavaScript features and browser
+                APIs without concern for cross-browser compatibility. This simplifies the development of the application
+                and enables a more streamlined implementation of interactive UI components.</p>
+            <h3>Theming & Design Principles</h3>
+            <p>The UI follows a consistent theming strategy to ensure clarity, usability, and visual cohesion across all
+                pages. A centralized color palette and shared styling rules are defined in global CSS files, allowing
+                all components to maintain a uniform appearance.</p>
+            <p>Key design principles include:</p>
+            <ul>
+                <li>Consistency: Reusable styles and standardized components are used throughout the application to
+                    create a predictable user experience.</li>
+                <li>Readability: Clear typography, spacing, and contrast are prioritized to ensure information is easy
+                    to understand.</li>
+                <li>Responsiveness: Layouts are designed to adapt to different window sizes without breaking structure
+                    or usability.</li>
+                <li>Separation of concerns: Styling is kept within CSS, structure within HTML, and logic within
+                    JavaScript to improve maintainability.</li>
+            </ul>
+            <p>This approach ensures that updates to the UI can be made efficiently without introducing inconsistencies.
+            </p>
+
+            <h3>Layout Structure</h3>
+            <h3>Component Reusing</h3>
+
+            <h2>USB Communication & Data Flow</h2>
+            <h3>Overview</h3>
+            <h3>Communication Flow & Diagram</h3>
+            <h4>Command Transmission Flow (PC → Flight Controller)</h4>
+            <h4>Response Transmission Flow (Flight Controller → PC)</h4>
+            <h4>Flow Diagram</h4>
+            <h3>Native C Module</h3>
+            <h4>Overview</h4>
+            <h4>High-Level Responsibilities</h4>
+            <h4>Node-API Integration</h4>
+            <h4>Command Mapping</h4>
+            <h4>Packet Structure</h4>
+            <h4>CRC Validation</h4>
+            <h4>Port Discovery & Handshake</h4>
+            <h4>Command Execution Flow</h4>
+            <h4>Reliable Communication (Retries)</h4>
+            <h4>Response Handling</h4>
+            <h4>Error Handling</h4>
+            <h3>Preload & IPC Bridge</h3>
+            <h4>Inter-Process Communication</h4>
+            <h5>ipcMain</h5>
+            <h5>ipcRenderer</h5>
+            <h5>IPC Setup in Electron</h5>
+            <h4>Making the USB Calls in JavaScript</h4>
+            <h3>UI Integration</h3>
+            <h4>How Data is Fed Into the UI</h4>
+            <h5>Settings Population</h5>
+            <h5>Telemetry Display</h5>
+            <h4>Event-Based Updates</h4>
+            <h5>Debouncing</h5>
+            <h5>Change Detection</h5>
+            <h4>Error Handling & Recovery</h4>
+            <h5>Frontend Error Handling</h5>
+            <h5>Backend Error Propagation</h5>
+            <h6>Communication Failure Handling</h6>
+            <h6>Recovery Strategies</h6>
+
+            <h2>Streaming Data</h2>
+
+            <h2>Gyroscope Viewport</h2>
+            <h3>Installing three.js</h3>
+            <h3>3D Viewport Setup</h3>
+            <h4>Basic Scene Setup</h4>
+            <h5>JavaScript Structure</h5>
+            <h5>HTML Structure</h5>
+            <h4>Next Steps</h4>
+            <h5>Temporary Rotation</h5>
+            <h5>Quaternion Preparation</h5>
+            <h4>Final Implementation</h4>
+            <h3>Handling Updates from Streamed Data</h3>
+
+            <h2>Making an Executable File in Electron</h2>
+            <h3>Overview</h3>
+            <h3>Important Notes Before Starting</h3>
+            <h3>Setting Up Electron Forge</h3>
+            <h4>Step 1: Install Dependencies</h4>
+            <h4>Step 2: Add to package.json</h4>
+            <h3>Setting Up Squirrel.Windows</h3>
+            <h4>Handling Squirrel Startup Events</h4>
+            <h3>Naming Conventions</h3>
+            <h3>Native Addon Packaging</h3>
+            <h4>Unpacking Native Files</h4>
+            <h4>Updating the Addon Path at Runtime</h4>
+            <h4>Rebuilding the Native Addon</h4>
+            <h3>Building the Installer</h3>
+            <h3>Installing & Running the Application</h3>
+            <h3>Troubleshooting</h3>
+        </section>
+    </main>
+</body>
+
+<footer>
+    <div class="footer-brand">OSCAR <span>Docs</span></div>
+    <ul class="footer-links">
+        <li><a href="contact.html">Contact Us</a></li>
+        <li><a href="https://sddec26-05.sd.ece.iastate.edu/">Senior Design Website</a></li>
+        <li><a href="https://github.com/gracefinger/OSCAR_Documentation.github.io">GitHub</a></li>
+    </ul>
+</footer>
+
+</html>
