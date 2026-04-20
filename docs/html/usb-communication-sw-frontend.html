@@ -4,11 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>USB Communication</title>
+    <title>Frontend USB Communication</title>
     <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/tableOfContents.css"
 </head>
 
 <body>
+    <div id="reading-progress"></div>
+
     <nav>
         <ul class="nav-links">
             <li><a href="../index.html"><span class="nav-dot"></span>Home</a></li>
@@ -18,736 +21,825 @@
         </ul>
     </nav>
 
-    <main>
+    <div class="page-layout">
 
-        <h1>USB Communication</h1>
-        <section>
-            
+        <!-- ── Sidebar ── -->
+        <aside id="doc-sidebar">
+            <div class="sidebar-title">On this page</div>
+            <ul id="sidebar-nav"></ul>
+        </aside>
+
+        <!-- ── Main content ── -->
+        <main class="doc-content">
+
+            <h1>Frontend USB Communication</h1>
+
+            <!-- Table of Contents -->
+            <div id="toc-block">
+                <h2>Table of Contents</h2>
+                <ol>
+                    <li><a href="#data-flow">Data Flow</a>
+                        <ol>
+                            <li><a href="#overview">Overview</a></li>
+                            <li><a href="#communication-flow">Communication Flow &amp; Diagram</a></li>
+                            <li><a href="#command-transmission">Command Transmission Flow</a></li>
+                            <li><a href="#response-transmission">Response Transmission Flow</a></li>
+                            <li><a href="#native-c-module-overview">Native C Module</a></li>
+                            <li><a href="#streaming-overview">Streaming Data</a></li>
+                        </ol>
+                    </li>
+                    <li><a href="#frontend">Frontend</a>
+                        <ol>
+                            <li><a href="#high-level-responsibilities">High-Level Responsibilities</a></li>
+                            <li><a href="#node-api-integration">Node-API Integration</a></li>
+                            <li><a href="#command-mapping">Command Mapping</a></li>
+                            <li><a href="#packet-structure">Packet Structure</a></li>
+                            <li><a href="#crc-validation">CRC Validation</a></li>
+                            <li><a href="#port-discovery">Port Discovery &amp; Handshake</a></li>
+                            <li><a href="#command-execution-flow">Command Execution Flow</a></li>
+                            <li><a href="#reliable-communication">Reliable Communication</a></li>
+                            <li><a href="#response-handling">Response Handling</a></li>
+                            <li><a href="#error-handling-frontend-c">Error Handling (C Module)</a></li>
+                            <li><a href="#preload-ipc">Preload &amp; IPC Bridge</a></li>
+                            <li><a href="#streaming-frontend">Streaming Data – Frontend</a></li>
+                            <li><a href="#ui-integration">UI Integration</a></li>
+                            <li><a href="#error-handling-recovery">Error Handling &amp; Recovery</a></li>
+                        </ol>
+                    </li>
+                </ol>
+            </div>
+
+            <section>
+
 <!-- #region Data Flow -->
-            <h1>Data Flow</h1>
-            <h2>Overview</h2>
-            <p>This section will provide information about the USB communication and data flow. For actual implementation steps 
-                involving the C module we will be implementing, check out the Backend USB Communication section. This Data Flow section,
-                however, will be the same across both pages. This document will focus more on the JavaScript side of things. 
-                We will start by going over the overall flow of the data.</p>
-            <h2>Communication Flow & Diagram</h2>
-            <p>The USB communication system consists of three major layers:
-                <ul>
-                    <li>Desktop Application (Electron / JavaScript)</li>
-                    <li>Native Communication Layer (C module using libserialport)</li>
-                    <li>Flight Controller Firmware (MCU)</li>
-                </ul>
-
-            </p>
-            <p>
-                Each layer has a defined role in the communication pipeline. Commands originate from the desktop application, are 
-                transmitted through the native C module using UART over USB, processed by the firmware, and then a response is 
-                returned following the same path in reverse. <br><br>
-                
-                The communication flow ensures that high-level application logic remains separated from low-level serial communication.
-            </p>
-            <h3>Command Transmission Flow (PC to Flight Controller)</h3>
-            <p>
-                <ul>
-                    <li>User Action in Desktop Application: A user interacts with the Electron UI (for example clicking a button to request battery information).</li>
-                    <li>JavaScript Calls Native Function: The JavaScript code calls an exposed API function through the Electron contextBridge.</li>
-                    <li>Node-API Bridge: The call is forwarded through Node-API to the compiled native module (serial_addon.node).</li>
-                    <li>Native C Module Builds Command: The native C code constructs the command packet:
-                        <ul>
-                            <li>[CMD Header (0x800X)] + [Command Data]</li>
-                            <li>The packet is prepared as a byte array before transmission.</li>
-                        </ul>
-                    </li>
-                    <li>USB UART Transmission: The C module sends the command through libserialport using the configured UART settings:
-                        <ul>
-                            <li>115200 baud</li>
-                            <li>8 data bits</li>
-                            <li>no parity</li>
-                            <li>1 stop bit</li>
-                        </ul>
-                    </li>
-                    <li>Firmware Receives Command: The flight controller firmware reads the incoming bytes from the UART buffer.</li>
-                    <li>Command Parsing: The firmware extracts the first 2 bytes to determine the command ID.
-                        <ul>
-                            <li>Example: 0x8009 → e_GetInitialValuesVolt</li>
-                        </ul>
-                    </li>
-                    <li>Command Execution: The firmware processes the command by either.
-                        <ul>
-                            <li>retrieving stored values</li>
-                            <li>updating configuration parameters</li>
-                            <li>requesting sensor data</li>
-                        </ul>
-                    </li>
-                </ul>
-            </p>
-            <h3>Response Transmission Flow (Flight Controller to PC)</h3>
-            <p>
-                <ul>
-                    <li>Response Construction: After processing the command, the firmware constructs a response packet containing:
-                        <ul>
-                            <li>[Response Header (0x500X)] + [JSON Data]</li>
-                        </ul>
-                    </li>
-                    <li>JSON Creation: The firmware uses the cJSON library to construct a JSON object containing labeled data values.</li>
-                    <li>Serialize JSON: The JSON object is converted to a string using:
-                        <ul>
-                            <li>cJSON_Print()</li>
-                        </ul>
-                    </li>
-                    <li>Transmit Response: The response packet is transmitted back over USB UART to the PC.</li>
-                    <li>Native C Module Receives Data: The C module reads the incoming serial buffer using libserialport.</li>
-                    <li>Response Verification: The first two bytes are checked to confirm the response header.</li>
-                    <li>Pass Data to JavaScript: The received JSON string is forwarded through the Node-API layer to the Electron application.</li>
-                    <li>Application Parses JSON: The Electron application parses the JSON and updates the UI accordingly.</li>
-                </ul>
-            </p>
-            <h3>Flow Diagram</h3>
-            <img src="../SoftwareImages/DataFlowDiagram.png" alt="Diagram showing flow of data from Desktop Appliction to Firmware">
-            <h2>Native C Module</h2>
-            <h3>Overview</h3>
-            <p>The native C module serves as the communication bridge between the Electron application and the flight controller hardware. It is responsible for:
-                <ul>
-                    <li>Constructing command packets</li>
-                    <li>Handling USB UART communication</li>
-                    <li>Verifying responses (CRC, headers, length)</li>
-                    <li>Returning structured JSON data to JavaScript</li>
-                    <li>Triggering and forwarding data streaming</li>
-                </ul>
-
+                <h1 id="data-flow">Data Flow</h1>
+                <h2 id="overview">Overview</h2>
+                <p>This section will provide information about the USB communication and data flow. For actual implementation steps 
+                    involving the C module we will be implementing, check out the Backend USB Communication section. This Data Flow section,
+                    however, will be the same across both pages. This document will focus more on the JavaScript side of things. 
+                    We will start by going over the overall flow of the data.</p>
+                <h2 id="communication-flow">Communication Flow &amp; Diagram</h2>
+                <p>The USB communication system consists of three major layers:
+                    <ul>
+                        <li>Desktop Application (Electron / JavaScript)</li>
+                        <li>Native Communication Layer (C module using libserialport)</li>
+                        <li>Flight Controller Firmware (MCU)</li>
+                    </ul>
+                </p>
                 <p>
-                   This module is compiled as a Node.js addon using Node-API (N-API), allowing it to be called directly from JavaScript. 
+                    Each layer has a defined role in the communication pipeline. Commands originate from the desktop application, are 
+                    transmitted through the native C module using UART over USB, processed by the firmware, and then a response is 
+                    returned following the same path in reverse. <br><br>
+                    
+                    The communication flow ensures that high-level application logic remains separated from low-level serial communication.
                 </p>
-            </p>
-            <h2>Streaming Data</h2>
-            <h3>Overview</h3>
-            <p>In addition to standard request-response communication, the OSCAR Ground Station supports continuous data streaming from the flight controller. 
-                This is primarily used for real-time telemetry, such as gyroscope orientation data, which must be updated frequently without requiring repeated 
-                manual requests from the user.
-                <br><br>Unlike discrete commands (such as populateAll or updateValue), streaming operates continuously in the background and pushes updates 
-                to the frontend as new data becomes available.
+                <h3 id="command-transmission">Command Transmission Flow (PC to Flight Controller)</h3>
+                <p>
+                    <ul>
+                        <li>User Action in Desktop Application: A user interacts with the Electron UI (for example clicking a button to request battery information).</li>
+                        <li>JavaScript Calls Native Function: The JavaScript code calls an exposed API function through the Electron contextBridge.</li>
+                        <li>Node-API Bridge: The call is forwarded through Node-API to the compiled native module (serial_addon.node).</li>
+                        <li>Native C Module Builds Command: The native C code constructs the command packet:
+                            <ul>
+                                <li>[CMD Header (0x800X)] + [Command Data]</li>
+                                <li>The packet is prepared as a byte array before transmission.</li>
+                            </ul>
+                        </li>
+                        <li>USB UART Transmission: The C module sends the command through libserialport using the configured UART settings:
+                            <ul>
+                                <li>115200 baud</li>
+                                <li>8 data bits</li>
+                                <li>no parity</li>
+                                <li>1 stop bit</li>
+                            </ul>
+                        </li>
+                        <li>Firmware Receives Command: The flight controller firmware reads the incoming bytes from the UART buffer.</li>
+                        <li>Command Parsing: The firmware extracts the first 2 bytes to determine the command ID.
+                            <ul>
+                                <li>Example: 0x8009 → e_GetInitialValuesVolt</li>
+                            </ul>
+                        </li>
+                        <li>Command Execution: The firmware processes the command by either:
+                            <ul>
+                                <li>retrieving stored values</li>
+                                <li>updating configuration parameters</li>
+                                <li>requesting sensor data</li>
+                            </ul>
+                        </li>
+                    </ul>
                 </p>
-            <h3>Streaming Flow</h3>
-            <p>The streaming pipeline is structured as follows:
-                <ul>
-                    <li>Renderer (UI) → </li>
-                    <li>ipcRenderer → </li>
-                    <li>Main Process → </li>
-                    <li>ipcMain → </li>
-                    <li>Worker Thread (Command Controller) → </li>
-                    <li>Streaming Thread (continuous data handler) → </li>
-                    <li>Native C Module (continuous serial read via libserialport) → </li>
-                    <li>Flight Controller</li>
-                </ul>
-                <p>The native module maintains an active serial connection and continuously reads incoming telemetry data. This data is forwarded through the streaming 
-                    thread, which parses and routes updates back through the Electron IPC system to the renderer process for UI updates.</p>
-            </p>
+                <h3 id="response-transmission">Response Transmission Flow (Flight Controller to PC)</h3>
+                <p>
+                    <ul>
+                        <li>Response Construction: After processing the command, the firmware constructs a response packet containing:
+                            <ul>
+                                <li>[Response Header (0x500X)] + [JSON Data]</li>
+                            </ul>
+                        </li>
+                        <li>JSON Creation: The firmware uses the cJSON library to construct a JSON object containing labeled data values.</li>
+                        <li>Serialize JSON: The JSON object is converted to a string using:
+                            <ul>
+                                <li>cJSON_Print()</li>
+                            </ul>
+                        </li>
+                        <li>Transmit Response: The response packet is transmitted back over USB UART to the PC.</li>
+                        <li>Native C Module Receives Data: The C module reads the incoming serial buffer using libserialport.</li>
+                        <li>Response Verification: The first two bytes are checked to confirm the response header.</li>
+                        <li>Pass Data to JavaScript: The received JSON string is forwarded through the Node-API layer to the Electron application.</li>
+                        <li>Application Parses JSON: The Electron application parses the JSON and updates the UI accordingly.</li>
+                    </ul>
+                </p>
+                <h3>Flow Diagram</h3>
+                <img src="../SoftwareImages/DataFlowDiagram.png" alt="Diagram showing flow of data from Desktop Application to Firmware">
+                <h2 id="native-c-module-overview">Native C Module</h2>
+                <h3>Overview</h3>
+                <p>The native C module serves as the communication bridge between the Electron application and the flight controller hardware. It is responsible for:
+                    <ul>
+                        <li>Constructing command packets</li>
+                        <li>Handling USB UART communication</li>
+                        <li>Verifying responses (CRC, headers, length)</li>
+                        <li>Returning structured JSON data to JavaScript</li>
+                        <li>Triggering and forwarding data streaming</li>
+                    </ul>
+                    <p>
+                       This module is compiled as a Node.js addon using Node-API (N-API), allowing it to be called directly from JavaScript. 
+                    </p>
+                </p>
+                <h2 id="streaming-overview">Streaming Data</h2>
+                <h3>Overview</h3>
+                <p>In addition to standard request-response communication, the OSCAR Ground Station supports continuous data streaming from the flight controller. 
+                    This is primarily used for real-time telemetry, such as gyroscope orientation data, which must be updated frequently without requiring repeated 
+                    manual requests from the user.
+                    <br><br>Unlike discrete commands (such as populateAll or updateValue), streaming operates continuously in the background and pushes updates 
+                    to the frontend as new data becomes available.
+                    </p>
+                <h3>Streaming Flow</h3>
+                <p>The streaming pipeline is structured as follows:
+                    <ul>
+                        <li>Renderer (UI) → </li>
+                        <li>ipcRenderer → </li>
+                        <li>Main Process → </li>
+                        <li>ipcMain → </li>
+                        <li>Worker Thread (Command Controller) → </li>
+                        <li>Streaming Thread (continuous data handler) → </li>
+                        <li>Native C Module (continuous serial read via libserialport) → </li>
+                        <li>Flight Controller</li>
+                    </ul>
+                    <p>The native module maintains an active serial connection and continuously reads incoming telemetry data. This data is forwarded through the streaming 
+                        thread, which parses and routes updates back through the Electron IPC system to the renderer process for UI updates.</p>
+                </p>
 <!-- #endregion -->
 
 <!-- #region Frontend -->
-            <h1>Frontend</h1>
-            <h2>Native C Module - Frontend</h2>
-            <h3>High-Level Responsibilities</h3>
-            <p>The module is designed to behave like a simple API with a few primary functions:
-                <ul>
-                    <li>populateAll(command) → Requests a full dataset from the firmware</li>
-                    <li>updateValue(command, payload) → Updates a single configuration value</li>
-                    <li>startStreaming(command) → Starts streaming requested information</li>
-                    <li>stopStreaming() → Triggers streaming to stop</li>
-                    <li>getNextStreamPacket() → Allows for polling between frontend and backend</li>
-                </ul>
-                <p>These functions abstract away all low-level USB communication from the rest of the application.</p>
-            </p>
-            <h3>Node-API Integration</h3>
-            <p>To expose C functions to JavaScript, the module uses Node-API. Wrapper functions handle:
-                <ul>
-                    <li>Converting JavaScript strings into C strings</li>
-                    <li>Calling the underlying C logic</li>
-                    <li>Converting results back into JavaScript-compatible values</li>
-                </ul>
-
-                <p>Example:</p>
-                <div class="terminal">
-                    <div class="terminal-body">
-                        <div><span class="t-cmd"><span class="light-red">napi_value</span> <span class="light-green">PopulateAll</span>(napi_env env, napi_callback_info info)</span></div>
-                    </div>
-                </div>
-                <p>This allows the frontend to call:</p>
-                <div class="terminal">
-                    <div class="terminal-body">
-                        <div><span class="t-cmd">window.backendAPI.<span class="light-green">populateAll</span>(<span class="light-green">"GetInitialValuesVolt"</span>);</span></div>
-                    </div>
-                </div>
-                <p>without needing to understand any of the native implementation details.</p>
-            </p>
-            <h3>Command Mapping</h3>
-            <p>All commands are mapped from human-readable strings to protocol-specific hexadecimal headers:
-                <div class="terminal">
-                    <div class="terminal-body">
-                        <div><span class="t-cmd"><span class="light-red">unsigned short</span> <span class="light-green">map_command</span>(const char* command)</span></div>
-                    </div>
-                </div>
-                Example mappings:
-                <ul>
-                    <li>"GetInitialValuesVolt" → 0x8009</li>
-                    <li>"MinCellVoltage" → 0x8003</li>
-                </ul>
-                <p>This approach:
+                <h1 id="frontend">Frontend</h1>
+                <h2>Native C Module - Frontend</h2>
+                <h3 id="high-level-responsibilities">High-Level Responsibilities</h3>
+                <p>The module is designed to behave like a simple API with a few primary functions:
                     <ul>
-                        <li>Keeps JavaScript readable</li>
-                        <li>Centralizes protocol definitions in one place</li>
-                        <li>Makes adding new commands straightforward</li>
+                        <li>populateAll(command) → Requests a full dataset from the firmware</li>
+                        <li>updateValue(command, payload) → Updates a single configuration value</li>
+                        <li>startStreaming(command) → Starts streaming requested information</li>
+                        <li>stopStreaming() → Triggers streaming to stop</li>
+                        <li>getNextStreamPacket() → Allows for polling between frontend and backend</li>
                     </ul>
+                    <p>These functions abstract away all low-level USB communication from the rest of the application.</p>
                 </p>
-            </p>
-
-            <h3>Packet Structure</h3>
-            <p>All communication follows a consistent packet format:
-                <br><br><img src="../FirmwareImages/packetStructure.png" alt="Packet Structure"><br><br>
-                <strong>Note:</strong> For more information about the packet structure, view Firmwares USB Communication documentation.
-            </p>
-            <h3>CRC Validation</h3>
-            <p>To ensure reliable communication, all packets use a CRC-16-CCITT checksum:
-                <div class="terminal">
-                    <div class="terminal-body">
-                        <div><span class="t-cmd"><span class="light-red">uint16_t</span> <span class="light-green">CRC_crc16_ccitt</span>(uint8_t* data, uint16_t length)</span></div>
-                    </div>
-                </div>
-
-                <p>Validation occurs on:</p>
-                <ul>
-                    <li>Outgoing packets (before sending)</li>
-                    <li>Incoming responses (before processing)</li>
-                </ul>
-                <p>If the CRC check fails, the packet is discarded and retried.
-                    <br><br>
-                    <strong>Note:</strong> For more information about CRC validation, view the USB Communication documentation.
-                </p>
-            </p>
-            <h3>Port Discovery & Handshake</h3>
-            <p>Before any communication occurs, the module automatically detects the correct COM port using the function:
-                <div class="terminal">
-                    <div class="terminal-body">
-                        <div><span class="t-cmd"><span class="light-red">int</span> <span class="light-green">find_com_port</span>(...)</span></div>
-                    </div>
-                </div>
-                <p>This function:</p>
-                <ul>
-                    <li>Iterates through all available COM ports</li>
-                    <li>Sends a handshake packet</li>
-                    <li>Waits for a valid acknowledgment</li>
-                    <li>Verifies CRC and packet structure</li>
-                    <li>Stores the verified port for future use</li>
-                </ul>
-                <p>This allows the system to:</p>
-                <ul>
-                    <li>Automatically connect to the correct device</li>
-                    <li>Avoid hardcoding port names</li>
-                </ul>
-            </p>
-            <h3>Command Execution Flow</h3>
-            <p>Both populateAll and updateValue follow the same internal flow:
-                <ul>
-                    <li>Map command string → header</li>
-                    <li>Ensure port is verified</li>
-                    <li>Build packet</li>
-                    <li>Send packet via USB</li>
-                    <li>Wait for response</li>
-                    <li>Validate:
-                        <ul>
-                            <li>Packet length</li>
-                            <li>Header</li>
-                            <li>CRC</li>
-                        </ul>
-                    </li>
-                    <li>Extract JSON payload</li>
-                    <li>Return result to JavaScript</li>
-                </ul>
-                <p><strong>Note:</strong> For more information about Commands, view the USB Communication documentation.</p>
-            </p>
-            <h3>Reliable Communication</h3>
-            <p>To improve robustness, the module implements a retry mechanism:
-                <div class="terminal">
-                    <div class="terminal-body">
-                        <span class="t-cmd"><span class="light-red">#define</span> MAX_RETRIES 3</span>
-                    </div>
-                </div>
-                
-                <p>If any of the following fail:</p>
-                <ul>
-                    <li>Write operation</li>
-                    <li>Read operation</li>
-                    <li>CRC validation</li>
-                    <li>Header validation</li>
-                </ul>
-                <p>The command is retried up to three times before returning an error.</p>
-            </p>
-            <h3>Response Handling</h3>
-            <p>After a successful read, the module extracts the JSON payload:
-                <div class="terminal">
-                    <div class="terminal-body">
-                        <span class="t-cmd">memcpy(json_string_heap, &response[6], json_length);</span>
-                    </div>
-                </div>
-                <p>This skips:</p>
-                <ul>
-                    <li>Header (2 bytes)</li>
-                    <li>Length (4 bytes)</li>
-                </ul>
-                <p>The resulting JSON string is returned to JavaScript for parsing and UI updates.</p>
-            </p>
-            <h3>Error Handling</h3>
-            <p>Errors are handled at multiple levels:
-                <ul>
-                    <li>Invalid commands - return NULL</li>
-                    <li>Communication failures - return JSON error string</li>
-                    <li>CRC mismatch - retry</li>
-                    <li>Port not found - return user-friendly error</li>
-                </ul>
-            </p>
-
-            <h2>Preload & IPC Bridge</h2>
-            <h3>Inter-Process Communication</h3>
-            <p>In Electron, communication between different parts of the application occurs through a system called Inter-Process Communication (IPC). 
-                Electron applications run multiple processes simultaneously, primarily the main process and one or more renderer processes. The main 
-                process manages the application lifecycle and system-level operations, while the renderer processes handle the graphical user interface.
-                <br><br>
-                Since these processes run separately, they cannot directly call each other's functions. Instead, they communicate through predefined 
-                communication channels provided by Electron known as ipcMain and ipcRenderer. These modules allow messages to be sent between the main 
-                process and renderer processes in a controlled manner.<br><br>
-                IPC channels are bidirectional, meaning messages can be sent from the renderer process to the main process and vice versa. Electron 
-                supports both synchronous and asynchronous communication through IPC. However, asynchronous communication is generally preferred because 
-                it prevents the UI from freezing while waiting for operations to complete. In this project, IPC is used to separate UI functionality from
-                 backend operations, such as USB communication and execution of the C addon. This ensures that any long-running operations do not interfere
-                  with the responsiveness of the user interface.
-            </p>
-            <h4>ipcMain</h4>
-            <p>The ipcMain module runs in the main process and is responsible for receiving messages from renderer processes. It acts as the central 
-                coordinator for backend operations within the Electron application. When the renderer sends a request through an IPC channel, 
-                ipcMain listens for that request and executes the appropriate functionality. In this project, ipcMain is responsible for forwarding 
-                requests to the backend worker that executes the native C addon used for USB communication. ipcMain typically registers handlers for 
-                specific message channels. When a request is received, the handler processes the request and returns the result to the renderer process.</p>
-            <h4>ipcRenderer</h4>
-            <p>The ipcRenderer module runs in the renderer process, which is responsible for displaying and updating the application's user interface. 
-                This module allows the renderer process to send messages to the main process and receive responses. When a user interacts with the UI, 
-                the renderer process uses ipcRenderer to send a request to the main process through a specific IPC channel. The renderer then waits for 
-                the main process to complete the requested operation and return the result. Because renderer processes should not have direct access to 
-                sensitive system resources, ipcRenderer acts as a controlled communication interface between the UI and backend functionality.</p>
-            <h4>IPC Setup in Electron</h4>
-                <p>IPC communication in Electron typically follows this sequence:
+                <h3 id="node-api-integration">Node-API Integration</h3>
+                <p>To expose C functions to JavaScript, the module uses Node-API. Wrapper functions handle:
                     <ul>
-                        <li>The renderer process sends a request using ipcRenderer.</li>
-                        <li>The main process receives the request using ipcMain.</li>
-                        <li>The main process executes the requested functionality or forwards it to another module.</li>
-                        <li>The result is returned to the renderer process through the IPC channel.</li>
+                        <li>Converting JavaScript strings into C strings</li>
+                        <li>Calling the underlying C logic</li>
+                        <li>Converting results back into JavaScript-compatible values</li>
                     </ul>
-                    <p>In this project, IPC is used to forward UI requests to a backend worker thread that communicates with the native C module responsible for
-                        USB communication. This architecture keeps the UI responsive while backend operations are executed asynchronously.</p>
-                    <p>For additional details on Electron IPC implementation, refer to the following documentation:
+
+                    <p>Example:</p>
+                    <div class="terminal">
+                        <div class="terminal-body">
+                            <div><span class="t-cmd"><span class="light-red">napi_value</span> <span class="light-green">PopulateAll</span>(napi_env env, napi_callback_info info)</span></div>
+                        </div>
+                    </div>
+                    <p>This allows the frontend to call:</p>
+                    <div class="terminal">
+                        <div class="terminal-body">
+                            <div><span class="t-cmd">window.backendAPI.<span class="light-green">populateAll</span>(<span class="light-green">"GetInitialValuesVolt"</span>);</span></div>
+                        </div>
+                    </div>
+                    <p>without needing to understand any of the native implementation details.</p>
+                </p>
+                <h3 id="command-mapping">Command Mapping</h3>
+                <p>All commands are mapped from human-readable strings to protocol-specific hexadecimal headers:
+                    <div class="terminal">
+                        <div class="terminal-body">
+                            <div><span class="t-cmd"><span class="light-red">unsigned short</span> <span class="light-green">map_command</span>(const char* command)</span></div>
+                        </div>
+                    </div>
+                    Example mappings:
+                    <ul>
+                        <li>"GetInitialValuesVolt" → 0x8009</li>
+                        <li>"MinCellVoltage" → 0x8003</li>
+                    </ul>
+                    <p>This approach:
                         <ul>
-                            <li>Electron <a href="https://www.electronjs.org/docs/latest/tutorial/ipc">Inter-Process Communication</a></li>
-                            <li>Electron <a href="https://www.electronjs.org/docs/latest/api/ipc-renderer">ipcRenderer</a></li>
-                            <li>Electron <a href="https://www.electronjs.org/docs/latest/api/ipc-main">ipcMain</a></li>
+                            <li>Keeps JavaScript readable</li>
+                            <li>Centralizes protocol definitions in one place</li>
+                            <li>Makes adding new commands straightforward</li>
                         </ul>
                     </p>
                 </p>
-            <h3>Making the USB calls in JavaScript</h3>
-            <p>Once the C module is configured so that JavaScript can call its functions, several additional steps are required so that the Electron 
-                application can access these functions safely. These steps include loading the native C addon, exposing the necessary functions to the 
-                renderer process, and ensuring that all calls are performed asynchronously so that the UI remains responsive.<br><br>
 
-                Communication between the renderer process and the main process in Electron is handled using ipcRenderer and ipcMain. The renderer 
-                process initiates requests using ipcRenderer, and the main process receives and handles those requests using ipcMain.<br><br>
-
-                To safely expose backend functionality to the renderer, Electron uses a preload script. The preload script runs in an isolated 
-                context and uses the contextBridge API to expose a controlled interface to the renderer process. This is done using the following code:
-
-                <div class="terminal">
-                    <div class="terminal-body">
-                        <div class="t-cmd">
-                            <span class="light-red">const</span> { contextBridge, ipcRenderer } = <span class="light-red">require</span>(<span class="light-green">"electron"</span>);<br>
-                            contextBridge.exposeInMainWorld(<span class="light-green">"backendAPI"</span>, {<br>
-                            &emsp;&emsp;populateAll: (command) => {<br>
-                            &emsp;&emsp;&emsp;&emsp;<span class="light-red">return</span> ipcRenderer.invoke(<span class="light-green">"populateAll"</span>, command);<br>
-                            &emsp;&emsp;},<br>
-                            &emsp;&emsp;updateValue: (command, payload) => {<br>
-                            &emsp;&emsp;&emsp;&emsp;<span class="light-red">return</span> ipcRenderer.invoke(<span class="light-green">"updateValue"</span>, command, payload);<br>
-                            &emsp;&emsp;}<br>
-                            });
+                <h3 id="packet-structure">Packet Structure</h3>
+                <p>All communication follows a consistent packet format:
+                    <br><br><img src="../FirmwareImages/packetStructure.png" alt="Packet Structure"><br><br>
+                    <strong>Note:</strong> For more information about the packet structure, view Firmware's USB Communication documentation.
+                </p>
+                <h3 id="crc-validation">CRC Validation</h3>
+                <p>To ensure reliable communication, all packets use a CRC-16-CCITT checksum:
+                    <div class="terminal">
+                        <div class="terminal-body">
+                            <div><span class="t-cmd"><span class="light-red">uint16_t</span> <span class="light-green">CRC_crc16_ccitt</span>(uint8_t* data, uint16_t length)</span></div>
                         </div>
                     </div>
-                </div>
 
-                <p>This code exposes a backendAPI object to the renderer process, allowing UI scripts to call backend functions without directly accessing Node.js or 
-                    the C module. Instead, requests are sent to the main process using ipcRenderer.invoke(). 
+                    <p>Validation occurs on:</p>
+                    <ul>
+                        <li>Outgoing packets (before sending)</li>
+                        <li>Incoming responses (before processing)</li>
+                    </ul>
+                    <p>If the CRC check fails, the packet is discarded and retried.
+                        <br><br>
+                        <strong>Note:</strong> For more information about CRC validation, view the USB Communication documentation.
+                    </p>
+                </p>
+                <h3 id="port-discovery">Port Discovery &amp; Handshake</h3>
+                <p>Before any communication occurs, the module automatically detects the correct COM port using the function:
+                    <div class="terminal">
+                        <div class="terminal-body">
+                            <div><span class="t-cmd"><span class="light-red">int</span> <span class="light-green">find_com_port</span>(...)</span></div>
+                        </div>
+                    </div>
+                    <p>This function:</p>
+                    <ul>
+                        <li>Iterates through all available COM ports</li>
+                        <li>Sends a handshake packet</li>
+                        <li>Waits for a valid acknowledgment</li>
+                        <li>Verifies CRC and packet structure</li>
+                        <li>Stores the verified port for future use</li>
+                    </ul>
+                    <p>This allows the system to:</p>
+                    <ul>
+                        <li>Automatically connect to the correct device</li>
+                        <li>Avoid hardcoding port names</li>
+                    </ul>
+                </p>
+                <h3 id="command-execution-flow">Command Execution Flow</h3>
+                <p>Both populateAll and updateValue follow the same internal flow:
+                    <ul>
+                        <li>Map command string → header</li>
+                        <li>Ensure port is verified</li>
+                        <li>Build packet</li>
+                        <li>Send packet via USB</li>
+                        <li>Wait for response</li>
+                        <li>Validate:
+                            <ul>
+                                <li>Packet length</li>
+                                <li>Header</li>
+                                <li>CRC</li>
+                            </ul>
+                        </li>
+                        <li>Extract JSON payload</li>
+                        <li>Return result to JavaScript</li>
+                    </ul>
+                    <p><strong>Note:</strong> For more information about Commands, view the USB Communication documentation.</p>
+                </p>
+                <h3 id="reliable-communication">Reliable Communication</h3>
+                <p>To improve robustness, the module implements a retry mechanism:
+                    <div class="terminal">
+                        <div class="terminal-body">
+                            <span class="t-cmd"><span class="light-red">#define</span> MAX_RETRIES 3</span>
+                        </div>
+                    </div>
                     
-                    <br><br>In the main process, ipcMain listens for these requests and forwards them to the backend worker responsible for executing the native C 
-                    addon. Since the main process is responsible for coordinating backend operations, it does not need to directly expose the C module to the renderer. 
-                    The following code demonstrates how the main process handles a request:
+                    <p>If any of the following fail:</p>
+                    <ul>
+                        <li>Write operation</li>
+                        <li>Read operation</li>
+                        <li>CRC validation</li>
+                        <li>Header validation</li>
+                    </ul>
+                    <p>The command is retried up to three times before returning an error.</p>
                 </p>
-                <div class="terminal">
-                    <div class="terminal-body">
-                        <div class="t-cmd">
-                            ipcMain.handle(<span class="light-green">"updateValue"</span>, <span class="light-red">async</span> (event, command, payload) => {<br>
-                            &emsp;&emsp;<span class="light-red">return await</span> runAddonInWorker(<span class="light-green">"updateValue"</span>, [command, payload]);<br>
-                            });
+                <h3 id="response-handling">Response Handling</h3>
+                <p>After a successful read, the module extracts the JSON payload:
+                    <div class="terminal">
+                        <div class="terminal-body">
+                            <span class="t-cmd">memcpy(json_string_heap, &response[6], json_length);</span>
                         </div>
                     </div>
-                </div>
-                <p>This handler allows the request to be processed asynchronously, preventing the main UI thread from becoming unresponsive while the C addon 
-                    performs USB communication. The runAddonInWorker function (more on this in the next section UI Integration & State Management) executes 
-                    the requested operation in a worker thread, which handles the interaction with the C module and returns the result once the operation is complete.
+                    <p>This skips:</p>
+                    <ul>
+                        <li>Header (2 bytes)</li>
+                        <li>Length (4 bytes)</li>
+                    </ul>
+                    <p>The resulting JSON string is returned to JavaScript for parsing and UI updates.</p>
+                </p>
+                <h3 id="error-handling-frontend-c">Error Handling</h3>
+                <p>Errors are handled at multiple levels:
+                    <ul>
+                        <li>Invalid commands - return NULL</li>
+                        <li>Communication failures - return JSON error string</li>
+                        <li>CRC mismatch - retry</li>
+                        <li>Port not found - return user-friendly error</li>
+                    </ul>
+                </p>
 
-                    <br><br>After the worker thread finishes executing the request, the result is returned to ipcMain, which then sends the response back to the 
-                    renderer process through the IPC system. The renderer can then update the UI based on the returned data.
+                <h2 id="preload-ipc">Preload &amp; IPC Bridge</h2>
+                <h3>Inter-Process Communication</h3>
+                <p>In Electron, communication between different parts of the application occurs through a system called Inter-Process Communication (IPC). 
+                    Electron applications run multiple processes simultaneously, primarily the main process and one or more renderer processes. The main 
+                    process manages the application lifecycle and system-level operations, while the renderer processes handle the graphical user interface.
+                    <br><br>
+                    Since these processes run separately, they cannot directly call each other's functions. Instead, they communicate through predefined 
+                    communication channels provided by Electron known as ipcMain and ipcRenderer. These modules allow messages to be sent between the main 
+                    process and renderer processes in a controlled manner.<br><br>
+                    IPC channels are bidirectional, meaning messages can be sent from the renderer process to the main process and vice versa. Electron 
+                    supports both synchronous and asynchronous communication through IPC. However, asynchronous communication is generally preferred because 
+                    it prevents the UI from freezing while waiting for operations to complete. In this project, IPC is used to separate UI functionality from
+                     backend operations, such as USB communication and execution of the C addon. This ensures that any long-running operations do not interfere
+                      with the responsiveness of the user interface.
+                </p>
+                <h4>ipcMain</h4>
+                <p>The ipcMain module runs in the main process and is responsible for receiving messages from renderer processes. It acts as the central 
+                    coordinator for backend operations within the Electron application. When the renderer sends a request through an IPC channel, 
+                    ipcMain listens for that request and executes the appropriate functionality. In this project, ipcMain is responsible for forwarding 
+                    requests to the backend worker that executes the native C addon used for USB communication. ipcMain typically registers handlers for 
+                    specific message channels. When a request is received, the handler processes the request and returns the result to the renderer process.</p>
+                <h4>ipcRenderer</h4>
+                <p>The ipcRenderer module runs in the renderer process, which is responsible for displaying and updating the application's user interface. 
+                    This module allows the renderer process to send messages to the main process and receive responses. When a user interacts with the UI, 
+                    the renderer process uses ipcRenderer to send a request to the main process through a specific IPC channel. The renderer then waits for 
+                    the main process to complete the requested operation and return the result. Because renderer processes should not have direct access to 
+                    sensitive system resources, ipcRenderer acts as a controlled communication interface between the UI and backend functionality.</p>
+                <h4>IPC Setup in Electron</h4>
+                    <p>IPC communication in Electron typically follows this sequence:
+                        <ul>
+                            <li>The renderer process sends a request using ipcRenderer.</li>
+                            <li>The main process receives the request using ipcMain.</li>
+                            <li>The main process executes the requested functionality or forwards it to another module.</li>
+                            <li>The result is returned to the renderer process through the IPC channel.</li>
+                        </ul>
+                        <p>In this project, IPC is used to forward UI requests to a backend worker thread that communicates with the native C module responsible for
+                            USB communication. This architecture keeps the UI responsive while backend operations are executed asynchronously.</p>
+                        <p>For additional details on Electron IPC implementation, refer to the following documentation:
+                            <ul>
+                                <li>Electron <a href="https://www.electronjs.org/docs/latest/tutorial/ipc">Inter-Process Communication</a></li>
+                                <li>Electron <a href="https://www.electronjs.org/docs/latest/api/ipc-renderer">ipcRenderer</a></li>
+                                <li>Electron <a href="https://www.electronjs.org/docs/latest/api/ipc-main">ipcMain</a></li>
+                            </ul>
+                        </p>
                     </p>
-            </p>
+                <h3>Making the USB calls in JavaScript</h3>
+                <p>Once the C module is configured so that JavaScript can call its functions, several additional steps are required so that the Electron 
+                    application can access these functions safely. These steps include loading the native C addon, exposing the necessary functions to the 
+                    renderer process, and ensuring that all calls are performed asynchronously so that the UI remains responsive.<br><br>
 
+                    Communication between the renderer process and the main process in Electron is handled using ipcRenderer and ipcMain. The renderer 
+                    process initiates requests using ipcRenderer, and the main process receives and handles those requests using ipcMain.<br><br>
 
-            <h2>Streaming Data - Frontend</h2>
-            <h3>Architecture & Threading</h3>
-            <p>To maintain a responsive user interface, streaming is handled on separate worker threads in both the Electron (JavaScript) layer and the native C module.
-                <br><br>This separation is critical because:
-                <ul>
-                    <li>Streaming requires continuous reads from the serial port</li>
-                    <li>Blocking operations would freeze the UI if executed on the main thread</li>
-                    <li>High-frequency updates must not interfere with user-triggered requests</li>
-                </ul>
-            </p>
-            <h3>Stream Initialization</h3>
-            <p>Before streaming can begin, the application must explicitly start a streaming session. This is typically triggered when:
-                <ul>
-                    <li>The user opens a telemetry-dependent view (e.g., Setup tab)</li>
-                    <li>The application finishes initial device handshake</li>
-                    <li>The backend confirms a valid serial connection</li>
-                </ul>
-                <p>The initialization flow is as follows:</p>
-                <ul>
-                    <li>Renderer requests stream start via IPC</li>
-                    <li>Main process forwards request to worker thread</li>
-                    <li>Worker thread instructs native module to enter streaming mode</li>
-                    <li>Native module begins continuous serial reads</li>
-                    <li>Parsed telemetry data is emitted back through the IPC pipeline</li>
-                </ul>
-                <p>Example call from renderer:</p>
-                <div class="terminal">
-                    <div class="terminal-body">
-                        <div><span class="t-cmd">window.backendAPI.<span class="light-green">startStream</span>();</span></div>
-                    </div>
-                </div>
-                <p>Example IPC handler in main process:</p>
-                <div class="terminal">
-                    <div class="terminal-body">
-                        <div class="t-cmd">
-                            ipcMain.handle(<span class="light-green">"startStreaming"</span>, <span class="light-red">async</span> (event, command) => {<br>
-                            &emsp;&emsp;<span class="light-red">const</span> result = <span class="light-red">await</span> runAddonInWorker(<span class="light-green">"startStreaming"</span>, [command]);<br>
-                            &emsp;&emsp;<span class="light-red">const</span> senderWindow = BrowserWindow.fromWebContents(event.sender);<br>
-                            &emsp;&emsp;<span class="light-red">let</span> polling = <span class="light-red">true</span>;<br>
-                            &emsp;&emsp;<span class="light-red">async function</span> <span class="light-green">poll</span>() {<br>
-                            &emsp;&emsp;&emsp;&emsp;<span class="light-red">if</span> (!polling) <span class="light-red">return</span>;<br>
-                            &emsp;&emsp;&emsp;&emsp;<span class="light-red">const</span> packet = <span class="light-red">await</span> runInStreamWorker(<span class="light-green">"getNextStreamPacket"</span>, []);<br>
-                            &emsp;&emsp;&emsp;&emsp;<span class="light-red">if</span> (packet && senderWindow) {<br>
-                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;senderWindow.webContents.send(<span class="light-green">"streamData"</span>, packet);<br>
-                            &emsp;&emsp;&emsp;&emsp;}<br>
-                            &emsp;&emsp;&emsp;&emsp;setTimeout(poll, 16);<br>
-                            &emsp;&emsp;}<br>
-                            &emsp;&emsp;streamPollInterval = () => { polling = <span class="light-red">false</span>; };<br>
-                            &emsp;&emsp;poll();<br>
-                            &emsp;&emsp;<span class="light-red">return</span> result;<br>
-                            });
+                    To safely expose backend functionality to the renderer, Electron uses a preload script. The preload script runs in an isolated 
+                    context and uses the contextBridge API to expose a controlled interface to the renderer process. This is done using the following code:
+
+                    <div class="terminal">
+                        <div class="terminal-body">
+                            <div class="t-cmd">
+                                <span class="light-red">const</span> { contextBridge, ipcRenderer } = <span class="light-red">require</span>(<span class="light-green">"electron"</span>);<br>
+                                contextBridge.exposeInMainWorld(<span class="light-green">"backendAPI"</span>, {<br>
+                                &emsp;&emsp;populateAll: (command) => {<br>
+                                &emsp;&emsp;&emsp;&emsp;<span class="light-red">return</span> ipcRenderer.invoke(<span class="light-green">"populateAll"</span>, command);<br>
+                                &emsp;&emsp;},<br>
+                                &emsp;&emsp;updateValue: (command, payload) => {<br>
+                                &emsp;&emsp;&emsp;&emsp;<span class="light-red">return</span> ipcRenderer.invoke(<span class="light-green">"updateValue"</span>, command, payload);<br>
+                                &emsp;&emsp;}<br>
+                                });
+                            </div>
                         </div>
                     </div>
-                </div>
-            </p>
-            <h3>Native Streaming Mode</h3>
-            <p>Within the native C module, streaming mode differs from standard command execution. Instead of:
-                <ul>
-                    <li>Sending a command</li>
-                    <li>Waiting for a response</li>
-                    <li>Exiting the function</li>
-                </ul>
-                <p>The stream mode:</p>
-                <ul>
-                    <li>Opens a persistent read loop</li>
-                    <li>Continuously reads UART buffer data</li>
-                    <li>Parses packets as they arrive</li>
-                    <li>Pushes valid telemetry frames upward</li>
-                </ul>
-            </p>
-            <h4>Streaming Loop Behavior</h4>
-            <p>The stream thread operates using a blocking or semi-blocking serial read loop:
-                <ul>
-                    <li>Reads raw bytes from libserialport</li>
-                    <li>Accumulates bytes into a buffer</li>
-                    <li>Detects packet boundaries using headers</li>
-                    <li>Validates packet integrity (length + CRC)</li>
-                    <li>Extracts JSON payload</li>
-                    <li>Forwards structured data to Node-API callback</li>
-                </ul>
 
-                <p>If a packet fails validation:</p>
-                <ul>
-                    <li>It is discarded</li>
-                    <li>The stream continues without interruption</li>
-                </ul>
-            </p>
-            <h3>Thread Separation</h3>
-            <p>On the JavaScript side, streaming is isolated from standard request-response logic using a dedicated worker thread. This ensures:
-                <ul>
-                    <li>UI requests (button clicks, settings updates) remain fast</li>
-                    <li>Streaming does not block IPC handlers</li>
-                    <li>High-frequency updates do not overload the main thread</li>
-                </ul>
-                <p>The worker thread acts as a mediator between:</p>
-                <ul>
-                    <li>IPC system</li>
-                    <li>Native addon</li>
-                    <li>Streaming event emitter</li>
-                </ul>
-            </p>
-            <h3>Streaming Data Delviery to Frontend</h3>
-            <p>Once data is received in the Electron main process, it is pushed to the renderer using event-based IPC. Unlike request-response commands, streaming uses a push model, meaning:
-                <ul>
-                    <li>The frontend does not request updates</li>
-                    <li>The backend continuously emits updates</li>
-                </ul>
-
-                <p>Example (main → renderer):</p>
-                <div class="terminal">
-                    <div class="terminal-body">
-                        <div><span class="t-cmd">mainWindow.webContents.send(<span class="light-green">"telemetry-update"</span>, data);</span></div>
-                    </div>
-                </div>
-
-                <p>Example (renderer listener):</p>
-                <div class="terminal">
-                    <div class="terminal-body">
-                        <div class="t-cmd">
-                            window.backendAPI.<span class="light-green">onStreamData</span>((packet) => {<br>
-                            &emsp;&emsp;console.log(Date.now(), <span class="light-green">"W:"</span>, packet.Quaternions?.W,<br>
-                            &emsp;&emsp;&emsp;&emsp;<span class="light-green">"X:"</span>, packet.Quaternions?.X,<br>
-                            &emsp;&emsp;&emsp;&emsp;<span class="light-green">"Y:"</span>, packet.Quaternions?.Y,<br>
-                            &emsp;&emsp;&emsp;&emsp;<span class="light-green">"Z:"</span>, packet.Quaternions?.Z);<br>
-                            });
+                    <p>This code exposes a backendAPI object to the renderer process, allowing UI scripts to call backend functions without directly accessing Node.js or 
+                        the C module. Instead, requests are sent to the main process using ipcRenderer.invoke(). 
+                        
+                        <br><br>In the main process, ipcMain listens for these requests and forwards them to the backend worker responsible for executing the native C 
+                        addon. Since the main process is responsible for coordinating backend operations, it does not need to directly expose the C module to the renderer. 
+                        The following code demonstrates how the main process handles a request:
+                    </p>
+                    <div class="terminal">
+                        <div class="terminal-body">
+                            <div class="t-cmd">
+                                ipcMain.handle(<span class="light-green">"updateValue"</span>, <span class="light-red">async</span> (event, command, payload) => {<br>
+                                &emsp;&emsp;<span class="light-red">return await</span> runAddonInWorker(<span class="light-green">"updateValue"</span>, [command, payload]);<br>
+                                });
+                            </div>
                         </div>
                     </div>
-                </div>
-            </p>
-            <h3>Error Handling & Recovery - Frontend</h3>
-            <p>Streaming errors are handled gracefully to ensure continuous operation. Common failure cases include:
-                <ul>
-                    <li>USB disconnection during stream</li>
-                    <li>Corrupted packets or CRC mismatch</li>
-                    <li>Buffer overflow due to missed reads</li>
-                </ul>
-                <p>Recovery strategies:</p>
-                <ul>
-                    <li>Automatic stream restart on reconnection</li>
-                    <li>Silent discard of invalid packets</li>
-                    <li>Worker thread restart if stream loop fails</li>
-                    <li>Fallback to request-response mode if streaming is unavailable</li>
-                </ul>
-            </p>
+                    <p>This handler allows the request to be processed asynchronously, preventing the main UI thread from becoming unresponsive while the C addon 
+                        performs USB communication. The runAddonInWorker function executes 
+                        the requested operation in a worker thread, which handles the interaction with the C module and returns the result once the operation is complete.
 
-            <h2>UI Integration</h2>
-            <h3>How Response Data is Fed into the UI</h3>
-            <p>After the renderer process receives data from the backend through IPC, the next step is updating the user interface. The data returned from 
-                the native C module is structured as JSON and passed back through the IPC system to the renderer process.
-                <br><br>In this implementation, the renderer does not manually map each field. Instead, it dynamically maps data to UI 
-                elements using HTML data-* attributes.
-                <br><br>When the page loads, the renderer requests all relevant values:
-                <div class="terminal">
-                    <div class="terminal-body">
-                        <div><span class="t-cmd"><span class="light-red">const</span> data = <span class="light-red">await</span> window.backendAPI.<span class="light-green">populateAll</span>(<span class="light-green">"GetInitialValuesVolt"</span>);</span></div>
-                    </div>
-                </div>
-                <p>The response contains a structured objects like:</p>
-                <div class="terminal">
-                    <div class="terminal-body">
-                        <div><span class="t-cmd">data.VoltagePageValues</span></div>
-                    </div>
-                </div>
+                        <br><br>After the worker thread finishes executing the request, the result is returned to ipcMain, which then sends the response back to the 
+                        renderer process through the IPC system. The renderer can then update the UI based on the returned data.
+                        </p>
+                </p>
 
-                <p>This object is then passed into two different helper functions:</p>
-                <ul>
-                    <li>populateSettings(data.VoltagePageValues);</li>
-                    <li>updateTelemetry(data.VoltagePageValues);</li>
-                </ul>
-            </p>
-            <h4>Settings Population</h4>
-            <p>All input and select elements that contain a data-setting attribute are automatically updated:
-                <div class="terminal">
-                    <div class="terminal-body">
-                        <div class="t-cmd">
-                            document.querySelectorAll(<span class="light-green">"[data-setting]"</span>).forEach(el => {<br>
-                            &emsp;&emsp;<span class="light-red">const</span> key = el.dataset.setting;<br>
-                            &emsp;&emsp;<span class="light-red">if</span> (data[key] !== <span class="light-red">undefined</span>) {<br>
-                            &emsp;&emsp;&emsp;&emsp;<span class="light-red">if</span> (el.tagName === <span class="light-green">"SELECT"</span>) {<br>
-                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;setDropdownByText(el, String(data[key]));<br>
-                            &emsp;&emsp;&emsp;&emsp;} <span class="light-red">else</span> {<br>
-                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;el.value = String(data[key]);<br>
-                            &emsp;&emsp;&emsp;&emsp;}<br>
-                            &emsp;&emsp;}<br>
-                            });
+
+                <h2 id="streaming-frontend">Streaming Data - Frontend</h2>
+                <h3>Architecture &amp; Threading</h3>
+                <p>To maintain a responsive user interface, streaming is handled on separate worker threads in both the Electron (JavaScript) layer and the native C module.
+                    <br><br>This separation is critical because:
+                    <ul>
+                        <li>Streaming requires continuous reads from the serial port</li>
+                        <li>Blocking operations would freeze the UI if executed on the main thread</li>
+                        <li>High-frequency updates must not interfere with user-triggered requests</li>
+                    </ul>
+                </p>
+                <h3>Stream Initialization</h3>
+                <p>Before streaming can begin, the application must explicitly start a streaming session. This is typically triggered when:
+                    <ul>
+                        <li>The user opens a telemetry-dependent view (e.g., Setup tab)</li>
+                        <li>The application finishes initial device handshake</li>
+                        <li>The backend confirms a valid serial connection</li>
+                    </ul>
+                    <p>The initialization flow is as follows:</p>
+                    <ul>
+                        <li>Renderer requests stream start via IPC</li>
+                        <li>Main process forwards request to worker thread</li>
+                        <li>Worker thread instructs native module to enter streaming mode</li>
+                        <li>Native module begins continuous serial reads</li>
+                        <li>Parsed telemetry data is emitted back through the IPC pipeline</li>
+                    </ul>
+                    <p>Example call from renderer:</p>
+                    <div class="terminal">
+                        <div class="terminal-body">
+                            <div><span class="t-cmd">window.backendAPI.<span class="light-green">startStream</span>();</span></div>
                         </div>
                     </div>
-                </div>
-            </p>
-            <h4>Telemetry Display</h4>
-            <p>Display-only values use the data-telemetry attribute:
-
-                <div class="terminal">
-                    <div class="terminal-body">
-                        <div class="t-cmd">
-                            document.querySelectorAll(<span class="light-green">"[data-telemetry]"</span>).forEach(el => {<br>
-                            &emsp;&emsp;<span class="light-red">const</span> key = el.dataset.telemetry;<br>
-                            &emsp;&emsp;<span class="light-red">if</span> (data[key] !== <span class="light-red">undefined</span>) {<br>
-                            &emsp;&emsp;&emsp;&emsp;el.textContent = data[key];<br>
-                            &emsp;&emsp;}<br>
-                            });
+                    <p>Example IPC handler in main process:</p>
+                    <div class="terminal">
+                        <div class="terminal-body">
+                            <div class="t-cmd">
+                                ipcMain.handle(<span class="light-green">"startStreaming"</span>, <span class="light-red">async</span> (event, command) => {<br>
+                                &emsp;&emsp;<span class="light-red">const</span> result = <span class="light-red">await</span> runAddonInWorker(<span class="light-green">"startStreaming"</span>, [command]);<br>
+                                &emsp;&emsp;<span class="light-red">const</span> senderWindow = BrowserWindow.fromWebContents(event.sender);<br>
+                                &emsp;&emsp;<span class="light-red">let</span> polling = <span class="light-red">true</span>;<br>
+                                &emsp;&emsp;<span class="light-red">async function</span> <span class="light-green">poll</span>() {<br>
+                                &emsp;&emsp;&emsp;&emsp;<span class="light-red">if</span> (!polling) <span class="light-red">return</span>;<br>
+                                &emsp;&emsp;&emsp;&emsp;<span class="light-red">const</span> packet = <span class="light-red">await</span> runInStreamWorker(<span class="light-green">"getNextStreamPacket"</span>, []);<br>
+                                &emsp;&emsp;&emsp;&emsp;<span class="light-red">if</span> (packet && senderWindow) {<br>
+                                &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;senderWindow.webContents.send(<span class="light-green">"streamData"</span>, packet);<br>
+                                &emsp;&emsp;&emsp;&emsp;}<br>
+                                &emsp;&emsp;&emsp;&emsp;setTimeout(poll, 16);<br>
+                                &emsp;&emsp;}<br>
+                                &emsp;&emsp;streamPollInterval = () => { polling = <span class="light-red">false</span>; };<br>
+                                &emsp;&emsp;poll();<br>
+                                &emsp;&emsp;<span class="light-red">return</span> result;<br>
+                                });
+                            </div>
                         </div>
                     </div>
-                </div>
+                </p>
+                <h3>Native Streaming Mode</h3>
+                <p>Within the native C module, streaming mode differs from standard command execution. Instead of:
+                    <ul>
+                        <li>Sending a command</li>
+                        <li>Waiting for a response</li>
+                        <li>Exiting the function</li>
+                    </ul>
+                    <p>The stream mode:</p>
+                    <ul>
+                        <li>Opens a persistent read loop</li>
+                        <li>Continuously reads UART buffer data</li>
+                        <li>Parses packets as they arrive</li>
+                        <li>Pushes valid telemetry frames upward</li>
+                    </ul>
+                </p>
+                <h4>Streaming Loop Behavior</h4>
+                <p>The stream thread operates using a blocking or semi-blocking serial read loop:
+                    <ul>
+                        <li>Reads raw bytes from libserialport</li>
+                        <li>Accumulates bytes into a buffer</li>
+                        <li>Detects packet boundaries using headers</li>
+                        <li>Validates packet integrity (length + CRC)</li>
+                        <li>Extracts JSON payload</li>
+                        <li>Forwards structured data to Node-API callback</li>
+                    </ul>
 
-                <p>Boolean values are also normalized into user-friendly text such as “Yes” and “No”. This design allows:</p>
-                <ul>
-                    <li>Minimal hardcoded UI logic</li>
-                    <li>Easy scalability when adding new fields</li>
-                    <li>Direct mapping between firmware JSON keys and UI elements</li>
-                </ul>
-            </p>
-            <h3>Event-Based Updates</h3>
-            <p>The UI follows an event-driven model where updates occur in response to user interaction rather than continuous polling.
-                <br><br>When the page loads:
-                <div class="terminal">
-                    <div class="terminal-body">
-                        <div class="t-cmd">
-                            document.addEventListener(<span class="light-green">"DOMContentLoaded"</span>, () => {<br>
-                            &emsp;&emsp;refreshBackendStatus();<br>
-                            &emsp;&emsp;attachUpdateListeners();<br>
-                            });
+                    <p>If a packet fails validation:</p>
+                    <ul>
+                        <li>It is discarded</li>
+                        <li>The stream continues without interruption</li>
+                    </ul>
+                </p>
+                <h3>Thread Separation</h3>
+                <p>On the JavaScript side, streaming is isolated from standard request-response logic using a dedicated worker thread. This ensures:
+                    <ul>
+                        <li>UI requests (button clicks, settings updates) remain fast</li>
+                        <li>Streaming does not block IPC handlers</li>
+                        <li>High-frequency updates do not overload the main thread</li>
+                    </ul>
+                    <p>The worker thread acts as a mediator between:</p>
+                    <ul>
+                        <li>IPC system</li>
+                        <li>Native addon</li>
+                        <li>Streaming event emitter</li>
+                    </ul>
+                </p>
+                <h3>Streaming Data Delivery to Frontend</h3>
+                <p>Once data is received in the Electron main process, it is pushed to the renderer using event-based IPC. Unlike request-response commands, streaming uses a push model, meaning:
+                    <ul>
+                        <li>The frontend does not request updates</li>
+                        <li>The backend continuously emits updates</li>
+                    </ul>
+
+                    <p>Example (main → renderer):</p>
+                    <div class="terminal">
+                        <div class="terminal-body">
+                            <div><span class="t-cmd">mainWindow.webContents.send(<span class="light-green">"telemetry-update"</span>, data);</span></div>
                         </div>
                     </div>
-                </div>
-                <p>User interactions are handled through change event listeners attached to all elements with data-setting:</p>
 
-                <div class="terminal">
-                    <div class="terminal-body">
-                        <div><span class="t-cmd">el.addEventListener(<span class="light-green">"change"</span>, () => {<br>
-                            &emsp;&emsp;debouncedUpdate(el);<br>
-                            });
-                        </span></div>
-                    </div>
-                </div>
-
-                <p>When a value changes:</p>
-                <ul>
-                    <li>The new value is captured</li>
-                    <li>A debounced update is triggered</li>
-                    <li>The update is sent to the backend</li>
-                </ul>
-            </p>
-            <h4>Debouncing</h4>
-            <p>To prevent flooding the USB connection with rapid updates (such as holding a key on a number input), updates are debounced with a 300 ms delay:
-
-                <div class="terminal">
-                    <div class="terminal-body">
-                        <div><span class="t-cmd"><span class="light-red">const</span> debouncedUpdate = debounce(sendUpdate, 300);</span></div>
-                    </div>
-                </div>
-            </p>
-            <h4>Change Detection</h4>
-            <p>To avoid redundant communication, the last sent value is stored and compared:
-
-                <div class="terminal">
-                    <div class="terminal-body">
-                        <div><span class="t-cmd"><span class="light-red">if</span> (element.dataset.lastValue === newValue) <span class="light-red">return</span>;</span></div>
-                    </div>
-                </div>
-
-                <p>This ensures that only meaningful changes are transmitted to the hardware.</p>
-            </p>
-
-            <h2>Error Handling & Recovery</h2>
-            <p>Error handling is implemented across both the frontend and backend to ensure system stability.</p>
-            <h3>Frontend Error Handling</h3>
-            <p>After sending a request, the renderer checks for error responses:
-
-                <div class="terminal">
-                    <div class="terminal-body">
-                        <div class="t-cmd">
-                            <span class="light-red">if</span> (response && response.ERROR) {<br>
-                            &emsp;&emsp;showError(response.ERROR);<br>
-                            &emsp;&emsp;<span class="light-red">return</span>;<br>
-                            }
+                    <p>Example (renderer listener):</p>
+                    <div class="terminal">
+                        <div class="terminal-body">
+                            <div class="t-cmd">
+                                window.backendAPI.<span class="light-green">onStreamData</span>((packet) => {<br>
+                                &emsp;&emsp;console.log(Date.now(), <span class="light-green">"W:"</span>, packet.Quaternions?.W,<br>
+                                &emsp;&emsp;&emsp;&emsp;<span class="light-green">"X:"</span>, packet.Quaternions?.X,<br>
+                                &emsp;&emsp;&emsp;&emsp;<span class="light-green">"Y:"</span>, packet.Quaternions?.Y,<br>
+                                &emsp;&emsp;&emsp;&emsp;<span class="light-green">"Z:"</span>, packet.Quaternions?.Z);<br>
+                                });
+                            </div>
                         </div>
                     </div>
-                </div>
+                </p>
+                <h3>Error Handling &amp; Recovery - Frontend</h3>
+                <p>Streaming errors are handled gracefully to ensure continuous operation. Common failure cases include:
+                    <ul>
+                        <li>USB disconnection during stream</li>
+                        <li>Corrupted packets or CRC mismatch</li>
+                        <li>Buffer overflow due to missed reads</li>
+                    </ul>
+                    <p>Recovery strategies:</p>
+                    <ul>
+                        <li>Automatic stream restart on reconnection</li>
+                        <li>Silent discard of invalid packets</li>
+                        <li>Worker thread restart if stream loop fails</li>
+                        <li>Fallback to request-response mode if streaming is unavailable</li>
+                    </ul>
+                </p>
 
-                <p>This allows the UI to:</p>
-                <ul>
-                    <li>Display meaningful error messages</li>
-                    <li>Prevent invalid UI updates</li>
-                    <li>Keep the application stable</li>
-                </ul>
-            </p>
-            <h3>Error Propogation to Backend</h3>
-            <p>The native C module returns structured error responses when failures occur, such as:
-
-                <div class="terminal">
-                    <div class="terminal-body">
-                        <div><span class="t-cmd">{ <span class="light-green">"ERROR"</span>: <span class="light-green">"No device detected. Consider reconnecting device"</span> }</span></div>
+                <h2 id="ui-integration">UI Integration</h2>
+                <h3>How Response Data is Fed into the UI</h3>
+                <p>After the renderer process receives data from the backend through IPC, the next step is updating the user interface. The data returned from 
+                    the native C module is structured as JSON and passed back through the IPC system to the renderer process.
+                    <br><br>In this implementation, the renderer does not manually map each field. Instead, it dynamically maps data to UI 
+                    elements using HTML data-* attributes.
+                    <br><br>When the page loads, the renderer requests all relevant values:
+                    <div class="terminal">
+                        <div class="terminal-body">
+                            <div><span class="t-cmd"><span class="light-red">const</span> data = <span class="light-red">await</span> window.backendAPI.<span class="light-green">populateAll</span>(<span class="light-green">"GetInitialValuesVolt"</span>);</span></div>
+                        </div>
                     </div>
-                </div>
+                    <p>The response contains a structured objects like:</p>
+                    <div class="terminal">
+                        <div class="terminal-body">
+                            <div><span class="t-cmd">data.VoltagePageValues</span></div>
+                        </div>
+                    </div>
 
-                <p>These errors propagate by going though:</p>
-                <ul>
-                    <li>C Module → Worker Thread → ipcMain → ipcRenderer → UI</li>
-                </ul>
-            </p>
-            <h4>Communication Failure Handling</h4>
-            <p>Failures may occur due to:
-                <ul>
-                    <li>Device disconnection</li>
-                    <li>Invalid or corrupted packets (CRC failure)</li>
-                    <li>Timeout while reading from the serial port</li>
-                </ul>
-                <p>The C module handles these by:</p>
-                <ul>
-                    <li>Retrying failed transmissions (up to 3 attempts)</li>
-                    <li>Validating packet length and CRC</li>
-                    <li>Returning an error if all retries fail</li>
-                </ul>
+                    <p>This object is then passed into two different helper functions:</p>
+                    <ul>
+                        <li>populateSettings(data.VoltagePageValues);</li>
+                        <li>updateTelemetry(data.VoltagePageValues);</li>
+                    </ul>
+                </p>
+                <h4>Settings Population</h4>
+                <p>All input and select elements that contain a data-setting attribute are automatically updated:
+                    <div class="terminal">
+                        <div class="terminal-body">
+                            <div class="t-cmd">
+                                document.querySelectorAll(<span class="light-green">"[data-setting]"</span>).forEach(el => {<br>
+                                &emsp;&emsp;<span class="light-red">const</span> key = el.dataset.setting;<br>
+                                &emsp;&emsp;<span class="light-red">if</span> (data[key] !== <span class="light-red">undefined</span>) {<br>
+                                &emsp;&emsp;&emsp;&emsp;<span class="light-red">if</span> (el.tagName === <span class="light-green">"SELECT"</span>) {<br>
+                                &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;setDropdownByText(el, String(data[key]));<br>
+                                &emsp;&emsp;&emsp;&emsp;} <span class="light-red">else</span> {<br>
+                                &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;el.value = String(data[key]);<br>
+                                &emsp;&emsp;&emsp;&emsp;}<br>
+                                &emsp;&emsp;}<br>
+                                });
+                            </div>
+                        </div>
+                    </div>
+                </p>
+                <h4>Telemetry Display</h4>
+                <p>Display-only values use the data-telemetry attribute:
 
-            </p>
-            <h4>Recovery Strategies</h4>
-            <p>When an error occurs, the system supports recovery through:
-                <ul>
-                    <li>Reattempting user actions (retrying updates)</li>
-                    <li>Allowing reconnection of the device</li>
-                    <li>Refreshing UI state via populateAll()</li>
-                    <li>Preventing stale or invalid data from being displayed</li>
-                </ul>
-            </p>
+                    <div class="terminal">
+                        <div class="terminal-body">
+                            <div class="t-cmd">
+                                document.querySelectorAll(<span class="light-green">"[data-telemetry]"</span>).forEach(el => {<br>
+                                &emsp;&emsp;<span class="light-red">const</span> key = el.dataset.telemetry;<br>
+                                &emsp;&emsp;<span class="light-red">if</span> (data[key] !== <span class="light-red">undefined</span>) {<br>
+                                &emsp;&emsp;&emsp;&emsp;el.textContent = data[key];<br>
+                                &emsp;&emsp;}<br>
+                                });
+                            </div>
+                        </div>
+                    </div>
+
+                    <p>Boolean values are also normalized into user-friendly text such as "Yes" and "No". This design allows:</p>
+                    <ul>
+                        <li>Minimal hardcoded UI logic</li>
+                        <li>Easy scalability when adding new fields</li>
+                        <li>Direct mapping between firmware JSON keys and UI elements</li>
+                    </ul>
+                </p>
+                <h3>Event-Based Updates</h3>
+                <p>The UI follows an event-driven model where updates occur in response to user interaction rather than continuous polling.
+                    <br><br>When the page loads:
+                    <div class="terminal">
+                        <div class="terminal-body">
+                            <div class="t-cmd">
+                                document.addEventListener(<span class="light-green">"DOMContentLoaded"</span>, () => {<br>
+                                &emsp;&emsp;refreshBackendStatus();<br>
+                                &emsp;&emsp;attachUpdateListeners();<br>
+                                });
+                            </div>
+                        </div>
+                    </div>
+                    <p>User interactions are handled through change event listeners attached to all elements with data-setting:</p>
+
+                    <div class="terminal">
+                        <div class="terminal-body">
+                            <div><span class="t-cmd">el.addEventListener(<span class="light-green">"change"</span>, () => {<br>
+                                &emsp;&emsp;debouncedUpdate(el);<br>
+                                });
+                            </span></div>
+                        </div>
+                    </div>
+
+                    <p>When a value changes:</p>
+                    <ul>
+                        <li>The new value is captured</li>
+                        <li>A debounced update is triggered</li>
+                        <li>The update is sent to the backend</li>
+                    </ul>
+                </p>
+                <h4>Debouncing</h4>
+                <p>To prevent flooding the USB connection with rapid updates (such as holding a key on a number input), updates are debounced with a 300 ms delay:
+
+                    <div class="terminal">
+                        <div class="terminal-body">
+                            <div><span class="t-cmd"><span class="light-red">const</span> debouncedUpdate = debounce(sendUpdate, 300);</span></div>
+                        </div>
+                    </div>
+                </p>
+                <h4>Change Detection</h4>
+                <p>To avoid redundant communication, the last sent value is stored and compared:
+
+                    <div class="terminal">
+                        <div class="terminal-body">
+                            <div><span class="t-cmd"><span class="light-red">if</span> (element.dataset.lastValue === newValue) <span class="light-red">return</span>;</span></div>
+                        </div>
+                    </div>
+
+                    <p>This ensures that only meaningful changes are transmitted to the hardware.</p>
+                </p>
+
+                <h2 id="error-handling-recovery">Error Handling &amp; Recovery</h2>
+                <p>Error handling is implemented across both the frontend and backend to ensure system stability.</p>
+                <h3>Frontend Error Handling</h3>
+                <p>After sending a request, the renderer checks for error responses:
+
+                    <div class="terminal">
+                        <div class="terminal-body">
+                            <div class="t-cmd">
+                                <span class="light-red">if</span> (response && response.ERROR) {<br>
+                                &emsp;&emsp;showError(response.ERROR);<br>
+                                &emsp;&emsp;<span class="light-red">return</span>;<br>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <p>This allows the UI to:</p>
+                    <ul>
+                        <li>Display meaningful error messages</li>
+                        <li>Prevent invalid UI updates</li>
+                        <li>Keep the application stable</li>
+                    </ul>
+                </p>
+                <h3>Error Propagation to Backend</h3>
+                <p>The native C module returns structured error responses when failures occur, such as:
+
+                    <div class="terminal">
+                        <div class="terminal-body">
+                            <div><span class="t-cmd">{ <span class="light-green">"ERROR"</span>: <span class="light-green">"No device detected. Consider reconnecting device"</span> }</span></div>
+                        </div>
+                    </div>
+
+                    <p>These errors propagate by going through:</p>
+                    <ul>
+                        <li>C Module → Worker Thread → ipcMain → ipcRenderer → UI</li>
+                    </ul>
+                </p>
+                <h4>Communication Failure Handling</h4>
+                <p>Failures may occur due to:
+                    <ul>
+                        <li>Device disconnection</li>
+                        <li>Invalid or corrupted packets (CRC failure)</li>
+                        <li>Timeout while reading from the serial port</li>
+                    </ul>
+                    <p>The C module handles these by:</p>
+                    <ul>
+                        <li>Retrying failed transmissions (up to 3 attempts)</li>
+                        <li>Validating packet length and CRC</li>
+                        <li>Returning an error if all retries fail</li>
+                    </ul>
+                </p>
+                <h4>Recovery Strategies</h4>
+                <p>When an error occurs, the system supports recovery through:
+                    <ul>
+                        <li>Reattempting user actions (retrying updates)</li>
+                        <li>Allowing reconnection of the device</li>
+                        <li>Refreshing UI state via populateAll()</li>
+                        <li>Preventing stale or invalid data from being displayed</li>
+                    </ul>
+                </p>
 <!-- #endregion -->
 
-        </section>
+            </section>
 
-        <section>
-            <h2>Back to Software</h2>
-            <a href="./software.html" class="back-link">← Return to Software Overview</a>
-        </section>
-    </main>
+            <section>
+                <h2>Back to Software</h2>
+                <a href="./software.html" class="back-link">← Return to Software Overview</a>
+            </section>
+        </main>
+    </div>
+
+    <footer>
+        <div class="footer-brand">OSCAR <span>Docs</span></div>
+        <ul class="footer-links">
+            <li><a href="./contact.html">Contact Us</a></li>
+            <li><a href="https://sddec26-05.sd.ece.iastate.edu/">Senior Design Website</a></li>
+            <li><a href="https://github.com/gracefinger/OSCAR_Documentation.github.io">GitHub</a></li>
+        </ul>
+    </footer>
+
+    <script>
+        // ── Build sidebar from headings ──
+        const sidebar = document.getElementById('sidebar-nav');
+        const headings = document.querySelectorAll('.doc-content h1[id], .doc-content h2[id], .doc-content h3[id]');
+
+        headings.forEach(h => {
+            const li = document.createElement('li');
+            const tag = h.tagName.toLowerCase();
+            li.classList.add('sidebar-' + tag);
+            const a = document.createElement('a');
+            a.href = '#' + h.id;
+            a.textContent = h.textContent;
+            li.appendChild(a);
+            sidebar.appendChild(li);
+        });
+
+        // ── Active link on scroll ──
+        const allLinks = sidebar.querySelectorAll('a');
+
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    allLinks.forEach(a => a.classList.remove('active'));
+                    const active = sidebar.querySelector('a[href="#' + entry.target.id + '"]');
+                    if (active) {
+                        active.classList.add('active');
+                        active.scrollIntoView({ block: 'nearest' });
+                    }
+                }
+            });
+        }, { rootMargin: '0px 0px -70% 0px', threshold: 0 });
+
+        headings.forEach(h => observer.observe(h));
+
+        // ── Smooth scroll ──
+        document.querySelectorAll('a[href^="#"]').forEach(a => {
+            a.addEventListener('click', e => {
+                const target = document.querySelector(a.getAttribute('href'));
+                if (target) {
+                    e.preventDefault();
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    </script>
 
 </body>
-
-<footer>
-    <div class="footer-brand">OSCAR <span>Docs</span></div>
-    <ul class="footer-links">
-        <li><a href="./contact.html">Contact Us</a></li>
-        <li><a href="https://sddec26-05.sd.ece.iastate.edu/">Senior Design Website</a></li>
-        <li><a href="https://github.com/gracefinger/OSCAR_Documentation.github.io">GitHub</a></li>
-    </ul>
-</footer>
 
 </html>
