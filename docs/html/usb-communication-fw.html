@@ -20,19 +20,9 @@
 
     <main>
         <h1>USB Communication</h1>
-
-        <section>
-            <h2>Overview</h2>
-            <p>
-                The USB Communication system enables data transfer between the flight controller and the desktop application.
-                It supports both command-based communication and continuous streaming for telemetry data.
-            </p>
-        </section>
-
         <section>
             <h2>Command Setup</h2>
-            <div class="section-label"></div>
-            <div class="section-desc">
+            <p>
                 The USB communication is set up to use standard UART protocol. Communications have 1 start bit, 1 stop bit, no parity, 
                 115200 baud rate, and 8 data bits. The PC and flight controller MCU are set up in a master slave configuration. 
                 Commands are sent from the master, the PC, to the slave, flight controller. Responses are expected to be sent back 
@@ -57,13 +47,10 @@
                 Data is sent through the usb in packets of up to 64 bytes. If the data or buffer being loaded is more than 64 bytes it will need 
                 to be split up into multiple packets. The line coding is set to use UART so the device behaves like a USB to serial device for the 
                 purposes of the host machine receiving and sending back data. 
-            </div>
-        </section>
+            </p>
 
-        <section>
             <h2>Response Setup</h2>
-            <div class="section-label">Overview</div>
-            <div class="section-desc">
+            <p>
                 Once the fight controller MCU receives a command, it will parse through the input and either retrieve or update values. When it is 
                 ready to send a response, the flight controller code will build a JSON object to simplify data interpretation on the software side. 
                 As mentioned earlier, the response communications also have a command header. These will start with 0x5, followed by 3 more hex bits 
@@ -77,345 +64,347 @@
                 
                 Multiple library calls are required to correctly build the JSON object. The following examples are derived from the GitHub ReadMe for easier access:
                 <br><br>
+            </p>
+            <h3>Example JSON</h3>
+            <div class="terminal">
+                <div class="terminal-body">
+                    <div class="t-cmd">{<br>
+                    &emsp;&emsp;"name": "Awesome 4K",<br>
+                    &emsp;&emsp;"resolutions": [<br>
+                    &emsp;&emsp;&emsp;&emsp;{<br>
+                    &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"width": 1280,<br>
+                    &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"height": 720<br>
+                    &emsp;&emsp;&emsp;&emsp;},<br>
+                    &emsp;&emsp;&emsp;&emsp;{<br>
+                    &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"width": 1920,<br>
+                    &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"height": 1080<br>
+                    &emsp;&emsp;&emsp;&emsp;},<br>
+                    &emsp;&emsp;&emsp;&emsp;{<br>
+                    &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"width": 3840,<br>
+                    &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"height": 2160<br>
+                    &emsp;&emsp;&emsp;&emsp;}<br>
+                    &emsp;&emsp;]<br>
+                    }</div>
+                </div>
             </div>
-            <div class="section-label">Example JSON</div>
-            <div class="section-desc">
-            <!-- TODO: Make look good -->
-             <code><pre>
-{
-    "name": "Awesome 4K",
-    "resolutions": [
-        {
-            "width": 1280,
-            "height": 720
-        },
-        {
-            "width": 1920,
-            "height": 1080
-        },
-        {
-            "width": 3840,
-            "height": 2160
-        }
-    ]
-}
-             </pre></code>
             </div>
-            <div class="section-label">Building JSON in C</div>
-            <div class="section-desc">
-                <!-- TODO: Make look good -->
-                 <code><pre>
-//NOTE: Returns a heap allocated string, you are required to free it after use.
-char *create_monitor_with_helpers(void)
-{
-    const unsigned int resolution_numbers[3][2] = {
-        {1280, 720},
-        {1920, 1080},
-        {3840, 2160}
-    };
-    char *string = NULL;
-    cJSON *resolutions = NULL;
-    size_t index = 0;
+            <h3>Building JSON in C</h3>
 
-    cJSON *monitor = cJSON_CreateObject();
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            <span class="light-red">//NOTE: Returns a heap allocated string, you are required to free it after use.</span><br>
+                            char *create_monitor_with_helpers(void)<br>
+                            {<br>
+                            &emsp;&emsp;const unsigned int resolution_numbers[3][2] = {<br>
+                            &emsp;&emsp;&emsp;&emsp;{1280, 720},<br>
+                            &emsp;&emsp;&emsp;&emsp;{1920, 1080},<br>
+                            &emsp;&emsp;&emsp;&emsp;{3840, 2160}<br>
+                            &emsp;&emsp;};<br>
+                            &emsp;&emsp;char *string = NULL;<br>
+                            &emsp;&emsp;cJSON *resolutions = NULL;<br>
+                            &emsp;&emsp;size_t index = 0;<br>
+                            <br>
+                            &emsp;&emsp;cJSON *monitor = cJSON_CreateObject();<br>
+                            <br>
+                            &emsp;&emsp;if (cJSON_AddStringToObject(monitor, "name", "Awesome 4K") == NULL)<br>
+                            &emsp;&emsp;{<br>
+                            &emsp;&emsp;&emsp;&emsp;goto end;<br>
+                            &emsp;&emsp;}<br>
+                            <br>
+                            &emsp;&emsp;resolutions = cJSON_AddArrayToObject(monitor, "resolutions");<br>
+                            &emsp;&emsp;if (resolutions == NULL)<br>
+                            &emsp;&emsp;{<br>
+                            &emsp;&emsp;&emsp;&emsp;goto end;<br>
+                            &emsp;&emsp;}<br>
+                            <br>
+                            &emsp;&emsp;for (index = 0; index &lt; (sizeof(resolution_numbers) / (2 * sizeof(int))); ++index)<br>
+                            &emsp;&emsp;{<br>
+                            &emsp;&emsp;&emsp;&emsp;cJSON *resolution = cJSON_CreateObject();<br>
+                            <br>
+                            &emsp;&emsp;&emsp;&emsp;if (cJSON_AddNumberToObject(resolution, "width", resolution_numbers[index][0]) == NULL)<br>
+                            &emsp;&emsp;&emsp;&emsp;{<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;goto end;<br>
+                            &emsp;&emsp;&emsp;&emsp;}<br>
+                            <br>
+                            &emsp;&emsp;&emsp;&emsp;if (cJSON_AddNumberToObject(resolution, "height", resolution_numbers[index][1]) == NULL)<br>
+                            &emsp;&emsp;&emsp;&emsp;{<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;goto end;<br>
+                            &emsp;&emsp;&emsp;&emsp;}<br>
+                            <br>
+                            &emsp;&emsp;&emsp;&emsp;cJSON_AddItemToArray(resolutions, resolution);<br>
+                            &emsp;&emsp;}<br>
+                            <br>
+                            &emsp;&emsp;string = cJSON_Print(monitor);<br>
+                            &emsp;&emsp;if (string == NULL)<br>
+                            &emsp;&emsp;{<br>
+                            &emsp;&emsp;&emsp;&emsp;fprintf(stderr, "Failed to print monitor.\n");<br>
+                            &emsp;&emsp;}<br>
+                            <br>
+                            end:<br>
+                            &emsp;&emsp;cJSON_Delete(monitor);<br>
+                            &emsp;&emsp;return string;<br>
+                            }
+                        </div>
+                    </div>
+                </div>
 
-    if (cJSON_AddStringToObject(monitor, "name", "Awesome 4K") == NULL)
-    {
-        goto end;
-    }
-
-    resolutions = cJSON_AddArrayToObject(monitor, "resolutions");
-    if (resolutions == NULL)
-    {
-        goto end;
-    }
-
-    for (index = 0; index < (sizeof(resolution_numbers) / (2 * sizeof(int))); ++index)
-    {
-        cJSON *resolution = cJSON_CreateObject();
-
-        if (cJSON_AddNumberToObject(resolution, "width", resolution_numbers[index][0]) == NULL)
-        {
-            goto end;
-        }
-
-        if (cJSON_AddNumberToObject(resolution, "height", resolution_numbers[index][1]) == NULL)
-        {
-            goto end;
-        }
-
-        cJSON_AddItemToArray(resolutions, resolution);
-    }
-
-    string = cJSON_Print(monitor);
-    if (string == NULL)
-    {
-        fprintf(stderr, "Failed to print monitor.\n");
-    }
-
-end:
-    cJSON_Delete(monitor);
-    return string;
-}
-                 </pre></code>
-
+                <p>
                  When creating a JSON object it is important to add the elements to the object that you are needing to transmit. 
                  This would be the important data Software needs to display.<strong> Make sure to communicate how your JSON is formatted 
                  with the software team so that it can be parsed correctly.</strong> Moreover, creating JSON objects takes allocated memory. 
                  Be sure to delete the JSON object after transmitting it over USB. Before the JSON object can be transmitted it 
                  needs to be transferred into a standard string. The cJSON_Print function should be able to handle this. 
-            </div>
-            <div class="section-label">Example JSON 2</div>
-            <div class="section-desc">This JSON contains multiple pieces of data all labeled. This is useful for the initial get command that is done on system connect. 
-                <!-- TODO: Make look good -->
-                 <code><pre>
-{
-    "name": "Initial Values",
-        "VoltagePageValues": {
-            "VoltMeterSource": 5,
-            "CurrentMeterSource": 6,
-            "MinCellVoltage": 7,
-            "WarningCellColtage": 8,
-            "BatteryCapacity": 9,
-            "VoltageCalibrationOffset": 8,
-            "CurrentScale": 9,
-            "CurrentOffset": 10
-        }
-}
-                 </pre></code>
-            </div>
-            <div class="section-label">Building JSON 2 in C</div>
-            <div class="section-desc">
-                <!-- TODO: Make look good -->
-                <code><pre>
-//create the over-arching JSON object
-ResponseJSON = cJSON_CreateObject();
-cJSON_AddStringToObject(ResponseJSON, "name", "Initial Values");
+                </p>
+            <h3>Example JSON 2</h3>
+            <p>This JSON contains multiple pieces of data all labeled. This is useful for the initial get command that is done on system connect. </p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            {<br>
+                            &emsp;&emsp;"name": "Initial Values",<br>
+                            &emsp;&emsp;&emsp;&emsp;"VoltagePageValues": {<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"VoltMeterSource": 5,<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"CurrentMeterSource": 6,<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"MinCellVoltage": 7,<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"WarningCellColtage": 8,<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"BatteryCapacity": 9,<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"VoltageCalibrationOffset": 8,<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"CurrentScale": 9,<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"CurrentOffset": 10<br>
+                            &emsp;&emsp;&emsp;&emsp;}<br>
+                            }
+                        </div>
+                    </div>
+                </div>
+            <h3>Building JSON 2 in C</h3>
 
-//create the JSON object that will hold all the data
-cJSON* VoltageJSON = cJSON_CreateObject();
-cJSON_AddStringToObject(VoltageJSON, "VoltMeterSource", "Jill");
-cJSON_AddStringToObject(VoltageJSON, "CurrentMeterSource", "Bob");
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            <span class="light-red">//create the over-arching JSON object</span><br>
+                            ResponseJSON = cJSON_CreateObject();<br>
+                            cJSON_AddStringToObject(ResponseJSON, "name", "Initial Values");<br>
+                            <br>
+                            <span class="light-red">//create the JSON object that will hold all the data</span><br>
+                            cJSON* VoltageJSON = cJSON_CreateObject();<br>
+                            cJSON_AddStringToObject(VoltageJSON, "VoltMeterSource", "Jill");<br>
+                            cJSON_AddStringToObject(VoltageJSON, "CurrentMeterSource", "Bob");<br>
+                            <br>
+                            <span class="light-red">//Create a JSON object for all the numbers to be used</span><br>
+                            cJSON* JSONValue = cJSON_CreateNumber(5);<br>
+                            cJSON* JSONValue2 = cJSON_CreateNumber(6);<br>
+                            cJSON* JSONValue3 = cJSON_CreateNumber(7);<br>
+                            cJSON* JSONValue4 = cJSON_CreateNumber(8);<br>
+                            cJSON* JSONValue5 = cJSON_CreateNumber(9);<br>
+                            cJSON* JSONValue6 = cJSON_CreateNumber(10);<br>
+                            <br>
+                            <span class="light-red">//Add each number with a name to the JSON that holds all the data</span><br>
+                            cJSON_AddItemToObject(VoltageJSON, "MinCellVoltage", JSONValue);<br>
+                            cJSON_AddItemToObject(VoltageJSON, "WarningCellVoltage", JSONValue2);<br>
+                            cJSON_AddItemToObject(VoltageJSON, "BatteryCapacity", JSONValue3);<br>
+                            cJSON_AddItemToObject(VoltageJSON, "VoltageCalibrationOffset", JSONValue4);<br>
+                            cJSON_AddItemToObject(VoltageJSON, "CurrentScale", JSONValue5);<br>
+                            cJSON_AddItemToObject(VoltageJSON, "CurrentOffset", JSONValue6);<br>
+                            <br>
+                            <span class="light-red">//Add the data JSON to the over-arching JSON</span><br>
+                            cJSON_AddItemToObject(ResponseJSON, "VoltagePageValues", VoltageJSON);
+                        </div>
+                    </div>
+                </div>
 
-//Create a JSON object for all the numbers to be used
-cJSON* JSONValue = cJSON_CreateNumber(5);
-cJSON* JSONValue2 = cJSON_CreateNumber(6);
-cJSON* JSONValue3 = cJSON_CreateNumber(7);
-cJSON* JSONValue4 = cJSON_CreateNumber(8);
-cJSON* JSONValue5 = cJSON_CreateNumber(9);
-cJSON* JSONValue6 = cJSON_CreateNumber(10);
-
-//Add each number with a name to the JSON that holds all the data
-cJSON_AddItemToObject(VoltageJSON, "MinCellVoltage", JSONValue);
-cJSON_AddItemToObject(VoltageJSON, "WarningCellVoltage", JSONValue2);
-cJSON_AddItemToObject(VoltageJSON, "BatteryCapacity", JSONValue3);
-cJSON_AddItemToObject(VoltageJSON, "VoltageCalibrationOffset", JSONValue4);
-cJSON_AddItemToObject(VoltageJSON, "CurrentScale", JSONValue5);
-cJSON_AddItemToObject(VoltageJSON, "CurrentOffset", JSONValue6);
-
-
-//Add the data JSON to the over-arching JSON
-cJSON_AddItemToObject(ResponseJSON, "VoltagePageValues", VoltageJSON);
-                   
-                </pre></code>
-            </div>
-        </section>
-
-        <section>
             <h2>CRC Calculation</h2>
-            <div class="section-desc">The CRC calculator follows the standard crc16_ccitt format. It takes in a buffer and its length. 
-                Each element in the buffer is xor’ed with the polynomial. The polynomial used is as follows:
+            <p>The CRC calculator follows the standard crc16_ccitt format. It takes in a buffer and its length. 
+                Each element in the buffer is xor'ed with the polynomial. The polynomial used is as follows:
                 <br><br>Replace equation with image - x^16+ x^12+x^5+1 <br><br>
                 It is used in the hexadecimal form 0x1021u. The CRC is formatted in a 16 bit integer.
-            </div>
-        </section>
+            </p>
 
-        <section>
             <h2>Command Headers</h2>
-            <div class="section-desc">
+            <p>
                 This will be an ever-growing list of command headers. If you notice this list is out of data please update it! 
-                <!-- TODO: Make look good  - includes fixing spacing-->
-                 <code><pre>
-// IPower and battery Stuff – Power and Battery Page  0x80xx series
+            </p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            <span class="light-red">// IPower and battery Stuff – Power and Battery Page  0x80xx series</span><br>
+                            <br>
+                            &emsp;&emsp;e_GetConnection =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8000u,<br>
+                            <br>
+                            &emsp;&emsp;<span class="light-red">//Power and Battery Section</span><br>
+                            &emsp;&emsp;e_SetVoltMeterSource =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8001u,<br>
+                            &emsp;&emsp;e_SetCurrentMeterSource =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8002u,<br>
+                            &emsp;&emsp;e_SetMinCellVoltage =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8003u,<br>
+                            &emsp;&emsp;e_SetWarningCellVoltage =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8004u,<br>
+                            &emsp;&emsp;e_SetBatteryCapacity =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8005u,<br>
+                            &emsp;&emsp;e_SetVoltageCalibrationOffset =&emsp;&emsp;0x8006u,<br>
+                            &emsp;&emsp;e_SetCurrentScale =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8007u,<br>
+                            &emsp;&emsp;e_SetCurrentOffset =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8008u,<br>
+                            &emsp;&emsp;e_GetInitalValuesVolt =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8009u,<br>
+                            <br>
+                            &emsp;&emsp;<span class="light-red">//Power and Battery Section - Power State info</span><br>
+                            &emsp;&emsp;e_GetPowerStateConnection =&emsp;&emsp;&emsp;&emsp;0x800Au,<br>
+                            &emsp;&emsp;e_GetPowerStateBatVolt =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x800Bu,<br>
+                            &emsp;&emsp;e_GetPowerStatemAhUsed =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x800Cu,<br>
+                            &emsp;&emsp;e_GetPowerStateCurrentDraw =&emsp;&emsp;&emsp;&emsp;0x800Du,<br>
+                            <br>
+                            <span class="light-red">// IMU &amp; Mag  Section – Setup and Ports Page 0x81xx series</span><br>
+                            &emsp;&emsp;e_GetSetupPortPageData =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8100u,<br>
+                            &emsp;&emsp;e_GetAccelCal =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8101u,<br>
+                            &emsp;&emsp;e_GetGyroCal =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8102u,<br>
+                            &emsp;&emsp;e_GetMagCal =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8103u,<br>
+                            &emsp;&emsp;e_GetResetCalToDefault =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8104u,<br>
+                            <br>
+                            <span class="light-red">// Configuration Stuff  – Configuration Page 0x82xx series</span><br>
+                            &emsp;&emsp;e_GetConfigPageData =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8200u,<br>
+                            &emsp;&emsp;e_SetGyroUpdateFreq =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8201u, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_SetAccelEnable =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8203u, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_SetBarometerEnable =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8204u, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_SetMagEnable =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8205u, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_SetRollDeg =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8206u, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_SetPitchDeg =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8207u, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_SetYawDeg =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8208u, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_SetMagAlign =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8209u, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_SetPilotName =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x820Au, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_SetDroneName =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x820Bu, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_SetGPSEnabled =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x820Cu, <span class="light-red">//included on get page data</span><br>
+                            <br>
+                            <span class="light-red">//PID – PID Page 0x83xx series</span><br>
+                            &emsp;&emsp;<span class="light-red">//Currently in-progress</span><br>
+                            <br>
+                            <span class="light-red">//Motors Page 0x84xx series</span><br>
+                            &emsp;&emsp;e_GetMotorPage =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8400u,<br>
+                            <br>
+                            &emsp;&emsp;<span class="light-red">//Motor Features</span><br>
+                            &emsp;&emsp;e_SetDShotSpeed =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8401u,<br>
+                            &emsp;&emsp;e_SetMotorStop =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8402u,<br>
+                            &emsp;&emsp;e_ReleaseMotorStop =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8403u, <span class="light-red">//currently non functional</span><br>
+                            &emsp;&emsp;e_SetUARTTelemetryLineEnabled =&emsp;0x8404u, <span class="light-red">//currently non functional</span><br>
+                            &emsp;&emsp;e_SetUARTTelemetryLineDisabled =&emsp;0x8405u, <span class="light-red">//currently non functional</span><br>
+                            &emsp;&emsp;e_SetMotorIdleValue =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x840Eu,<br>
+                            <br>
+                            &emsp;&emsp;<span class="light-red">//Motor Direction</span><br>
+                            &emsp;&emsp;e_SetMotorsReversed =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8406u,<br>
+                            &emsp;&emsp;e_SetMotorsDefault =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8407u,<br>
+                            <br>
+                            &emsp;&emsp;<span class="light-red">//Motor Outputs</span><br>
+                            &emsp;&emsp;e_SetMotorOneThrottle =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8408u,<br>
+                            &emsp;&emsp;e_SetMotorTwoThrottle =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8409u,<br>
+                            &emsp;&emsp;e_SetMotorThreeThrottle =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x840Au,<br>
+                            &emsp;&emsp;e_SetMotorFourThrottle =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x840Bu,<br>
+                            &emsp;&emsp;e_SetMasterThrottle =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x840Fu,<br>
+                            <br>
+                            &emsp;&emsp;<span class="light-red">//Motor Control</span><br>
+                            &emsp;&emsp;e_SetMotorControlEnable =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x840Cu,<br>
+                            &emsp;&emsp;e_SetMotorControlDisable =&emsp;&emsp;&emsp;&emsp;&emsp;0x840Du,<br>
+                            <br>
+                            <span class="light-red">//Streaming Features</span><br>
+                            &emsp;&emsp;e_StartQuaternionStream =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8500u,<br>
+                            &emsp;&emsp;e_StopQuaternionStream =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x8501u,
+                        </div>
+                    </div>
+                </div>
 
-	e_GetConnection =			    0x8000u,
-
-	//Power and Battery Section
-	e_SetVoltMeterSource =		    0x8001u,
-	e_SetCurrentMeterSource =	    0x8002u,
-	e_SetMinCellVoltage =		    0x8003u,
-	e_SetWarningCellVoltage =	    0x8004u,
-	e_SetBatteryCapacity =		    0x8005u,
-	e_SetVoltageCalibrationOffset =	0x8006u,
-	e_SetCurrentScale =			    0x8007u,
-	e_SetCurrentOffset =			0x8008u,
-	e_GetInitalValuesVolt =		    0x8009u,
-
-	//Power and Battery Section - Power State info
-	e_GetPowerStateConnection =	    0x800Au,
-	e_GetPowerStateBatVolt = 		0x800Bu,
-	e_GetPowerStatemAhUsed =  	    0x800Cu,
-	e_GetPowerStateCurrentDraw =	0x800Du,
-
-// IMU & Mag  Section – Setup and Ports Page 0x81xx series
-	e_GetSetupPortPageData = 		0x8100u,
-    e_GetAccelCal = 			    0x8101u,
-    e_GetGyroCal = 			        0x8102u,
-    e_GetMagCal = 			        0x8103u,
-    e_GetResetCalToDefault =        0x8104u,
-
-// Configuration Stuff  – Configuration Page 0x82xx series
-	e_GetConfigPageData= 		    0x8200u,
-	e_SetGyroUpdateFreq= 		    0x8201u, //included on get page data
-	e_SetAccelEnable= 			    0x8203u,  //included on get page data
-	e_SetBarometerEnable=		    0x8204u,  //included on get page data
-	e_SetMagEnable=			        0x8205u,  //included on get page data
-	e_SetRollDeg	=			    0x8206u,  //included on get page data
-	e_SetPitchDeg=			        0x8207u,  //included on get page data
-	e_SetYawDeg	=			        0x8208u,  //included on get page data
-	e_SetMagAlign=			        0x8209u,  //included on get page data
-	e_SetPilotName = 			    0x820Au, //included on get page data
-	e_SetDroneName = 			    0x820Bu, //included on get page data
-    e_SetGPSEnabled= 			    0x820Cu, //included on get page data
-
-
-
-//PID – PID Page 0x83xx series
-    //Currently in-progress
-
-//Motors Page 0x84xx series
-	e_GetMotorPage=				    0x8400u,
-
-    //Motor Features
-	e_SetDShotSpeed =				0x8401u,
-	e_SetMotorStop=				    0x8402u,
-	e_ReleaseMotorStop=			    0x8403u, //currently non functional
-	e_SetUARTTelemetryLineEnabled=	0x8404u, //currently non functional
-	e_SetUARTTelemetryLineDisabled=	0x8405u, //currently non functional
-	e_SetMotorIdleValue=			0x840Eu,
-
-	//Motor Direction
-	e_SetMotorsReversed=			0x8406u,
-	e_SetMotorsDefault=				0x8407u,
-
-	//Motor Outputs
-	e_SetMotorOneThrottle=			0x8408u,
-	e_SetMotorTwoThrottle=			0x8409u,
-	e_SetMotorThreeThrottle=		0x840Au,
-	e_SetMotorFourThrottle=			0x840Bu,
-	e_SetMasterThrottle=			0x840Fu,
-
-	//Motor Control
-	e_SetMotorControlEnable=		0x840Cu,
-	e_SetMotorControlDisable=		0x840Du,
-
-//Streaming Features
-    e_StartQuaternionStream	=		0x8500u,
-    e_StopQuaternionStream	=		0x8501u,
-                 </pre></code>
-            </div>
-        </section>
-
-
-        <section>
             <h2>Response Headers</h2>
-            <div class="section-desc">This will be an ever-growing list of response headers. If you notice this list is out of data please update it! 
-                <!-- TODO: Make look good - includes weird spacing -->
-                 <code><pre>
-//General connection check
-// Power and battery Stuff – Power and Battery Page  0x50xx series
-	e_ResGetConnection =			    0x5000u,
+            <p>This will be an ever-growing list of response headers. If you notice this list is out of data please update it! 
+            </p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            <span class="light-red">//General connection check</span><br>
+                            <span class="light-red">// Power and battery Stuff – Power and Battery Page  0x50xx series</span><br>
+                            &emsp;&emsp;e_ResGetConnection =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5000u,<br>
+                            <br>
+                            &emsp;&emsp;<span class="light-red">//Power and Battery Section</span><br>
+                            &emsp;&emsp;e_ResSetVoltMeterSource =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5001u,<br>
+                            &emsp;&emsp;e_ResSetCurrentMeterSource =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5002u,<br>
+                            &emsp;&emsp;e_ResSetMinCellVoltage =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5003u,<br>
+                            &emsp;&emsp;e_ResSetWarningCellVoltage =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5004u,<br>
+                            &emsp;&emsp;e_ResSetBatteryCapacity =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5005u,<br>
+                            &emsp;&emsp;e_ResSetVoltageCalibrationOffset =&emsp;&emsp;0x5006u,<br>
+                            &emsp;&emsp;e_ResSetCurrentScale =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5007u,<br>
+                            &emsp;&emsp;e_ResSetCurrentOffset =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5008u,<br>
+                            &emsp;&emsp;e_ResGetInitalValuesVolt =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5009u,<br>
+                            <br>
+                            &emsp;&emsp;<span class="light-red">//Power and Battery Section - Power State info</span><br>
+                            &emsp;&emsp;e_ResGetPowerStateConnection =&emsp;&emsp;&emsp;&emsp;&emsp;0x500Au,<br>
+                            &emsp;&emsp;e_ResGetPowerStateBatVolt =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x500Bu,<br>
+                            &emsp;&emsp;e_ResGetPowerStatemAhUsed =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x500Cu,<br>
+                            &emsp;&emsp;e_ResGetPowerStateCurrentDraw =&emsp;&emsp;&emsp;&emsp;0x500Du,<br>
+                            <br>
+                            <span class="light-red">//IMU and Mag Section  – Setup and Ports Page 0x51xx series</span><br>
+                            &emsp;&emsp;e_ResSendSetupPortPageData =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5100u,<br>
+                            &emsp;&emsp;e_ResAccelCal =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5101u,<br>
+                            &emsp;&emsp;e_ResGyroCal =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5102u,<br>
+                            &emsp;&emsp;e_ResMagCal =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5103u,<br>
+                            <br>
+                            <span class="light-red">// Configuration Stuff  – Configuration Page 0x52xx series</span><br>
+                            &emsp;&emsp;e_ResGetConfigPageData =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5200u,<br>
+                            &emsp;&emsp;e_ResSetGyroUpdateFreq =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5201u, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_ResSetAccelEnable =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5203u, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_ResSetBarometerEnable =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5204u, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_ResSetMagEnable =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5205u, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_ResSetRollDeg =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5206u, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_ResSetPitchDeg =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5207u, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_ResSetYawDeg =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5208u, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_ResSetMagAlign =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5209u, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_ResSetPilotName =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x520Au, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_ResSetDroneName =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x520Bu, <span class="light-red">//included on get page data</span><br>
+                            &emsp;&emsp;e_ResSetGPSEnabled =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x520Cu, <span class="light-red">//included on get page data</span><br>
+                            <br>
+                            <span class="light-red">//PID – PID Page 0x53xx series</span><br>
+                            &emsp;&emsp;<span class="light-red">//Currently in-progress</span><br>
+                            <br>
+                            <span class="light-red">//Motors Page 0x54xx series</span><br>
+                            &emsp;&emsp;e_ResGetMotorPage =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5400u,<br>
+                            <br>
+                            &emsp;&emsp;<span class="light-red">//Motor Features</span><br>
+                            &emsp;&emsp;e_ResSetDShotSpeed =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5401u,<br>
+                            &emsp;&emsp;e_ResSetMotorStop =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5402u,<br>
+                            &emsp;&emsp;e_ResReleaseMotorStop =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5403u, <span class="light-red">//currently non functional</span><br>
+                            &emsp;&emsp;e_ResSetUARTTelemetryLineEnabled =&emsp;0x5404u, <span class="light-red">//currently non functional</span><br>
+                            &emsp;&emsp;e_ResSetUARTTelemetryLineDisabled =&emsp;0x5405u, <span class="light-red">//currently non functional</span><br>
+                            &emsp;&emsp;e_SetMotorIdleValue =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x540Eu,<br>
+                            <br>
+                            &emsp;&emsp;<span class="light-red">//Motor Direction</span><br>
+                            &emsp;&emsp;e_ResSetMotorsReversed =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5406u,<br>
+                            &emsp;&emsp;e_ResSetMotorsDefault =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5407u,<br>
+                            <br>
+                            &emsp;&emsp;<span class="light-red">//Motor Outputs</span><br>
+                            &emsp;&emsp;e_ResSetMotorOneThrottle =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5408u,<br>
+                            &emsp;&emsp;e_ResSetMotorTwoThrottle =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5409u,<br>
+                            &emsp;&emsp;e_ResSetMotorThreeThrottle =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x540Au,<br>
+                            &emsp;&emsp;e_ResSetMotorFourThrottle =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x540Bu,<br>
+                            &emsp;&emsp;e_ResSetMasterThrottle =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x540Fu,<br>
+                            <br>
+                            &emsp;&emsp;<span class="light-red">//Motor Control</span><br>
+                            &emsp;&emsp;e_ResSetMotorControlEnable =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x540Cu,<br>
+                            &emsp;&emsp;e_ResSetMotorControlDisable =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x540Du,<br>
+                            <br>
+                            <span class="light-red">//Streaming</span><br>
+                            &emsp;&emsp;e_ResStartQuaternionStream =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5500u,<br>
+                            &emsp;&emsp;e_ResStopQuaternionStream =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x5501u,
+                        </div>
+                    </div>
+                </div>
 
-	//Power and Battery Section
-	e_ResSetVoltMeterSource =			0x5001u,
-	e_ResSetCurrentMeterSource =		0x5002u,
-	e_ResSetMinCellVoltage =			0x5003u,
-	e_ResSetWarningCellVoltage =		0x5004u,
-	e_ResSetBatteryCapacity =			0x5005u,
-	e_ResSetVoltageCalibrationOffset =	0x5006u,
-	e_ResSetCurrentScale =			    0x5007u,
-	e_ResSetCurrentOffset =			    0x5008u,
-	e_ResGetInitalValuesVolt = 			0x5009u,
 
-	//Power and Battery Section - Power State info
-	e_ResGetPowerStateConnection =		0x500Au,
-	e_ResGetPowerStateBatVolt = 		0x500Bu,
-	e_ResGetPowerStatemAhUsed =  		0x500Cu,
-	e_ResGetPowerStateCurrentDraw =		0x500Du,
-	
-//IMU and Mag Section  – Setup and Ports Page 0x51xx series
-	e_ResSendSetupPortPageData = 	    0x5100u,
-    e_ResAccelCal = 			        0x5101u,
-    e_ResGyroCal = 			            0x5102u,
-    e_ResMagCal = 			            0x5103u,
-
-// Configuration Stuff  – Configuration Page 0x52xx series
-	e_ResGetConfigPageData= 			0x5200u,
-	e_ResSetGyroUpdateFreq= 			0x5201u, //included on get page data
-	e_ResSetAccelEnable= 			    0x5203u,  //included on get page data
-	e_ResSetBarometerEnable=			0x5204u,  //included on get page data
-	e_ResSetMagEnable=			        0x5205u,  //included on get page data
-	e_ResSetRollDeg	=			        0x5206u,  //included on get page data
-	e_ResSetPitchDeg=				    0x5207u,  //included on get page data
-	e_ResSetYawDeg	=			        0x5208u,  //included on get page data
-	e_ResSetMagAlign=				    0x5209u,  //included on get page data
-	e_ResSetPilotName = 			    0x520Au, //included on get page data
-	e_ResSetDroneName = 			    0x520Bu, //included on get page data
-    e_ResSetGPSEnabled= 			    0x520Cu, //included on get page data
-
-//PID – PID Page 0x53xx series
-    //Currently in-progress
-
-//Motors Page 0x54xx series
-	e_ResGetMotorPage=				    0x5400u,
-
-    //Motor Features
-	e_ResSetDShotSpeed =				0x5401u,
-	e_ResSetMotorStop=					0x5402u,
-	e_ResReleaseMotorStop=				0x5403u, //currently non functional
-	e_ResSetUARTTelemetryLineEnabled=	0x5404u, //currently non functional
-	e_ResSetUARTTelemetryLineDisabled=	0x5405u, //currently non functional
-	e_SetMotorIdleValue=				0x540Eu,
-
-	//Motor Direction
-	e_ResSetMotorsReversed=				0x5406u,
-	e_ResSetMotorsDefault=				0x5407u,
-
-	//Motor Outputs
-	e_ResSetMotorOneThrottle=			0x5408u,
-	e_ResSetMotorTwoThrottle=			0x5409u,
-	e_ResSetMotorThreeThrottle=			0x540Au,
-	e_ResSetMotorFourThrottle=			0x540Bu,
-	e_ResSetMasterThrottle=				0x540Fu,
-
-	//Motor Control
-	e_ResSetMotorControlEnable=			0x540Cu,
-	e_ResSetMotorControlDisable=		0x540Du,
-
-//Streaming
-        e_ResStartQuaternionStream	=		0x5500u,
-        e_ResStopQuaternionStream	=		0x5501u,
-                 </pre></code>
-            </div>
-        </section>
-
-
-        <section>
             <h2>Error Headers</h2>
             <div class="section-desc">
                 This will be an ever-growing list of error headers. If you notice this list is out of date please update it! 
-            
-                <!-- TODO: Make look good - fix spacing -->
-                 <code><pre>
-    e_ErrorUknownCommand =				0xFFFFu,
-	e_CRCFailure =					    0xFFFEu,
-                 </pre></code>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            &emsp;&emsp;e_ErrorUknownCommand =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0xFFFFu,<br>
+                            &emsp;&emsp;e_CRCFailure =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0xFFFEu,
+                        </div>
+                    </div>
+                </div>
             </div>
-        </section>
 
 
-        <section>
             <h2>Data Streaming Setup</h2>
+
         </section>
 
         <section>

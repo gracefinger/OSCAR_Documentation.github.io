@@ -20,172 +20,187 @@
 
     <main>
         <h1>USB Communication</h1>
-
         <section>
-            <h2>Overview</h2>
-            <p>
-                The USB Communication system enables data transfer between the flight controller and the desktop application.
-                It supports both command-based communication and continuous streaming for telemetry data.
-            </p>
-        </section>
-
-        <section>
-            <h2>Desktop Application Setup for USB Communication</h2>
-            <div class="section-label">Overview</div>
-            <div class="section-desc">The desktop application is built with Electron, and USB communication is handled by a C module 
+            <h2>Setup for USB Communication</h2>
+            <h3>Overview</h3>
+            <p>The desktop application is built with Electron, and USB communication is handled by a C module 
                 linked into the application. Because of this architecture, several libraries must be installed. The required libraries 
                 include libserialport (maintained by sigrok) and Node-API (node_api). Both are required for integration within the Electron 
-                project environment. However, only libserialport is required to compile the standalone C module independently of Electron.</div>
-            <div class="section-label">Installing libserialport</div>
-            <div class="section-desc">The first step is to follow the installation instructions <a href="https://sigrok.org/wiki/Libserialport">here</a> <br><br>
+                project environment. However, only libserialport is required to compile the standalone C module independently of Electron.</p>
+            <h3>Installing libserialport</h3>
+            <p>The first step is to follow the installation instructions <a href="https://sigrok.org/wiki/Libserialport">here</a>
+                <br><br>
                 After following those instructions, build libserialport using a Windows-compatible toolchain such as MinGW, MSYS2, Cygwin, or MSVC Build Tools. 
                 After building, you should be able to locate the following source files inside the libserialport directory:
-                <br>
-                <ul>
-                    <li>libs/libserialport/serialport.c</li><!-- TODO: Make Look Good -->
-                    <li>libs/libserialport/windows.c</li><!-- TODO: Make Look Good -->
-                    <li>libs/libserialport/timing.c</li><!-- TODO: Make Look Good -->
-                </ul>
-                <br><br>
-                Make note of their file paths, as they will be referenced later in binding.gyp.
-            
-            </div>
-            <div class="section-label">Installing node-gyp</div>
-            <div class="section-desc">Next, inside the Electron project (where Node has already been initialized with package.json), install node-gyp globally:
-                <br>
-                <ul>
-                    <li>npm install -g node-gyp</li> <!-- TODO: Make Look Good -->
-                </ul>
-                <br>
-                Verify the installation using:
-                <ul>
-                    <li>node-gyp --version</li><!-- TODO: Make Look Good -->
-                </ul>
-                <br> node-gyp requires Python. Confirm whether Python is installed or not:
-                <ul>
-                    <li>python --version</li><!-- TODO: Make Look Good -->
-                </ul>
-                <br>
-                If Python is not installed, download it from <a href="https://www.python.org/downloads/">here</a>
-                <br> You must also have the MSVC C++ Build Tools installed for Windows compilation.
-                <br> After setup, your project structure should resemble:
-                <!-- TODO: Uncomment and make look good -->
-                <!-- <ul>
-                    <li><code>
-                    project/<br>
-                    ├── binding.gyp<br>
-                    ├── src/<br>
-                    │   └── addon.c<br>
-                    └── package.json
-                    </code></li>
-                </ul> -->
-            </div>
-            <div class="section-label">Configuring binding.gyp</div>
-            <div class="section-desc">Open the binding.gyp file. In this file, you will manually map libserialport and your C module.
+             </p>   
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div><span class="t-cmd">libs/libserialport/serialport.c</span></div>
+                        <div style="margin-top: 0.5rem;"><span class="t-cmd">libs/libserialport/windows.c</span></div>
+                        <div style="margin-top: 0.5rem;"><span class="t-cmd">libs/libserialport/timing.c</span></div>
+                    </div>
+                </div>
+  
+            </p><p>Make note of their file paths, as they will be referenced later in binding.gyp.
+            </p>
+            <h3>Installing node-gyp</h3>
+            <p>Next, inside the Electron project (where Node has already been initialized with package.json), install node-gyp globally: </p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div><span class="t-prompt">$</span> <span class="t-cmd">npm install -g node-gyp</span></div>
+                    </div>
+                </div>
+
+                <p>Verify the installation using:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div><span class="t-prompt">$</span> <span class="t-cmd">node-gyp --version</span></div>
+                    </div>
+                </div>
+                <p>node-gyp requires Python. Confirm whether Python is installed or not:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div><span class="t-prompt">$</span> <span class="t-cmd">python --version</span></div>
+                    </div>
+                </div>
+
+                <p>If Python is not installed, download it from <a href="https://www.python.org/downloads/">here</a>.
+                <br>You must also have the MSVC C++ Build Tools installed for Windows compilation.
+                <br><br>After setup, your project structure should resemble:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            project/<br>
+                            ├── binding.gyp<br>
+                            ├── src/<br>
+                            │&emsp;&emsp;└── addon.c<br>
+                            └── package.json
+                        </div>
+                    </div>
+                </div>
+            </p>
+            <h3>Configuring binding.gyp</h3>
+            <p>Open the binding.gyp file. In this file, you will manually map libserialport and your C module.
                 <br><br>target_name defines the name of the generated .node file. It does not need to match the C source file name, but it 
                 must be referenced consistently throughout the project.
-
                 <br><br>Replace all file paths below with the actual paths on your system:
-                <!-- TODO: Make Look Good -->
-                <code> <pre> 
-{
-    "targets": [
-        {
-        "target_name": "serial_addon",
-        "sources": [ 
-            "./Communication/USBCommunication.c",
-            "C:/Users/catwo/dev/libs/libserialport/serialport.c",
-            "C:/Users/catwo/dev/libs/libserialport/windows.c",
-            "C:/Users/catwo/dev/libs/libserialport/timing.c"
-        ],
-        "include_dirs": [
-            "C:/Users/catwo/dev/libs/libserialport"
-        ],
-        "libraries": [
-            "setupapi.lib",
-            "cfgmgr32.lib"
-        ],
-        "defines": [
-            "LIBSERIALPORT_MSBUILD",
-            "WIN32",
-            "_WINDOWS"
-        ],
-        "msvs_settings": {
-            "VCCLCompilerTool": {
-            "ExceptionHandling": 1,
-            "AdditionalOptions": [ "/wd4068" ]
-            }
-        }
-    }
-    ]
-}
-                </pre></code>
-            <br> <strong>Important Notes:</strong>
-            <ul>
-                <li>include_dirs must point to the directory containing libserialport.h.</li> <!-- TODO: Make Look Good -->
-                <li>library links require Windows system libraries.</li><!-- TODO: Make Look Good -->
-                <li>The libserialport source files are compiled directly into the addon.</li><!-- TODO: Make Look Good -->
-            </ul>
-            </div>
-            <div class="section-label">Building the Native Module</div>
-            <div class="section-desc">
-                Navigate to the Electron project root folder and run:
-                <br>
+                </p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            {<br>
+                            &emsp;&emsp;"targets": [<br>
+                            &emsp;&emsp;&emsp;&emsp;{<br>
+                            &emsp;&emsp;&emsp;&emsp;"target_name": "serial_addon",<br>
+                            &emsp;&emsp;&emsp;&emsp;"sources": [<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"./Communication/USBCommunication.c",<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"C:/Users/catwo/dev/libs/libserialport/serialport.c",<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"C:/Users/catwo/dev/libs/libserialport/windows.c",<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"C:/Users/catwo/dev/libs/libserialport/timing.c"<br>
+                            &emsp;&emsp;&emsp;&emsp;],<br>
+                            &emsp;&emsp;&emsp;&emsp;"include_dirs": [<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"C:/Users/catwo/dev/libs/libserialport"<br>
+                            &emsp;&emsp;&emsp;&emsp;],<br>
+                            &emsp;&emsp;&emsp;&emsp;"libraries": [<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"setupapi.lib",<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"cfgmgr32.lib"<br>
+                            &emsp;&emsp;&emsp;&emsp;],<br>
+                            &emsp;&emsp;&emsp;&emsp;"defines": [<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"LIBSERIALPORT_MSBUILD",<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"WIN32",<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"_WINDOWS"<br>
+                            &emsp;&emsp;&emsp;&emsp;],<br>
+                            &emsp;&emsp;&emsp;&emsp;"msvs_settings": {<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"VCCLCompilerTool": {<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"ExceptionHandling": 1,<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"AdditionalOptions": [ "/wd4068" ]<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;}<br>
+                            &emsp;&emsp;&emsp;&emsp;}<br>
+                            &emsp;&emsp;}<br>
+                            &emsp;&emsp;]<br>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <p><br><strong>Important Notes:</strong></p>
                 <ul>
-                    <li>node-gyp configure</li>
-                    <li>node-gyp build</li>
+                    <li>include_dirs must point to the directory containing libserialport.h.</li>
+                    <li>library links require Windows system libraries.</li>
+                    <li>The libserialport source files are compiled directly into the addon.</li>
                 </ul>
-                <br>
-                If errors occur, resolve them before proceeding. To clean the build:
-                <br>
-                <ul>
-                    <li>node-gyp clean</li>
-                </ul>
-                <br>
-                Successful compilation will generate: 
-                <ul>
-                    <li>build/Release/serial_addon.node</li>
-                </ul>
+            <h3>Building the Native Module</h3>
+            <p>
+                Navigate to the Electron project root folder and run: </p>
 
-            </div>
-            <div class="section-label">Rebuilding for Electron</div>
-            <div class="section-desc">
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div><span class="t-prompt">$</span> <span class="t-cmd">node-gyp configure</span></div>
+                        <div style="margin-top: 0.5rem;"><span class="t-prompt">$</span> <span class="t-cmd">node-gyp build</span></div>
+                    </div>
+                </div>
+                
+                <p>If errors occur, resolve them before proceeding. To clean the build:
+                </p>
+                    
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div><span class="t-prompt">$</span> <span class="t-cmd">node-gyp clean</span></div>
+                    </div>
+                </div>
+               
+                <p>Successful compilation will generate:
+                </p>
+                
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">build/Release/serial_addon.node</div>
+                    </div>
+                </div>
+            <h3>Rebuilding for Electron</h3>
+            <p>
                 Electron uses its own Node runtime version, so the module must be rebuilt against Electron headers.
-                <br>To rebuild run:
-                <ul>
-                    <li>npm install --save-dev electron-rebuild</li>
-                </ul>
-                <br> Then run:
-                <ul>
-                    <li>npx electron-rebuild</li>
-                </ul>
-                <br>This ensures compatibility between Electron and the compiled native module.
-
-            </div>
-            <div class="section-label">Loading the Native Module in Electron</div>
-            <div class="section-desc">
+                <br><br>To rebuild run:
+                
+                </p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div><span class="t-prompt">$</span> <span class="t-cmd">npm install --save-dev electron-rebuild</span></div>
+                    </div>
+                </div>
+                <p>
+                Then run:
+                </p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div><span class="t-prompt">$</span> <span class="t-cmd">npx electron-rebuild</span></div>
+                    </div>
+                </div>
+                <p>This ensures compatibility between Electron and the compiled native module.</p>
+            <h3>Loading the Native Module in Electron</h3>
+            <p>
                 Create a file named preload.js and add the following code:
-<!-- TODO: Make look dgood -->
-<code><pre>const { contextBridge } = require('electron');
-const addon = require('./build/Release/serial_addon.node');
+                
+                </p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            <span class="light-red">const</span> { contextBridge } = <span class="light-red">require</span>('electron');<br>
+                            <span class="light-red">const</span> addon = <span class="light-red">require</span>('./build/Release/serial_addon.node');<br>
+                            <br>
+                            contextBridge.exposeInMainWorld(<span class="light-green">"backendAPI"</span>, {<br>
+                            &emsp;&emsp;openPort: addon.openPort<br>
+                            });
+                        </div>
+                    </div>
+                </div>
+                <p><strong>Important Notes:</strong>
+                <ul>
+                    <li>Ensure the require path matches your generated .node file.</li>
+                    <li>Use addon.openPort, not serial_addon.openPort, since addon is the imported object.</li>
+                </ul>
+                </p>
 
-contextBridge.exposeInMainWorld("backendAPI", {
-  openPort: addon.openPort
-});</pre></code>
-
-            <br><strong>Important Notes:</strong>
-            <!-- TODO: Make look good -->
-            <br><ul>
-                <li>Ensure the require path matches your generated .node file.</li>
-                <li>Use addon.openPort, not serial_addon.openPort, since addon is the imported object.</li>
-            </ul>
-
-            </div>
-        </section>
-
-
-        <section>
-            <h2>Desktop USB Communication Architecture</h2>
+            <!-- <h2>Desktop USB Communication Architecture</h2>
             <div class="section-label">Communication Flow Diagram</div>
             <div class="section-desc"></div>
             <div class="section-label">Desktop to Flight Controller</div>
@@ -207,67 +222,65 @@ contextBridge.exposeInMainWorld("backendAPI", {
             <div class="section-label">Timeout Handling & Memory Safety</div>
             <div class="section-desc"></div>
             <div class="section-label">Error Propogation to the Electron UI</div>
-            <div class="section-desc"></div>
-        </section>
+            <div class="section-desc"></div> -->
 
-        <section>
             <h2>Data Streaming Setup</h2>
-            <div class="section-desc">
+            <p>
                 Data streaming within the Desktop Application is managed by the native C backend, which interfaces 
                 directly with the flight controller over USB serial communication. Unlike standard request–response 
                 interactions, streaming introduces a continuous data flow that is handled through a dedicated architecture 
                 involving dual COM ports, multithreading, and buffered data transfer to the frontend.
-            </div>
-            <div class="section-label">COM Port Identification & Differentiation</div>
-            <div class="section-desc">
+            </p>
+            <h3>COM Port Identification & Differentiation</h3>
+            <p>
                 The application dynamically identifies and verifies the correct COM ports using a handshake-based detection mechanism. 
-                The port used for data streaming is separate from the command port used for standard requests. <br><br>
-                
+                The port used for data streaming is separate from the command port used for standard requests.
+                <br><br>
                 The streaming COM port is dedicated exclusively to continuous telemetry data. It is discovered using the 
                 same process as the command port, but with a different handshake command. This allows the system to reliably 
                 distinguish between command and streaming channels without hardcoding port names.
-
-            </div>
-            <div class="section-label">Triggering Streaming Start & Stop</div>
-            <div class="section-desc">
+            </p>
+            <h3>Triggering Streaming Start & Stop</h3>
+            <p>
                 Streaming is initiated using the same command infrastructure as standard requests:
                 <ul>
                     <li>A start streaming command is sent through the command port</li>
                     <li>The firmware acknowledges the request and begins transmitting data on the streaming port</li>
                     <li>A stop command is issued to terminate streaming</li>
                 </ul>
-                <br>
+                
+                <p>
                 This design keeps the streaming control flow consistent with the rest of the communication system and reuses 
                 existing packet structures and validation logic.
-            </div>
-            <div class="section-label">Multi-Threading Setup</div>
-            <div class="section-desc">
+                </p>
+            </p>
+            <h3>Multi-Threading Setup</h3>
+            <p>
                 To prevent blocking the main application flow and other commands, streaming is handled on a separate thread using the Windows API.
                 <ul>
                     <li>A dedicated streaming thread is created when streaming begins</li>
                     <li>The thread continuously reads incoming packets from the streaming port</li>
                     <li>Mutexes are used to safely manage shared resources such as the port handle and data queue</li>
                 </ul>
-                <br>
-                This allows real-time data to be processed without interfering with command execution or frontend responsiveness.
-            </div>
-            <div class="section-label">Forwarding Data to Frontend</div>
-            <div class="section-desc">
+                <p>This allows real-time data to be processed without interfering with command execution or frontend responsiveness.</p>
+            </p>
+            <h3>Forwarding Data to Frontend</h3>
+            <p>
                 Incoming streaming data is processed and transferred to the frontend through a queue-based system.
                 <ul>
                     <li>The streaming thread acts as a producer, pushing validated JSON packets into a circular buffer</li>
                     <li>The frontend interacts with the backend through exposed functions (via Node-API)</li>
                     <li>A polling function retrieves the next available packet from the queue</li>
                 </ul>
-                <br>
-                This producer–consumer model provides:
+                
+                <p>This producer–consumer model provides:
                 <ul>
                     <li>Thread-safe data transfer</li>
                     <li>Decoupling between data acquisition and UI updates</li>
                     <li>Smooth handling of continuous telemetry streams</li>
                 </ul>
-
-            </div>
+                </p>
+            </p>
         </section>
 
         <section>
