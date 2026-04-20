@@ -116,7 +116,7 @@ body {
     flex: 1;
     min-width: 0;
     padding: 2rem 2rem 3rem; /* top padding so h1 isn't flush */
-    max-width: 860px;
+    max-width: none;
 }
 
 /* ── Table of Contents block ── */

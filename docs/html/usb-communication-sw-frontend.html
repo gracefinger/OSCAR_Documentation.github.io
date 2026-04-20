@@ -6,7 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Frontend USB Communication</title>
     <link rel="stylesheet" href="../styles/main.css">
-    <link rel="stylesheet" href="../styles/tableOfContents.css"
+    <link rel="stylesheet" href="../styles/tableOfContents.css">
+    <link rel="stylesheet" href="../styles/chloeWorking.css">
 </head>
 
 <body>
@@ -52,45 +53,46 @@
                     </li>
                     <li><a href="#frontend">Frontend</a>
                         <ol>
-                            <li><a href="#nativeCModule"></a>Native C Module</li>
-                            <ol>
-                                <li><a href="#high-level-responsibilities">High-Level Responsibilities</a></li>
-                                <li><a href="#node-api-integration">Node-API Integration</a></li>
-                                <li><a href="#command-mapping">Command Mapping</a></li>
-                                <li><a href="#packet-structure">Packet Structure</a></li>
-                                <li><a href="#crc-validation">CRC Validation</a></li>
-                                <li><a href="#port-discovery">Port Discovery &amp; Handshake</a></li>
-                                <li><a href="#command-execution-flow">Command Execution Flow</a></li>
-                                <li><a href="#reliable-communication">Reliable Communication</a></li>
-                                <li><a href="#response-handling">Response Handling</a></li>
-                                <li><a href="#error-handling-frontend-c">Error Handling (C Module)</a></li>
-                            </ol>
+                            <li><a href="#native-c-mod">Native C Module</a>
+                                <ol>
+                                    <li><a href="#high-level-responsibilities">High-Level Responsibilities</a></li>
+                                    <li><a href="#node-api-integration">Node-API Integration</a></li>
+                                    <li><a href="#command-mapping">Command Mapping</a></li>
+                                    <li><a href="#packet-structure">Packet Structure</a></li>
+                                    <li><a href="#crc-validation">CRC Validation</a></li>
+                                    <li><a href="#port-discovery">Port Discovery &amp; Handshake</a></li>
+                                    <li><a href="#command-execution-flow">Command Execution Flow</a></li>
+                                    <li><a href="#reliable-communication">Reliable Communication</a></li>
+                                    <li><a href="#response-handling">Response Handling</a></li>
+                                    <li><a href="#error-handling-frontend-c">Error Handling (C Module)</a></li>
+                                </ol>
+                            </li>
                             <li><a href="#preload-ipc">Preload &amp; IPC Bridge</a>
                                 <ol>
-                                    <li><a href="#ipc-communication"></a>Inter-Process Communication</li>
-                                    <li><a href="#USBinJS"></a>Making the USB calls in JavaScript</li>
+                                    <li><a href="#ipc-communication">Inter-Process Communication</a></li>
+                                    <li><a href="#USBinJS">Making the USB calls in JavaScript</a></li>
                                 </ol>
                             </li>
                             <li><a href="#streaming-frontend">Streaming Data – Frontend</a>
                             <ol>
-                                    <li><a href="#architectureAndThreading"></a>Architecture &amp; Threading</li>
-                                    <li><a href="#streamInitialization"></a>Stream Initialization</li>
-                                    <li><a href="#native-streaming-mode"></a>Native Streaming Mode</li>
-                                    <li><a href="#thread-separation"></a>Thread Separation</li>
-                                    <li><a href="#streaming-to-frontend"></a>Streaming Data Delivery to Frontend</li>
-                                    <li><a href="#error-handling-frontend"></a>Error Handling &amp; Recovery - Frontend</li>
+                                    <li><a href="#architectureAndThreading">Architecture &amp; Threading</a></li>
+                                    <li><a href="#streamInitialization">Stream Initialization</a></li>
+                                    <li><a href="#native-streaming-mode">Native Streaming Mode</a></li>
+                                    <li><a href="#thread-separation">Thread Separation</a></li>
+                                    <li><a href="#streaming-to-frontend">Streaming Data Delivery to Frontend</a></li>
+                                    <li><a href="#error-handling-frontend">Error Handling &amp; Recovery - Frontend</a></li>
                                 </ol>
                             </li>
                             <li><a href="#ui-integration">UI Integration</a>
                                 <ol>
-                                    <li><a href="#response-to-ui"></a>How Response Data is Fed into the UI</li>
-                                    <li><a href="#event-based-updates"></a>Event-Based Updates</li>
+                                    <li><a href="#response-to-ui">How Response Data is Fed into the UI</a></li>
+                                    <li><a href="#event-based-updates">Event-Based Updates</a></li>
                                 </ol>
                             </li>
                             <li><a href="#error-handling-recovery">Error Handling &amp; Recovery</a>
                                 <ol>
-                                    <li><a href="#error-handling-recovery"></a>Error Handling &amp; Recovery</li>
-                                    <li><a href="#frontend-error-handling"></a>Frontend Error Handling</li>
+                                    <li><a href="#error-handling-recovery">Error Handling &amp; Recovery</a></li>
+                                    <li><a href="#frontend-error-handling">Frontend Error Handling</a></li>
                                 </ol>
                             </li>
                         </ol>
@@ -124,7 +126,7 @@
                 </p>
                 <h3 id="command-transmission">Command Transmission Flow (PC to Flight Controller)</h3>
                 <p>
-                    <ul>
+                    <ol class="numbered-list">
                         <li>User Action in Desktop Application: A user interacts with the Electron UI (for example clicking a button to request battery information).</li>
                         <li>JavaScript Calls Native Function: The JavaScript code calls an exposed API function through the Electron contextBridge.</li>
                         <li>Node-API Bridge: The call is forwarded through Node-API to the compiled native module (serial_addon.node).</li>
@@ -155,11 +157,11 @@
                                 <li>requesting sensor data</li>
                             </ul>
                         </li>
-                    </ul>
+                    </ol>
                 </p>
                 <h3 id="response-transmission">Response Transmission Flow (Flight Controller to PC)</h3>
                 <p>
-                    <ul>
+                    <ol class="numbered-list">
                         <li>Response Construction: After processing the command, the firmware constructs a response packet containing:
                             <ul>
                                 <li>[Response Header (0x500X)] + [JSON Data]</li>
@@ -176,7 +178,7 @@
                         <li>Response Verification: The first two bytes are checked to confirm the response header.</li>
                         <li>Pass Data to JavaScript: The received JSON string is forwarded through the Node-API layer to the Electron application.</li>
                         <li>Application Parses JSON: The Electron application parses the JSON and updates the UI accordingly.</li>
-                    </ul>
+                    </ol>
                 </p>
                 <h3>Flow Diagram</h3>
                 <img src="../SoftwareImages/DataFlowDiagram.png" alt="Diagram showing flow of data from Desktop Application to Firmware">
@@ -204,7 +206,7 @@
                     </p>
                 <h3>Streaming Flow</h3>
                 <p>The streaming pipeline is structured as follows:
-                    <ul>
+                    <ol class="numbered-list">
                         <li>Renderer (UI) → </li>
                         <li>ipcRenderer → </li>
                         <li>Main Process → </li>
@@ -213,7 +215,7 @@
                         <li>Streaming Thread (continuous data handler) → </li>
                         <li>Native C Module (continuous serial read via libserialport) → </li>
                         <li>Flight Controller</li>
-                    </ul>
+                    </ol>
                     <p>The native module maintains an active serial connection and continuously reads incoming telemetry data. This data is forwarded through the streaming 
                         thread, which parses and routes updates back through the Electron IPC system to the renderer process for UI updates.</p>
                 </p>
@@ -221,7 +223,7 @@
 
 <!-- #region Frontend -->
                 <h1 id="frontend">Frontend</h1>
-                <h2 id="nativeCModule">Native C Module - Frontend</h2>
+                <h2 id="native-c-mod">Native C Module - Frontend</h2>
                 <h3 id="high-level-responsibilities">High-Level Responsibilities</h3>
                 <p>The module is designed to behave like a simple API with a few primary functions:
                     <ul>
@@ -262,7 +264,7 @@
                             <div><span class="t-cmd"><span class="light-red">unsigned short</span> <span class="light-green">map_command</span>(const char* command)</span></div>
                         </div>
                     </div>
-                    Example mappings:
+                    <p>Example mappings:</p>
                     <ul>
                         <li>"GetInitialValuesVolt" → 0x8009</li>
                         <li>"MinCellVoltage" → 0x8003</li>
@@ -322,7 +324,7 @@
                 </p>
                 <h3 id="command-execution-flow">Command Execution Flow</h3>
                 <p>Both populateAll and updateValue follow the same internal flow:
-                    <ul>
+                    <ol class="numbered-list">
                         <li>Map command string → header</li>
                         <li>Ensure port is verified</li>
                         <li>Build packet</li>
@@ -337,7 +339,7 @@
                         </li>
                         <li>Extract JSON payload</li>
                         <li>Return result to JavaScript</li>
-                    </ul>
+                    </ol>
                     <p><strong>Note:</strong> For more information about Commands, view the USB Communication documentation.</p>
                 </p>
                 <h3 id="reliable-communication">Reliable Communication</h3>
@@ -410,12 +412,12 @@
                     sensitive system resources, ipcRenderer acts as a controlled communication interface between the UI and backend functionality.</p>
                 <h4 id="ipcSetup">IPC Setup in Electron</h4>
                     <p>IPC communication in Electron typically follows this sequence:
-                        <ul>
+                        <ol class="numbered-list">
                             <li>The renderer process sends a request using ipcRenderer.</li>
                             <li>The main process receives the request using ipcMain.</li>
                             <li>The main process executes the requested functionality or forwards it to another module.</li>
                             <li>The result is returned to the renderer process through the IPC channel.</li>
-                        </ul>
+                        </ol>
                         <p>In this project, IPC is used to forward UI requests to a backend worker thread that communicates with the native C module responsible for
                             USB communication. This architecture keeps the UI responsive while backend operations are executed asynchronously.</p>
                         <p>For additional details on Electron IPC implementation, refer to the following documentation:
@@ -497,13 +499,13 @@
                         <li>The backend confirms a valid serial connection</li>
                     </ul>
                     <p>The initialization flow is as follows:</p>
-                    <ul>
+                    <ol class="numbered-list">
                         <li>Renderer requests stream start via IPC</li>
                         <li>Main process forwards request to worker thread</li>
                         <li>Worker thread instructs native module to enter streaming mode</li>
                         <li>Native module begins continuous serial reads</li>
                         <li>Parsed telemetry data is emitted back through the IPC pipeline</li>
-                    </ul>
+                    </ol>
                     <p>Example call from renderer:</p>
                     <div class="terminal">
                         <div class="terminal-body">
@@ -551,14 +553,14 @@
                 </p>
                 <h4 id="streaming-loop">Streaming Loop Behavior</h4>
                 <p>The stream thread operates using a blocking or semi-blocking serial read loop:
-                    <ul>
+                    <ol class="numbered-list">
                         <li>Reads raw bytes from libserialport</li>
                         <li>Accumulates bytes into a buffer</li>
                         <li>Detects packet boundaries using headers</li>
                         <li>Validates packet integrity (length + CRC)</li>
                         <li>Extracts JSON payload</li>
                         <li>Forwards structured data to Node-API callback</li>
-                    </ul>
+                    </ol>
 
                     <p>If a packet fails validation:</p>
                     <ul>
