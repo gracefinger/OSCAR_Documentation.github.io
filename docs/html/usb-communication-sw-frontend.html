@@ -41,29 +41,58 @@
                     <li><a href="#data-flow">Data Flow</a>
                         <ol>
                             <li><a href="#overview">Overview</a></li>
-                            <li><a href="#communication-flow">Communication Flow &amp; Diagram</a></li>
-                            <li><a href="#command-transmission">Command Transmission Flow</a></li>
-                            <li><a href="#response-transmission">Response Transmission Flow</a></li>
+                            <li><a href="#communication-flow">Communication Flow &amp; Diagram</a>
+                            <ol>
+                                <li><a href="#command-transmission">Command Transmission Flow</a></li>
+                                <li><a href="#response-transmission">Response Transmission Flow</a></li>
+                            </ol></li>
                             <li><a href="#native-c-module-overview">Native C Module</a></li>
                             <li><a href="#streaming-overview">Streaming Data</a></li>
                         </ol>
                     </li>
                     <li><a href="#frontend">Frontend</a>
                         <ol>
-                            <li><a href="#high-level-responsibilities">High-Level Responsibilities</a></li>
-                            <li><a href="#node-api-integration">Node-API Integration</a></li>
-                            <li><a href="#command-mapping">Command Mapping</a></li>
-                            <li><a href="#packet-structure">Packet Structure</a></li>
-                            <li><a href="#crc-validation">CRC Validation</a></li>
-                            <li><a href="#port-discovery">Port Discovery &amp; Handshake</a></li>
-                            <li><a href="#command-execution-flow">Command Execution Flow</a></li>
-                            <li><a href="#reliable-communication">Reliable Communication</a></li>
-                            <li><a href="#response-handling">Response Handling</a></li>
-                            <li><a href="#error-handling-frontend-c">Error Handling (C Module)</a></li>
-                            <li><a href="#preload-ipc">Preload &amp; IPC Bridge</a></li>
-                            <li><a href="#streaming-frontend">Streaming Data – Frontend</a></li>
-                            <li><a href="#ui-integration">UI Integration</a></li>
-                            <li><a href="#error-handling-recovery">Error Handling &amp; Recovery</a></li>
+                            <li><a href="#nativeCModule"></a>Native C Module</li>
+                            <ol>
+                                <li><a href="#high-level-responsibilities">High-Level Responsibilities</a></li>
+                                <li><a href="#node-api-integration">Node-API Integration</a></li>
+                                <li><a href="#command-mapping">Command Mapping</a></li>
+                                <li><a href="#packet-structure">Packet Structure</a></li>
+                                <li><a href="#crc-validation">CRC Validation</a></li>
+                                <li><a href="#port-discovery">Port Discovery &amp; Handshake</a></li>
+                                <li><a href="#command-execution-flow">Command Execution Flow</a></li>
+                                <li><a href="#reliable-communication">Reliable Communication</a></li>
+                                <li><a href="#response-handling">Response Handling</a></li>
+                                <li><a href="#error-handling-frontend-c">Error Handling (C Module)</a></li>
+                            </ol>
+                            <li><a href="#preload-ipc">Preload &amp; IPC Bridge</a>
+                                <ol>
+                                    <li><a href="#ipc-communication"></a>Inter-Process Communication</li>
+                                    <li><a href="#USBinJS"></a>Making the USB calls in JavaScript</li>
+                                </ol>
+                            </li>
+                            <li><a href="#streaming-frontend">Streaming Data – Frontend</a>
+                            <ol>
+                                    <li><a href="#architectureAndThreading"></a>Architecture &amp; Threading</li>
+                                    <li><a href="#streamInitialization"></a>Stream Initialization</li>
+                                    <li><a href="#native-streaming-mode"></a>Native Streaming Mode</li>
+                                    <li><a href="#thread-separation"></a>Thread Separation</li>
+                                    <li><a href="#streaming-to-frontend"></a>Streaming Data Delivery to Frontend</li>
+                                    <li><a href="#error-handling-frontend"></a>Error Handling &amp; Recovery - Frontend</li>
+                                </ol>
+                            </li>
+                            <li><a href="#ui-integration">UI Integration</a>
+                                <ol>
+                                    <li><a href="#response-to-ui"></a>How Response Data is Fed into the UI</li>
+                                    <li><a href="#event-based-updates"></a>Event-Based Updates</li>
+                                </ol>
+                            </li>
+                            <li><a href="#error-handling-recovery">Error Handling &amp; Recovery</a>
+                                <ol>
+                                    <li><a href="#error-handling-recovery"></a>Error Handling &amp; Recovery</li>
+                                    <li><a href="#frontend-error-handling"></a>Frontend Error Handling</li>
+                                </ol>
+                            </li>
                         </ol>
                     </li>
                 </ol>
@@ -192,7 +221,7 @@
 
 <!-- #region Frontend -->
                 <h1 id="frontend">Frontend</h1>
-                <h2>Native C Module - Frontend</h2>
+                <h2 id="nativeCModule">Native C Module - Frontend</h2>
                 <h3 id="high-level-responsibilities">High-Level Responsibilities</h3>
                 <p>The module is designed to behave like a simple API with a few primary functions:
                     <ul>
@@ -353,7 +382,7 @@
                 </p>
 
                 <h2 id="preload-ipc">Preload &amp; IPC Bridge</h2>
-                <h3>Inter-Process Communication</h3>
+                <h3 id="ipc-communication">Inter-Process Communication</h3>
                 <p>In Electron, communication between different parts of the application occurs through a system called Inter-Process Communication (IPC). 
                     Electron applications run multiple processes simultaneously, primarily the main process and one or more renderer processes. The main 
                     process manages the application lifecycle and system-level operations, while the renderer processes handle the graphical user interface.
@@ -367,19 +396,19 @@
                      backend operations, such as USB communication and execution of the C addon. This ensures that any long-running operations do not interfere
                       with the responsiveness of the user interface.
                 </p>
-                <h4>ipcMain</h4>
+                <h4 id="ipMain">ipcMain</h4>
                 <p>The ipcMain module runs in the main process and is responsible for receiving messages from renderer processes. It acts as the central 
                     coordinator for backend operations within the Electron application. When the renderer sends a request through an IPC channel, 
                     ipcMain listens for that request and executes the appropriate functionality. In this project, ipcMain is responsible for forwarding 
                     requests to the backend worker that executes the native C addon used for USB communication. ipcMain typically registers handlers for 
                     specific message channels. When a request is received, the handler processes the request and returns the result to the renderer process.</p>
-                <h4>ipcRenderer</h4>
+                <h4 id="ipcRenderer">ipcRenderer</h4>
                 <p>The ipcRenderer module runs in the renderer process, which is responsible for displaying and updating the application's user interface. 
                     This module allows the renderer process to send messages to the main process and receive responses. When a user interacts with the UI, 
                     the renderer process uses ipcRenderer to send a request to the main process through a specific IPC channel. The renderer then waits for 
                     the main process to complete the requested operation and return the result. Because renderer processes should not have direct access to 
                     sensitive system resources, ipcRenderer acts as a controlled communication interface between the UI and backend functionality.</p>
-                <h4>IPC Setup in Electron</h4>
+                <h4 id="ipcSetup">IPC Setup in Electron</h4>
                     <p>IPC communication in Electron typically follows this sequence:
                         <ul>
                             <li>The renderer process sends a request using ipcRenderer.</li>
@@ -397,7 +426,7 @@
                             </ul>
                         </p>
                     </p>
-                <h3>Making the USB calls in JavaScript</h3>
+                <h3 id="USBinJS">Making the USB calls in JavaScript</h3>
                 <p>Once the C module is configured so that JavaScript can call its functions, several additional steps are required so that the Electron 
                     application can access these functions safely. These steps include loading the native C addon, exposing the necessary functions to the 
                     renderer process, and ensuring that all calls are performed asynchronously so that the UI remains responsive.<br><br>
@@ -451,7 +480,7 @@
 
 
                 <h2 id="streaming-frontend">Streaming Data - Frontend</h2>
-                <h3>Architecture &amp; Threading</h3>
+                <h3 id="architectureAndThreading">Architecture &amp; Threading</h3>
                 <p>To maintain a responsive user interface, streaming is handled on separate worker threads in both the Electron (JavaScript) layer and the native C module.
                     <br><br>This separation is critical because:
                     <ul>
@@ -460,7 +489,7 @@
                         <li>High-frequency updates must not interfere with user-triggered requests</li>
                     </ul>
                 </p>
-                <h3>Stream Initialization</h3>
+                <h3 id="streamInitialization">Stream Initialization</h3>
                 <p>Before streaming can begin, the application must explicitly start a streaming session. This is typically triggered when:
                     <ul>
                         <li>The user opens a telemetry-dependent view (e.g., Setup tab)</li>
@@ -505,7 +534,7 @@
                         </div>
                     </div>
                 </p>
-                <h3>Native Streaming Mode</h3>
+                <h3 id="native-streaming-mode">Native Streaming Mode</h3>
                 <p>Within the native C module, streaming mode differs from standard command execution. Instead of:
                     <ul>
                         <li>Sending a command</li>
@@ -520,7 +549,7 @@
                         <li>Pushes valid telemetry frames upward</li>
                     </ul>
                 </p>
-                <h4>Streaming Loop Behavior</h4>
+                <h4 id="streaming-loop">Streaming Loop Behavior</h4>
                 <p>The stream thread operates using a blocking or semi-blocking serial read loop:
                     <ul>
                         <li>Reads raw bytes from libserialport</li>
@@ -537,7 +566,7 @@
                         <li>The stream continues without interruption</li>
                     </ul>
                 </p>
-                <h3>Thread Separation</h3>
+                <h3 id="thread-separation">Thread Separation</h3>
                 <p>On the JavaScript side, streaming is isolated from standard request-response logic using a dedicated worker thread. This ensures:
                     <ul>
                         <li>UI requests (button clicks, settings updates) remain fast</li>
@@ -551,7 +580,7 @@
                         <li>Streaming event emitter</li>
                     </ul>
                 </p>
-                <h3>Streaming Data Delivery to Frontend</h3>
+                <h3 id="streaming-to-frontend">Streaming Data Delivery to Frontend</h3>
                 <p>Once data is received in the Electron main process, it is pushed to the renderer using event-based IPC. Unlike request-response commands, streaming uses a push model, meaning:
                     <ul>
                         <li>The frontend does not request updates</li>
@@ -579,7 +608,7 @@
                         </div>
                     </div>
                 </p>
-                <h3>Error Handling &amp; Recovery - Frontend</h3>
+                <h3 id="error-handling-frontend">Error Handling &amp; Recovery - Frontend</h3>
                 <p>Streaming errors are handled gracefully to ensure continuous operation. Common failure cases include:
                     <ul>
                         <li>USB disconnection during stream</li>
@@ -596,7 +625,7 @@
                 </p>
 
                 <h2 id="ui-integration">UI Integration</h2>
-                <h3>How Response Data is Fed into the UI</h3>
+                <h3 id="response-to-ui">How Response Data is Fed into the UI</h3>
                 <p>After the renderer process receives data from the backend through IPC, the next step is updating the user interface. The data returned from 
                     the native C module is structured as JSON and passed back through the IPC system to the renderer process.
                     <br><br>In this implementation, the renderer does not manually map each field. Instead, it dynamically maps data to UI 
@@ -620,7 +649,7 @@
                         <li>updateTelemetry(data.VoltagePageValues);</li>
                     </ul>
                 </p>
-                <h4>Settings Population</h4>
+                <h4 id="settings-populate">Settings Population</h4>
                 <p>All input and select elements that contain a data-setting attribute are automatically updated:
                     <div class="terminal">
                         <div class="terminal-body">
@@ -639,7 +668,7 @@
                         </div>
                     </div>
                 </p>
-                <h4>Telemetry Display</h4>
+                <h4 id="telemetry-display">Telemetry Display</h4>
                 <p>Display-only values use the data-telemetry attribute:
 
                     <div class="terminal">
@@ -662,7 +691,7 @@
                         <li>Direct mapping between firmware JSON keys and UI elements</li>
                     </ul>
                 </p>
-                <h3>Event-Based Updates</h3>
+                <h3 id="event-based-updates">Event-Based Updates</h3>
                 <p>The UI follows an event-driven model where updates occur in response to user interaction rather than continuous polling.
                     <br><br>When the page loads:
                     <div class="terminal">
@@ -693,7 +722,7 @@
                         <li>The update is sent to the backend</li>
                     </ul>
                 </p>
-                <h4>Debouncing</h4>
+                <h4 id="debouncing">Debouncing</h4>
                 <p>To prevent flooding the USB connection with rapid updates (such as holding a key on a number input), updates are debounced with a 300 ms delay:
 
                     <div class="terminal">
@@ -702,7 +731,7 @@
                         </div>
                     </div>
                 </p>
-                <h4>Change Detection</h4>
+                <h4 id="change-detection">Change Detection</h4>
                 <p>To avoid redundant communication, the last sent value is stored and compared:
 
                     <div class="terminal">
@@ -716,7 +745,7 @@
 
                 <h2 id="error-handling-recovery">Error Handling &amp; Recovery</h2>
                 <p>Error handling is implemented across both the frontend and backend to ensure system stability.</p>
-                <h3>Frontend Error Handling</h3>
+                <h3 id="frontend-error-handling">Frontend Error Handling</h3>
                 <p>After sending a request, the renderer checks for error responses:
 
                     <div class="terminal">
@@ -737,7 +766,7 @@
                         <li>Keep the application stable</li>
                     </ul>
                 </p>
-                <h3>Error Propagation to Backend</h3>
+                <h3 id="error-propogation-to-backend">Error Propagation to Backend</h3>
                 <p>The native C module returns structured error responses when failures occur, such as:
 
                     <div class="terminal">
@@ -751,7 +780,7 @@
                         <li>C Module → Worker Thread → ipcMain → ipcRenderer → UI</li>
                     </ul>
                 </p>
-                <h4>Communication Failure Handling</h4>
+                <h4 id="communication-failure">Communication Failure Handling</h4>
                 <p>Failures may occur due to:
                     <ul>
                         <li>Device disconnection</li>
@@ -765,7 +794,7 @@
                         <li>Returning an error if all retries fail</li>
                     </ul>
                 </p>
-                <h4>Recovery Strategies</h4>
+                <h4 id="recovery-strategies">Recovery Strategies</h4>
                 <p>When an error occurs, the system supports recovery through:
                     <ul>
                         <li>Reattempting user actions (retrying updates)</li>
