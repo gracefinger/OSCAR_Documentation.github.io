@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backend USB Communication</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/tableOfContents.css">
+    <link rel="stylesheet" href="../styles/chloeWorking.css">
+</head>
+
+<body>
+    <nav>
+        <ul class="nav-links">
+            <li><a href="../index.html"><span class="nav-dot"></span>Home</a></li>
+            <li><a href="./hardware.html"><span class="nav-dot"></span>Hardware</a></li>
+            <li><a href="./firmware.html"><span class="nav-dot"></span>Firmware</a></li>
+            <li><a href="./software.html" class="active"><span class="nav-dot"></span>Software</a></li>
+        </ul>
+    </nav>
+
+   <div class="page-layout">
+
+        <!-- ── Sidebar ── -->
+        <aside id="doc-sidebar">
+            <div class="sidebar-title">On this page</div>
+            <ul id="sidebar-nav"></ul>
+        </aside>
+
+        <!-- ── Main content ── -->
+        <main class="doc-content">
+
+            <h1>Backend USB Communication</h1>
+
+            <!-- Table of Contents -->
+            <div id="toc-block">
+                <h2>Table of Contents</h2>
+                <ol>
+                    <li><a href="#data-flow">Data Flow</a>
+                        <ol>
+                            <li><a href="#overview">Overview</a></li>
+                            <li><a href="#communication-flow">Communication Flow &amp; Diagram</a>
+                            <ol>
+                                <li><a href="#command-transmission">Command Transmission Flow</a></li>
+                                <li><a href="#response-transmission">Response Transmission Flow</a></li>
+                            </ol></li>
+                            <li><a href="#native-c-module-overview">Native C Module</a></li>
+                            <li><a href="#streaming-overview">Streaming Data</a></li>
+                        </ol>
+                    </li>
+                    <li>
+                        <a href="#backend">Backend</a>
+                        <ol>
+                            <li><a href="#installing-libserialport">Installing libserialport</a></li>
+                            <li><a href="#installing-node-gyp">Installing node-gyp</a></li>
+                            <li><a href="#configuring-binding">Configuring binding.gyp</a></li>
+                            <li><a href="#building-native-module">Building the Native Module</a></li>
+                            <li><a href="#rebuilding-for-electron">Rebuilding for Electron</a></li>
+                            <li><a href="#loading-native-module">Loading the Native Module in Electron</a></li>
+                            <li><a href="#native-c-module-backend">Native C Module - Backend</a></li>
+                            <ol>
+                                <li><a href="error-handling-recovery">Error Handling & Recovery - Backend</a></li>
+                            </ol>
+                            <li><a href="#data-streaming">Data Streaming Setup</a>
+                                <ol>
+                                    <li><a href="com-port-verification">COM Port Identification & Differentiation</a></li>
+                                    <li><a href="triggering-streaming-start-stop">Triggering Streaming Start & Stop</a></li>
+                                    <li><a href="multi-threaded-steup">Multi-Threading Setup</a></li>
+                                    <li><a href="forwarding-to-frontend">Forwarding Data to Frontend</a></li>
+                                </ol>
+                            </li>
+                        </ol>
+                    </li>
+                </ol>
+            </div>
+
+        <section>
+            
+<!-- #region Data Flow -->
+                <h1 id="data-flow">Data Flow</h1>
+                <h2 id="overview">Overview</h2>
+                <p>This section will provide information about the USB communication and data flow. For actual implementation steps 
+                    involving JavScript and Electron, check out the <a href="./usb-communication-sw-frontend.html">Frontend USB Communication </a>section. This Data Flow section,
+                    however, will be the same across both pages. This document will focus more on the C side of things. 
+                    We will start by going over the overall flow of the data.</p>
+                <h2 id="communication-flow">Communication Flow &amp; Diagram</h2>
+                <p>The USB communication system consists of three major layers:
+                    <ul>
+                        <li>Desktop Application (Electron / JavaScript)</li>
+                        <li>Native Communication Layer (C module using libserialport)</li>
+                        <li>Flight Controller Firmware (MCU)</li>
+                    </ul>
+                </p>
+                <p>
+                    Each layer has a defined role in the communication pipeline. Commands originate from the desktop application, are 
+                    transmitted through the native C module using UART over USB, processed by the firmware, and then a response is 
+                    returned following the same path in reverse. <br><br>
+                    
+                    The communication flow ensures that high-level application logic remains separated from low-level serial communication.
+                </p>
+                <h3 id="command-transmission">Command Transmission Flow (PC to Flight Controller)</h3>
+                <p>
+                    <ol class="numbered-list">
+                        <li>User Action in Desktop Application: A user interacts with the Electron UI (for example clicking a button to request battery information).</li>
+                        <li>JavaScript Calls Native Function: The JavaScript code calls an exposed API function through the Electron contextBridge.</li>
+                        <li>Node-API Bridge: The call is forwarded through Node-API to the compiled native module (serial_addon.node).</li>
+                        <li>Native C Module Builds Command: The native C code constructs the command packet:
+                            <ul>
+                                <li>[CMD Header (0x800X)] + [Command Data]</li>
+                                <li>The packet is prepared as a byte array before transmission.</li>
+                            </ul>
+                        </li>
+                        <li>USB UART Transmission: The C module sends the command through libserialport using the configured UART settings:
+                            <ul>
+                                <li>115200 baud</li>
+                                <li>8 data bits</li>
+                                <li>no parity</li>
+                                <li>1 stop bit</li>
+                            </ul>
+                        </li>
+                        <li>Firmware Receives Command: The flight controller firmware reads the incoming bytes from the UART buffer.</li>
+                        <li>Command Parsing: The firmware extracts the first 2 bytes to determine the command ID.
+                            <ul>
+                                <li>Example: 0x8009 → e_GetInitialValuesVolt</li>
+                            </ul>
+                        </li>
+                        <li>Command Execution: The firmware processes the command by either:
+                            <ul>
+                                <li>retrieving stored values</li>
+                                <li>updating configuration parameters</li>
+                                <li>requesting sensor data</li>
+                            </ul>
+                        </li>
+                    </ol>
+                </p>
+                <h3 id="response-transmission">Response Transmission Flow (Flight Controller to PC)</h3>
+                <p>
+                    <ol class="numbered-list">
+                        <li>Response Construction: After processing the command, the firmware constructs a response packet containing:
+                            <ul>
+                                <li>[Response Header (0x500X)] + [JSON Data]</li>
+                            </ul>
+                        </li>
+                        <li>JSON Creation: The firmware uses the cJSON library to construct a JSON object containing labeled data values.</li>
+                        <li>Serialize JSON: The JSON object is converted to a string using:
+                            <ul>
+                                <li>cJSON_Print()</li>
+                            </ul>
+                        </li>
+                        <li>Transmit Response: The response packet is transmitted back over USB UART to the PC.</li>
+                        <li>Native C Module Receives Data: The C module reads the incoming serial buffer using libserialport.</li>
+                        <li>Response Verification: The first two bytes are checked to confirm the response header.</li>
+                        <li>Pass Data to JavaScript: The received JSON string is forwarded through the Node-API layer to the Electron application.</li>
+                        <li>Application Parses JSON: The Electron application parses the JSON and updates the UI accordingly.</li>
+                    </ol>
+                </p>
+                <h3>Flow Diagram</h3>
+                <img src="../SoftwareImages/DataFlowDiagram.png" alt="Diagram showing flow of data from Desktop Application to Firmware">
+                <h2 id="native-c-module-overview">Native C Module</h2>
+                <h3>Overview</h3>
+                <p>The native C module serves as the communication bridge between the Electron application and the flight controller hardware. It is responsible for:
+                    <ul>
+                        <li>Constructing command packets</li>
+                        <li>Handling USB UART communication</li>
+                        <li>Verifying responses (CRC, headers, length)</li>
+                        <li>Returning structured JSON data to JavaScript</li>
+                        <li>Triggering and forwarding data streaming</li>
+                    </ul>
+                    <p>
+                       This module is compiled as a Node.js addon using Node-API (N-API), allowing it to be called directly from JavaScript. 
+                    </p>
+                </p>
+                <h2 id="streaming-overview">Streaming Data</h2>
+                <h3>Overview</h3>
+                <p>In addition to standard request-response communication, the OSCAR Ground Station supports continuous data streaming from the flight controller. 
+                    This is primarily used for real-time telemetry, such as gyroscope orientation data, which must be updated frequently without requiring repeated 
+                    manual requests from the user.
+                    <br><br>Unlike discrete commands (such as populateAll or updateValue), streaming operates continuously in the background and pushes updates 
+                    to the frontend as new data becomes available.
+                    </p>
+                <h3>Streaming Flow</h3>
+                <p>The streaming pipeline is structured as follows:
+                    <ol class="numbered-list">
+                        <li>Renderer (UI) → </li>
+                        <li>ipcRenderer → </li>
+                        <li>Main Process → </li>
+                        <li>ipcMain → </li>
+                        <li>Worker Thread (Command Controller) → </li>
+                        <li>Streaming Thread (continuous data handler) → </li>
+                        <li>Native C Module (continuous serial read via libserialport) → </li>
+                        <li>Flight Controller</li>
+                    </ol>
+                    <p>The native module maintains an active serial connection and continuously reads incoming telemetry data. This data is forwarded through the streaming 
+                        thread, which parses and routes updates back through the Electron IPC system to the renderer process for UI updates.</p>
+                </p>
+<!-- #endregion -->
+
+
+
+<!-- #region Backend -->
+            <h1 id="backend">Backend</h1>
+            <p>The desktop application is built with Electron, and USB communication is handled by a C module 
+                linked into the application. Because of this architecture, several libraries must be installed. The required libraries 
+                include libserialport (maintained by sigrok) and Node-API (node_api). Both are required for integration within the Electron 
+                project environment. However, only libserialport is required to compile the standalone C module independently of Electron.</p>
+            <h2 id="installing-libserialport">Installing libserialport</h2>
+            <p>The first step is to follow the installation instructions <a href="https://sigrok.org/wiki/Libserialport">here</a>
+                <br><br>
+                After following those instructions, build libserialport using a Windows-compatible toolchain such as MinGW, MSYS2, Cygwin, or MSVC Build Tools. 
+                After building, you should be able to locate the following source files inside the libserialport directory:
+             </p>   
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div><span class="t-cmd">libs/libserialport/serialport.c</span></div>
+                        <div style="margin-top: 0.5rem;"><span class="t-cmd">libs/libserialport/windows.c</span></div>
+                        <div style="margin-top: 0.5rem;"><span class="t-cmd">libs/libserialport/timing.c</span></div>
+                    </div>
+                </div>
+  
+            </p><p>Make note of their file paths, as they will be referenced later in binding.gyp.
+            </p>
+            <h2 id="installing-node-gyp">Installing node-gyp</h2>
+            <p>Next, inside the Electron project (where Node has already been initialized with package.json), install node-gyp globally: </p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div><span class="t-prompt">$</span> <span class="t-cmd">npm install -g node-gyp</span></div>
+                    </div>
+                </div>
+
+                <p>Verify the installation using:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div><span class="t-prompt">$</span> <span class="t-cmd">node-gyp --version</span></div>
+                    </div>
+                </div>
+                <p>node-gyp requires Python. Confirm whether Python is installed or not:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div><span class="t-prompt">$</span> <span class="t-cmd">python --version</span></div>
+                    </div>
+                </div>
+
+                <p>If Python is not installed, download it from <a href="https://www.python.org/downloads/">here</a>.
+                <br>You must also have the MSVC C++ Build Tools installed for Windows compilation.
+                <br><br>After setup, your project structure should resemble:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            project/<br>
+                            ├── binding.gyp<br>
+                            ├── src/<br>
+                            │&emsp;&emsp;└── addon.c<br>
+                            └── package.json
+                        </div>
+                    </div>
+                </div>
+            </p>
+            <h2 id="configuring-binding">Configuring binding.gyp</h2>
+            <p>Open the binding.gyp file. In this file, you will manually map libserialport and your C module.
+                <br><br>target_name defines the name of the generated .node file. It does not need to match the C source file name, but it 
+                must be referenced consistently throughout the project.
+                <br><br>Replace all file paths below with the actual paths on your system:
+                </p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            {<br>
+                            &emsp;&emsp;"targets": [<br>
+                            &emsp;&emsp;&emsp;&emsp;{<br>
+                            &emsp;&emsp;&emsp;&emsp;"target_name": "serial_addon",<br>
+                            &emsp;&emsp;&emsp;&emsp;"sources": [<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"./Communication/USBCommunication.c",<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"C:/Users/catwo/dev/libs/libserialport/serialport.c",<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"C:/Users/catwo/dev/libs/libserialport/windows.c",<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"C:/Users/catwo/dev/libs/libserialport/timing.c"<br>
+                            &emsp;&emsp;&emsp;&emsp;],<br>
+                            &emsp;&emsp;&emsp;&emsp;"include_dirs": [<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"C:/Users/catwo/dev/libs/libserialport"<br>
+                            &emsp;&emsp;&emsp;&emsp;],<br>
+                            &emsp;&emsp;&emsp;&emsp;"libraries": [<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"setupapi.lib",<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"cfgmgr32.lib"<br>
+                            &emsp;&emsp;&emsp;&emsp;],<br>
+                            &emsp;&emsp;&emsp;&emsp;"defines": [<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"LIBSERIALPORT_MSBUILD",<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"WIN32",<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"_WINDOWS"<br>
+                            &emsp;&emsp;&emsp;&emsp;],<br>
+                            &emsp;&emsp;&emsp;&emsp;"msvs_settings": {<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"VCCLCompilerTool": {<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"ExceptionHandling": 1,<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"AdditionalOptions": [ "/wd4068" ]<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;}<br>
+                            &emsp;&emsp;&emsp;&emsp;}<br>
+                            &emsp;&emsp;}<br>
+                            &emsp;&emsp;]<br>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <p><br><strong>Important Notes:</strong></p>
+                <ul>
+                    <li>include_dirs must point to the directory containing libserialport.h.</li>
+                    <li>library links require Windows system libraries.</li>
+                    <li>The libserialport source files are compiled directly into the addon.</li>
+                </ul>
+            <h2 id="building-native-module">Building the Native Module</h2>
+            <p>
+                Navigate to the Electron project root folder and run: </p>
+
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div><span class="t-prompt">$</span> <span class="t-cmd">node-gyp configure</span></div>
+                        <div style="margin-top: 0.5rem;"><span class="t-prompt">$</span> <span class="t-cmd">node-gyp build</span></div>
+                    </div>
+                </div>
+                
+                <p>If errors occur, resolve them before proceeding. To clean the build:
+                </p>
+                    
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div><span class="t-prompt">$</span> <span class="t-cmd">node-gyp clean</span></div>
+                    </div>
+                </div>
+               
+                <p>Successful compilation will generate:
+                </p>
+                
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">build/Release/serial_addon.node</div>
+                    </div>
+                </div>
+            <h2 id="rebuilding-for-electron">Rebuilding for Electron</h2>
+            <p>
+                Electron uses its own Node runtime version, so the module must be rebuilt against Electron headers.
+                <br><br>To rebuild run:
+                
+                </p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div><span class="t-prompt">$</span> <span class="t-cmd">npm install --save-dev electron-rebuild</span></div>
+                    </div>
+                </div>
+                <p>
+                Then run:
+                </p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div><span class="t-prompt">$</span> <span class="t-cmd">npx electron-rebuild</span></div>
+                    </div>
+                </div>
+                <p>This ensures compatibility between Electron and the compiled native module.</p>
+            <h2 id="loading-native-module">Loading the Native Module in Electron</h2>
+            <p>
+                Create a file named preload.js and add the following code:
+                
+                </p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            <span class="light-red">const</span> { contextBridge } = <span class="light-red">require</span>('electron');<br>
+                            <span class="light-red">const</span> addon = <span class="light-red">require</span>('./build/Release/serial_addon.node');<br>
+                            <br>
+                            contextBridge.exposeInMainWorld(<span class="light-green">"backendAPI"</span>, {<br>
+                            &emsp;&emsp;openPort: addon.openPort<br>
+                            });
+                        </div>
+                    </div>
+                </div>
+                <p><strong>Important Notes:</strong>
+                <ul>
+                    <li>Ensure the require path matches your generated .node file.</li>
+                    <li>Use addon.openPort, not serial_addon.openPort, since addon is the imported object.</li>
+                </ul>
+                </p>
+
+            <h2 id="native-c-module-backend">Native C Module - Backend</h2>
+            <p>The native C module handles low-level USB communication between the Electron app and the flight controller firmware. It exposes a simple API to 
+                JavaScript while managing serial communication details. Responsibilities include: 
+                <ul>
+                    <li>Maps frontend command strings to protocol headers (e.g., "GetInitialValuesVolt" → 0x8009).</li>
+                    <li>Verifies and opens COM ports with a handshake (0x8000 → 0x5000).</li>
+                    <li>Constructing and sending packets with a header, length, payload, and CRC.</li>
+                    <li>Reading and validating responses using length fields and CRC checks.</li>
+                    <li>Returns JSON responses or structured error messages to the frontend.</li>
+                    <li>Handles errors such as invalid commands, CRC failures, port failures, timeouts, and memory allocation issues.</li>
+                </ul>
+
+                <p>The module is structured into the following layers:</p>
+                <ol class="numbered-list">
+                    <li>USB Communication Layer (libserialport)
+                        <ul>
+                            <li>Handles opening/closing ports, configuring baud rate, parity, stop bits, and reading/writing bytes.</li>
+                            <li>Provides blocking reads/writes with timeout handling.</li>
+                            <li>check() function is used to evaluate libserialport return codes for errors.</li>
+                        </ul>
+                    </li>
+                    <li>Command & Packet Layer
+                        <ul>
+                            <li>Command Mapping
+                                <ul>
+                                    <li>Maps frontend command strings to protocol headers using map_command().</li>
+                                    <li>Provides helper functions for sending commands with or without payloads.</li>
+                                    <li>If a command is invalid it returns: 0xFFFF.</li>
+                                </ul>
+                            </li>
+                            <li>Packet Structure 
+                                <ul>
+                                    <li>All communication follows the command packet setup listed on <a href="./usb-communication-sw-frontend.html">Frontend USB Communication</a></li>
+                                </ul>
+                            </li>
+                            <li>CRC Generation & Validation
+                                <ul>
+                                    <li>Before sending a packet:
+                                        <ul>
+                                            <li>A CRC value is computed over the header, length, and payload.</li>
+                                            <li>The CRC is appended to the end of the packet.</li>
+                                        </ul>
+                                    </li>
+                                    <li>After receiving a response:
+                                        <ul>
+                                            <li>The CRC is recomputed from the received data.</li>
+                                            <li>The computed CRC value is compared to the received CRC value.</li>
+                                        </ul>
+                                    </li>
+                                    <li>If the CRC does not match:
+                                        <ul>
+                                            <li>The packet is rejected.</li>
+                                            <li>The request either retries or fails with an error</li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li>Length-Based Reads
+                                <ul>
+                                    <li>Instead of relying solely on timeouts, the module uses the length field to determine how many bytes to read:
+                                        <ul>
+                                            <li>Read initial bytes (header + length)</li>
+                                            <li>Extract the expected message size</li>
+                                            <li>Continue reading until the full packet is received</li>
+                                        </ul>
+                                    </li>
+                                    <li>This improves:
+                                        <ul>
+                                            <li>Performance (avoids waiting for full timeout)</li>
+                                            <li>Reliability (ensures complete packet reads)</li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </li>
+                    <li>Application Interface (Node-API)
+                        <ul>
+                            <li>Exposes C functions to JavaScript via Electron’s contextBridge.</li>
+                            <li>Functions include populateAll() for reading an entire page and updateValue() for writing individual values.</li>
+                            <li>Returns JSON strings or error messages back to the frontend.</li>
+                        </ul>
+                    </li>
+                    <li>Verification & Handshake
+                        <ul>
+                        <ul>
+                            <li>find_com_port() iterates over all serial ports and performs handshake validation with firmware (0x8000 → 0x5000).</li>
+                            <li>Stores verified port in verified_port for subsequent communication.</li>
+                        </ul>
+                    </li>
+                </ol>
+
+                <p>Functions exposed to the frontend include:</p>
+                <ul>
+                    <li>populateAll(command)
+                        <ul>
+                            <li>Reads all page values from the device; returns JSON or error.</li>
+                        </ul>
+                    </li>
+                    <li>updateValue(command, payload)
+                        <ul>
+                            <li>Sends a single value update; returns JSON or error.</li>
+                        </ul>
+                    </li>
+                    <li>startStreaming(command)
+                        <ul>
+                            <li>Starts streaming data for specified page (command); returns 1 on success, 0 on failure.</li>
+                        </ul>
+                    </li>
+                    <li>stopStreaming()
+                        <ul>
+                            <li>Signals to the streaming loop that it should stop. Triggers the stop streaming request to be sent to firmware; returns 1 on success, 0 on failure.</li>
+                        </ul>
+                    </li>
+                    <li>GetNextStreamPacket()
+                        <ul>
+                            <li>Internal backend function implemented in the C module that retrieves the next available data packet from a thread-safe queue. This function does not directly communicate with the frontend; instead, it is repeatedly called by the backend polling loop, and any returned data is then forwarded to the frontend through streamData events.</li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <p><strong>Note:</strong> There are many other functions in the C module. These are just the ones that the frontend Electron project has access to.</p>
+
+                <p>The module uses Node-API (napi) to bridge between C and JavaScript:</p>
+                <ul>
+                    <li>PopulateAll
+                        <ul>
+                            <li>calls populateAll() and converts the C string to a JavaScript string and vice versa.</li>
+                        </ul>
+                    </li>
+                    <li>UpdateValue
+                        <ul>
+                            <li>calls updateValue() and converts the C string to a JavaScript string and vice versa.</li>
+                        </ul>
+                    </li>
+                    <li>StartStreaming
+                        <ul>
+                            <li>calls startStreaming and converts the C string to JavaScript string and vice versa</li>
+                        </ul>
+                    </li>
+                    <li>StopStreaming
+                        <ul>
+                            <li>calls stopStreaming.</li>
+                        </ul>
+                    </li>
+                    <li>GetNextStreamPacket
+                        <ul>
+                            <li>calls getNextStreamPacket and allows forwarding of packets to frontend.</li>
+                        </ul>
+                    </li>
+                    <li>All wrappers handle NULL values and memory allocation errors safely.</li>
+                </ul>
+
+                <p>This allows JavaScript code to call the native functions as if they were regular async functions, while keeping the low-level details encapsulated.</p>
+            </p>
+            <h3 id="error-handling-recovery">Error Handling & Recovery - Backend</h2>
+            <p>The USB communication system includes error detection and recovery mechanisms at multiple layers. These mechanisms ensure that failures such as missing 
+                devices, invalid responses, or serial communication errors do not crash the desktop application and instead return structured error messages that can
+                 be handled by the Electron UI.
+                
+                <br><br>Errors are handled in three stages:
+                <ol class="numbered-list">
+                    <li>Serial communication errors (libserialport layer)</li>
+                    <li>Device verification failures</li>
+                    <li>Application-level protocol errors</li>
+                </ol>
+
+                <p>The native C module uses libserialport for all UART communication. Most configuration calls return a value of type sp_return, which indicates
+                     whether the operation succeeded. To simplify error handling, there is a helper function used. This function is int check(enum sp_return result). 
+                     Upon error, this function prints an error message and aborts execution. Possible error conditions include:</p>
+
+                <ul>
+                    <li>SP_ERR_ARG - Invalid argument passed to libserialport function</li>
+                    <li>SP_ERR_FAIL - Generic failure reported by the driver</li>
+                    <li>SP_ERR_SUPP - Operation not supported</li>
+                    <li>SP_ERR_MEM - Memory allocation failure</li>
+                </ul>
+            </p>
+
+            <h4 id="device-detection">Device Detection & Verification</h4>
+            <p>Before any commands are transmitted, the application verifies that the correct USB device is connected. This process is handled by the function: find_com_port().
+            <br><br>The function performs the following steps:
+                <ol class="numbered-list">
+                    <li>Enumerates all available serial ports using sp_list_ports().</li>
+                    <li>Attempts to open each port.</li>
+                    <li>Sends a handshake command (0x8000).</li>
+                    <li>Waits for the expected acknowledgment 0x5000 from the firmware.</li>
+                    <li>If the correct response is received, the port name is stored in verified_port.</li>
+                </ol>
+
+                <p>If no device responds with the expected handshake, the function returns failure. The application then returns the following JSON error to the Electron frontend 
+                    allowing the UI to display an error message.</p>
+
+            </p>
+            <h4 id="command-validation">Command Validation & Response Verification</h4>
+            <p>
+                Before sending a command to the firmware, the command string provided by the JavaScript layer is translated into a command header using: map_command(). 
+                If the command does not exist in the mapping table, then the function returns 0xFFFF to signify an error occurred.
+
+                <br><br>After sending a command packet, the system waits for a response from the firmware. All valid responses must contain a header beginning 
+                with: 0x50XX. The header is checked using: (response_header & 0xFF00) != 0x5000 and response_header == 0xFFFE. If the response header does not 
+                match this format, the message is considered invalid and the request fails. This prevents corrupted or unrelated serial data from being 
+                interpreted as valid JSON.
+            </p>
+            <h4 id="length-crc-validation">Length & CRC Validation</h4>
+            <p>In addition to header validation, all packets are now validated using both a length field and a CRC value.
+                <br><br>After receiving the initial portion of a packet (header and length):
+                <ul>
+                    <li>The length field is used to determine the expected total size of the remaining data</li>
+                    <li>The system continues reading until the full packet is received</li>
+                </ul>
+
+                <p>This prevents incomplete reads and reduces reliance on timeout-based detection.
+
+                    <br><br>Once the full packet is received:
+                    <ul>
+                        <li>A CRC value is computed over the received data (excluding the received CRC field)</li>
+                        <li>The computed CRC is compared against the CRC included in the packet
+                            <ul>
+                                <li>If:
+                                    <ul>
+                                        <li>The received data length does not match the expected length, or</li>
+                                        <li>The CRC values do not match</li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </p>
+
+                <p>Then the packet is considered invalid and is discarded. This ensures that:</p>
+                <ul>
+                    <li>Corrupted packets are not processed</li>
+                    <li>Partial transmissions are rejected</li>
+                    <li>Only fully valid responses are passed to higher layers</li>
+                </ul>
+            </p>
+            <h4 id="timeout-handling">Timeout Handling</h4>
+            <p>
+                The communication layer uses blocking reads with a timeout: sp_blocking_read(..., timeout_ms). 
+                For command responses, the timeout is set to 2000 ms. Possible outcomes include from this timeout function include:
+                <ul>
+                    <li>bytes_read > 0: Response received successfully</li>
+                    <li>bytes_read == 0: Timeout occurred (no response)</li>
+                    <li>bytes_read < 0: Serial read error</li>
+                </ul>
+
+                <p>Timeouts typically indicate:</p>
+                <ul>
+                    <li>device disconnection</li>
+                    <li>firmware crash</li>
+                    <li>incorrect COM port selection</li>
+                </ul>
+                <p><strong>Note:</strong> Timeouts are primarily used as a fallback method to determine message completion or error. The length-based packet handling is the primary method.
+                
+                    <br><br>All dynamic memory allocations are checked before use.If memory allocation fails, the system:
+                    <ol class="numbered-list">
+                        <li>Closes the serial port</li>
+                        <li>Frees allocated resources</li>
+                        <li>Returns NULL to the caller</li>
+                    </ol>
+                </p>
+                
+            </p>
+            <h4 id="error-propogation-to-frontend">Error Propogation to the Frontend</h4>
+            <p>Errors generated by the native module are returned to the JavaScript layer as JSON error objects. EX: { "ERROR": "error description" }. The Electron renderer checks for the
+                 presence of the ERROR field: If an error is present, a modal dialog is displayed to the user. This approach allows the native module to communicate failures without crashing the
+                 desktop application.</p>
+
+    <!-- #region Data Streaming-->
+            <h2 id="data-streaming">Data Streaming Setup</h2>
+            <p>
+                Data streaming within the Desktop Application is managed by the native C backend, which interfaces 
+                directly with the flight controller over USB serial communication. Unlike standard request–response 
+                interactions, streaming introduces a continuous data flow that is handled through a dedicated architecture 
+                involving dual COM ports, multithreading, and buffered data transfer to the frontend.
+            </p>
+            <h3 id="com-port-verification">COM Port Identification & Differentiation</h3>
+            <p>
+                The application dynamically identifies and verifies the correct COM ports using a handshake-based detection mechanism. 
+                The port used for data streaming is separate from the command port used for standard requests.
+                <br><br>
+                The streaming COM port is dedicated exclusively to continuous telemetry data. It is discovered using the 
+                same process as the command port, but with a different handshake command. This allows the system to reliably 
+                distinguish between command and streaming channels without hardcoding port names.
+            </p>
+            <h3 id="triggering-streaming-start-stop">Triggering Streaming Start & Stop</h3>
+            <p>
+                Streaming is initiated using the same command infrastructure as standard requests:
+                <ul>
+                    <li>A start streaming command is sent through the command port</li>
+                    <li>The firmware acknowledges the request and begins transmitting data on the streaming port</li>
+                    <li>A stop command is issued to terminate streaming</li>
+                </ul>
+                
+                <p>
+                This design keeps the streaming control flow consistent with the rest of the communication system and reuses 
+                existing packet structures and validation logic.
+                </p>
+            </p>
+            <h3 id="multi-threaded-steup">Multi-Threading Setup</h3>
+            <p>
+                To prevent blocking the main application flow and other commands, streaming is handled on a separate thread using the Windows API.
+                <ul>
+                    <li>A dedicated streaming thread is created when streaming begins</li>
+                    <li>The thread continuously reads incoming packets from the streaming port</li>
+                    <li>Mutexes are used to safely manage shared resources such as the port handle and data queue</li>
+                </ul>
+                <p>This allows real-time data to be processed without interfering with command execution or frontend responsiveness.</p>
+            </p>
+            <h3 id="forwarding-to-frontend">Forwarding Data to Frontend</h3>
+            <p>
+                Incoming streaming data is processed and transferred to the frontend through a queue-based system.
+                <ul>
+                    <li>The streaming thread acts as a producer, pushing validated JSON packets into a circular buffer</li>
+                    <li>The frontend interacts with the backend through exposed functions (via Node-API)</li>
+                    <li>A polling function retrieves the next available packet from the queue</li>
+                </ul>
+                
+                <p>This producer–consumer model provides:
+                <ul>
+                    <li>Thread-safe data transfer</li>
+                    <li>Decoupling between data acquisition and UI updates</li>
+                    <li>Smooth handling of continuous telemetry streams</li>
+                </ul>
+                </p>
+            </p>
+
+    <!-- #endregion -->
+<!-- #endregion -->
+        </section>
+
+        <section>
+            <h2>Back to Software</h2>
+            <a href="./software.html" class="back-link">← Return to Software Overview</a>
+        </section>
+    </main>
+    </div>
+
+<footer>
+    <div class="footer-brand">OSCAR <span>Docs</span></div>
+    <ul class="footer-links">
+        <li><a href="./contact.html">Contact Us</a></li>
+        <li><a href="https://sddec26-05.sd.ece.iastate.edu/">Senior Design Website</a></li>
+        <li><a href="https://github.com/gracefinger/OSCAR_Documentation.github.io">GitHub</a></li>
+    </ul>
+</footer>
+
+<script src="../components/main.js"></script>
+
+</body>
+
+</html>
