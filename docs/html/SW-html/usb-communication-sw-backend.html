@@ -5,18 +5,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Backend USB Communication</title>
-    <link rel="stylesheet" href="../styles/main.css">
-    <link rel="stylesheet" href="../styles/tableOfContents.css">
-    <link rel="stylesheet" href="../styles/chloeWorking.css">
+    <link rel="stylesheet" href="../../styles/main.css">
+    <link rel="stylesheet" href="../../styles/tableOfContents.css">
+    <link rel="stylesheet" href="../../styles/chloeWorking.css">
 </head>
 
 <body>
     <nav>
         <ul class="nav-links">
-            <li><a href="../index.html"><span class="nav-dot"></span>Home</a></li>
-            <li><a href="./hardware.html"><span class="nav-dot"></span>Hardware</a></li>
-            <li><a href="./firmware.html"><span class="nav-dot"></span>Firmware</a></li>
-            <li><a href="./software.html" class="active"><span class="nav-dot"></span>Software</a></li>
+            <li><a href="../../index.html"><span class="nav-dot"></span>Home</a></li>
+            <li><a href="../hardware.html"><span class="nav-dot"></span>Hardware</a></li>
+            <li><a href="../firmware.html"><span class="nav-dot"></span>Firmware</a></li>
+            <li><a href="../software.html" class="active"><span class="nav-dot"></span>Software</a></li>
         </ul>
     </nav>
 
@@ -35,7 +35,7 @@
 
             <!-- Table of Contents -->
             <div id="toc-block">
-                <h2>Table of Contents</h2>
+                <h2 id=>Table of Contents</h2>
                 <ol>
                     <li><a href="#data-flow">Data Flow</a>
                         <ol>
@@ -60,14 +60,14 @@
                             <li><a href="#loading-native-module">Loading the Native Module in Electron</a></li>
                             <li><a href="#native-c-module-backend">Native C Module - Backend</a></li>
                             <ol>
-                                <li><a href="error-handling-recovery">Error Handling & Recovery - Backend</a></li>
+                                <li><a href="#error-handling-recovery">Error Handling & Recovery - Backend</a></li>
                             </ol>
                             <li><a href="#data-streaming">Data Streaming Setup</a>
                                 <ol>
-                                    <li><a href="com-port-verification">COM Port Identification & Differentiation</a></li>
-                                    <li><a href="triggering-streaming-start-stop">Triggering Streaming Start & Stop</a></li>
-                                    <li><a href="multi-threaded-steup">Multi-Threading Setup</a></li>
-                                    <li><a href="forwarding-to-frontend">Forwarding Data to Frontend</a></li>
+                                    <li><a href="#com-port-verification">COM Port Identification & Differentiation</a></li>
+                                    <li><a href="#triggering-streaming-start-stop">Triggering Streaming Start & Stop</a></li>
+                                    <li><a href="#multi-threaded-steup">Multi-Threading Setup</a></li>
+                                    <li><a href="#forwarding-to-frontend">Forwarding Data to Frontend</a></li>
                                 </ol>
                             </li>
                         </ol>
@@ -156,7 +156,7 @@
                     </ol>
                 </p>
                 <h3>Flow Diagram</h3>
-                <img src="../SoftwareImages/DataFlowDiagram.png" alt="Diagram showing flow of data from Desktop Application to Firmware">
+                <img src="../../SoftwareImages/DataFlowDiagram.png" alt="Diagram showing flow of data from Desktop Application to Firmware">
                 <h2 id="native-c-module-overview">Native C Module</h2>
                 <h3>Overview</h3>
                 <p>The native C module serves as the communication bridge between the Electron application and the flight controller hardware. It is responsible for:
@@ -532,7 +532,7 @@
 
                 <p>This allows JavaScript code to call the native functions as if they were regular async functions, while keeping the low-level details encapsulated.</p>
             </p>
-            <h3 id="error-handling-recovery">Error Handling & Recovery - Backend</h2>
+            <h3 id="error-handling-recovery">Error Handling & Recovery - Backend</h3>
             <p>The USB communication system includes error detection and recovery mechanisms at multiple layers. These mechanisms ensure that failures such as missing 
                 devices, invalid responses, or serial communication errors do not crash the desktop application and instead return structured error messages that can
                  be handled by the Electron UI.
@@ -711,7 +711,7 @@
 
         <section>
             <h2>Back to Software</h2>
-            <a href="./software.html" class="back-link">← Return to Software Overview</a>
+            <a href="../software.html" class="back-link">← Return to Software Overview</a>
         </section>
     </main>
     </div>
@@ -719,13 +719,13 @@
 <footer>
     <div class="footer-brand">OSCAR <span>Docs</span></div>
     <ul class="footer-links">
-        <li><a href="./contact.html">Contact Us</a></li>
+        <li><a href="../contact.html">Contact Us</a></li>
         <li><a href="https://sddec26-05.sd.ece.iastate.edu/">Senior Design Website</a></li>
         <li><a href="https://github.com/gracefinger/OSCAR_Documentation.github.io">GitHub</a></li>
     </ul>
 </footer>
 
-<script src="../components/main.js"></script>
+<script src="../../components/main.js"></script>
 
 </body>
 

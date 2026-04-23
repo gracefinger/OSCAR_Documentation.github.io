@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PAGE TITLE</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/tableOfContents.css">
+    <link rel="stylesheet" href="../styles/chloeWorking.css">
+</head>
+
+<body>
+    <nav>
+        <ul class="nav-links">
+            <li><a href="../index.html"><span class="nav-dot"></span>Home</a></li>
+            <li><a href="./hardware.html"><span class="nav-dot"></span>Hardware</a></li>
+            <li><a href="./firmware.html"><span class="nav-dot"></span>Firmware</a></li>
+            <li><a href="./software.html"><span class="nav-dot"></span>Software</a></li>
+        </ul>
+    </nav>
+
+    <div class="page-layout">
+
+        <!-- ── Sidebar ── -->
+        <aside id="doc-sidebar">
+            <div class="sidebar-title">On this page</div>
+            <ul id="sidebar-nav"></ul>
+        </aside>
+
+        <!-- ── Main content ── -->
+        <main class="doc-content">
+
+            <h1>PAGE TITLE</h1>
+
+            <!-- Table of Contents -->
+            <div id="toc-block">
+                <h2>Table of Contents</h2>
+                <ol>
+                    <li><a href="#section-1">Section 1</a></li>
+                    <li><a href="#section-2">Section 2</a>
+                        <ol>
+                            <li><a href="#subsection-2-1">Subsection 2.1</a></li>
+                            <li><a href="#subsection-2-2">Subsection 2.2</a></li>
+                        </ol>
+                    </li>
+                    <li><a href="#section-3">Section 3</a></li>
+                </ol>
+            </div>
+
+            <section>
+
+                <h1 id="section-1">Section 1</h1>
+                <p>Content goes here.</p>
+
+                <h1 id="section-2">Section 2</h1>
+                <p>Content goes here.</p>
+
+                <h2 id="subsection-2-1">Subsection 2.1</h2>
+                <p>Content goes here.</p>
+
+                <h2 id="subsection-2-2">Subsection 2.2</h2>
+                <p>Content goes here.</p>
+
+                <h1 id="section-3">Section 3</h1>
+                <p>Content goes here.</p>
+
+            </section>
+
+            <section>
+                <h2>Back to PARENT PAGE</h2>
+                <a href="./PARENT-PAGE.html" class="back-link">← Return to PARENT PAGE Overview</a>
+            </section>
+
+        </main>
+    </div>
+
+    <footer>
+        <div class="footer-brand">OSCAR <span>Docs</span></div>
+        <ul class="footer-links">
+            <li><a href="./contact.html">Contact Us</a></li>
+            <li><a href="https://sddec26-05.sd.ece.iastate.edu/">Senior Design Website</a></li>
+            <li><a href="https://github.com/gracefinger/OSCAR_Documentation.github.io">GitHub</a></li>
+        </ul>
+    </footer>
+
+    <script src="../components/main.js"></script>
+
+</body>
+
+</html>
