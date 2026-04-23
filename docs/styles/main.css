@@ -313,8 +313,22 @@ main {
     }
 }
 
+a {
+    color: var(--green-accent);
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+p {
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin-bottom: 1rem;
+}
+
 h1 {
-    font-size: clamp(2.8rem, 8vw, 6.5rem);
+    font-size: clamp(3.0rem, 8vw, 6.5rem);
     font-weight: 800;
     line-height: 1.0;
     letter-spacing: -0.03em;
@@ -462,7 +476,7 @@ section {
     align-items: center;
     gap: 10px;
     font-family: var(--font-mono);
-    font-size: 0.72rem;
+    font-size: 1.0rem;
     color: var(--green-accent);
     text-transform: uppercase;
     letter-spacing: 0.15em;
@@ -477,8 +491,46 @@ section {
     background: var(--green-accent);
 }
 
+ul {
+    list-style: none;
+    padding-left: 1.25rem;
+    margin-bottom: 1rem;
+}
+
+li {
+    position: relative;
+    padding-left: 0.75rem;
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin-bottom: 0.5rem;
+}
+
+main li::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    color: var(--green-accent);
+}
+
 h2 {
-    font-size: clamp(1.8rem, 4vw, 3rem);
+    font-size: clamp(2.0rem, 4vw, 3rem);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    color: var(--text-primary);
+    margin-top: 3rem;
+    margin-bottom: 1rem;
+}
+
+h2 em {
+    font-style: normal;
+    color: var(--green-accent);
+}
+
+h3 {
+    font-size: clamp(1.75rem, 3vw, 2.2rem);
     font-weight: 800;
     line-height: 1.1;
     letter-spacing: -0.03em;
@@ -486,9 +538,67 @@ h2 {
     margin-bottom: 1rem;
 }
 
-h2 em {
+h3 em {
     font-style: normal;
     color: var(--green-accent);
+}
+
+h4 {
+    font-size: clamp(1.5rem, 2.5vw, 1.6rem);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+}
+
+h4 em {
+    font-style: normal;
+    color: var(--green-accent);
+}
+
+h5 {
+    font-size: clamp(1.25rem, 2.5vw, 1.6rem);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+}
+
+h5 em {
+    font-style: normal;
+    color: var(--green-accent);
+}
+
+h6 {
+    font-size: clamp(1.0rem, 2.5vw, 1.6rem);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+}
+
+h6 em {
+    font-style: normal;
+    color: var(--green-accent);
+}
+
+.red {
+    color: rgb(186, 47, 47)
+}
+
+.light-red {
+    color: rgba(230, 121, 121, 0.859)
+}
+
+.light-green {
+    color: rgba(123, 230, 121, 0.821)
+}
+
+.light-blue {
+    color: rgba(121, 146, 230, 0.771)
 }
 
 .section-desc {
@@ -589,8 +699,9 @@ h2 em {
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     overflow: hidden;
-    margin-top: 2rem;
+    margin-top: 1rem;
     box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+    margin-bottom: 1rem
 }
 
 .terminal-bar {

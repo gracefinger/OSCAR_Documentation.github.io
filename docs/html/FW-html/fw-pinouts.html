@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pinout</title>
+    <link rel="stylesheet" href="../../styles/main.css">
+    <link rel="stylesheet" href="../../styles/tableOfContents.css">
+    <link rel="stylesheet" href="../../styles/chloeWorking.css">
+</head>
+
+<body>
+    <nav>
+        <ul class="nav-links">
+            <li><a href="../../index.html"><span class="nav-dot"></span>Home</a></li>
+            <li><a href="../hardware.html"><span class="nav-dot"></span>Hardware</a></li>
+            <li><a href="../firmware.html"><span class="nav-dot"></span>Firmware</a></li>
+            <li><a href="../software.html"><span class="nav-dot"></span>Software</a></li>
+        </ul>
+    </nav>
+
+    <div class="page-layout">
+
+        <!-- ── Sidebar ── -->
+        <aside id="doc-sidebar">
+            <div class="sidebar-title">On this page</div>
+            <ul id="sidebar-nav"></ul>
+        </aside>
+
+        <!-- ── Main content ── -->
+        <main class="doc-content">
+
+            <h1>Pinouts</h1>
+
+            <!-- Table of Contents -->
+            <div id="toc-block">
+                <h2 id="table-of-contents">Table of Contents</h2>
+                <ol>
+                    <li><a href="#section-1">Timer</a></li>
+                    <li><a href="#section-2">Peripherals</a>
+                        <ol>
+                            <li><a href="#subsection-2-1">I2C2: Barometer/DPS</a></li>
+                            <li><a href="#subsection-2-2">SPI4: IMU/ICM-40609</a></li>
+                            <li><a href="#subsection-2-3">I2C1: BNO055</a></li>
+                            <li><a href="#subsection-2-4">I2C4: Magnetometer</a></li>
+                            <li><a href="#subsection-2-5">I2C3: EEPROM</a></li>
+                            <li><a href="#subsection-2-6">UART 4: GPS Module</a></li>
+                        </ol>
+                    </li>
+                    <li><a href="#section-3">Other</a>
+                        <ol>
+                            <li><a href="#subsection-3-1">External Clock: HSE</a></li>
+                            <li><a href="#subsection-3-2">USB FS</a></li>
+                            <li><a href="#subsection-3-3">USART2: EXPRESS LRS</a></li>
+                        </ol>
+                    </li>
+                    <li><a href="#section-4">Debugging</a>
+                        <ol>
+                            <li><a href="#subsection-4-1">LED GPIOS</a></li>
+                        </ol>
+                    </li>
+                    <li><a href="#section-5">Available</a>
+                        <ol>
+                            <li><a href="subsection-5-1">SPI3</a></li>
+                            <li><a href="subsection-5-2">USART1</a></li>
+                            <li><a href="subsection-5-3">USART3</a></li>
+                        </ol>
+                    </li>
+                    <li><a href="#section-6">DShot</a></li>
+                    <li><a href="#section-7">ESC</a></li>
+                </ol>
+            </div>
+
+            <section>
+
+                <h2 id="section-1">Timer</h2>
+                <p>Timer 6: Clock for the entire System</p>
+
+                <h2 id="section-2">Peripherals</h2>
+                
+
+                <h3 id="subsection-2-1">I2C2: Barometer/DPS</h3>
+                <p><ul>
+                    <li>PB10: SCL</li>
+                    <li>PB11: SDA</li>
+                </ul></p>
+
+                <h3 id="subsection-2-2">SPI4: IMU/ICM-40609</h3>
+                <p><ul>
+                    <li>PE12: SCK</li>
+                    <li>PE13: MISO</li>
+                    <li>PE14: MOSI</li>
+                    <li>PE15: CS</li>
+                </ul></p>
+
+                <h3 id="subsection-2-3">I2C1: BNO055</h3>
+                <p><ul>
+                    <li>PB8: SCL</li>
+                    <li>PB9: SDA</li>
+                </ul></p>
+
+                <h3 id="subsection-2-4">I2C4: Magnetometer</h3>
+                <p><ul>
+                    <li>PD12: SCL</li>
+                    <li>PD13: SDA</li>
+                </ul></p>
+
+                <h3 id="subsection-2-5">I2C3: EEPROM</h3>
+                <p><ul>
+                    <li>PA8: SCL</li>
+                    <li>PC9: SDA</li>
+                </ul></p>
+
+                <h3 id="subsection-2-6">UART 4: GPS Module</h3>
+                <p><ul>
+                    <li>PA0: TX</li>
+                    <li>PA1: RX</li>
+                </ul></p>
+
+                <h2 id="section-3">Other</h2>
+                
+
+                <h3 id="subsection-3-1">External Clock: HSE</h3>
+                <p><ul>
+                    <li>PH0: Input</li>
+                    <li>PH1: Out</li>
+                </ul></p>
+
+                <h3 id="subsection-3-2">USB FS</h3>
+                <p><ul>
+                    <li>PA11: D-</li>
+                    <li>PA12: D+</li>
+                    <li>PA9: VBUS</li>
+                </ul></p>
+
+                <h3 id="subsection-3-3">USART2: EXPRESS LRS</h3>
+                <p><ul>
+                    <li>PA2: TX</li>
+                    <li>PA3: RX</li>
+                </ul></p>
+
+                <h2 id="section-4">Debugging</h2>
+                
+
+                <h3 id="subsection-4-1">LED GPIOS</h3>
+                <p><ul>
+                    <li>PE2 – BLUE</li>
+                    <li>PE3 – GREEN</li>
+                </ul></p>
+
+                <h2 id="section-5">Available</h2>
+                
+
+                <h3 id="subsection-5-1">SPI3</h3>
+                <p><ul>
+                    <li>PB5: MOSI</li>
+                    <li>PB4: MISO</li>
+                    <li>PB3: SCK</li>
+                    <li>PD7: CS</li>
+                </ul>
+
+                <h3 id="subsection-5-2">USART1</h3>
+                <p><ul>
+                    <li>PB7: RX</li>
+                    <li>PB6: TX</li>
+                </ul></p>
+
+                <h3 id="subsection-5-3">USART3</h3>
+                <p><ul>
+                    <li>PC11: RX</li>
+                    <li>PC10: TX</li>
+                </ul></p>
+
+                <h2 id="section-6">DShot</h2>
+                <p>Motor PWMs - page 88 MCU datasheets:
+                    <ul>
+                        <li>PC6: Timer 3 Channel 1 PWM generation</li>
+                        <li>PC7: Timer 3 Channel 2 PWM generation</li>
+                        <li>PC8: Timer 3 Channel 3 PWM generation</li>
+                        <li>PB1: Timer 3 Channel 4 PWM generation</li>
+                    </ul>
+
+                    <p>Motor USART - Telemetry Pin in case of bidirectional DShot failure:</p>
+                    <ul>
+                        <li>PD6: RX</li>
+                    </ul>
+                </p>
+
+                <h2 id="section-7">ESC</h2>
+                <p>2 boards with 2 MCUs each. Preliminarily: 1 & 3 will share a board, and 2 & 4 will share a board
+
+                <br><br>ESC Layout:
+                <br><br><img src="../../FirmwareImages/ESCLayout.png" alt="Layout of ESC board" style="display: block; margin: 0 auto;">
+                </p>
+            </section>
+
+            <section>
+                <h2>Back to Firmware</h2>
+                <a href="../firmware.html" class="back-link">← Return to Firmware Overview</a>
+            </section>
+
+        </main>
+    </div>
+
+    <footer>
+        <div class="footer-brand">OSCAR <span>Docs</span></div>
+        <ul class="footer-links">
+            <li><a href="../contact.html">Contact Us</a></li>
+            <li><a href="https://sddec26-05.sd.ece.iastate.edu/">Senior Design Website</a></li>
+            <li><a href="https://github.com/gracefinger/OSCAR_Documentation.github.io">GitHub</a></li>
+        </ul>
+    </footer>
+
+    <script src="../../components/main.js"></script>
+
+</body>
+
+</html>
