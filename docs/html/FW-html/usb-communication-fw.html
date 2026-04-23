@@ -35,7 +35,7 @@
 
             <!-- Table of Contents -->
             <div id="toc-block">
-                <h2>Table of Contents</h2>
+                <h2 id="table-of-contents">Table of Contents</h2>
                 <ol>
                     <li><a href="#command-setup">Command Setup</a></li>
                     <li><a href="#response-setup">Response Setup</a>
@@ -50,6 +50,13 @@
                     <li><a href="#command-headers">Command Headers</a></li>
                     <li><a href="#response-headers">Response Headers</a></li>
                     <li><a href="#error-headers">Error Headers</a></li>
+                    <li><a href="#testing">Testing</a>
+                        <ol>
+                            <li><a href="#testing-setup">Setup</a></li>
+                            <li><a href="#testing-headers">Testing Specific Headers</a></li>
+                            <li><a href="#freqeuent-issues">Frequent Issues</a></li>
+                        </ol>
+                    </li>
                     <li><a href="#data-streaming-setup">Data Streaming Setup</a></li>
                 </ol>
             </div>
@@ -68,7 +75,7 @@
                     on the data being loaded into the packet. See CRC section for more details on the calculation. The maximum size of
                     the transmission is 64 bytes. The following illustration shows the format in which a command is to be sent.
 
-                    <br><br><img src="../FirmwareImages/packetStructure.png" alt="USB Packet Structure"><br><br>
+                    <br><br><img src="../../FirmwareImages/packetStructure.png" alt="USB Packet Structure"><br><br>
                     Commands sent from the PC should be in the form of a standard array. The flight controller MCU will extract the first
                     two bytes of the transmission to determine what the response needs to be. Any data that follows should be unique to the
                     command. To prevent parsing errors updating data values should be done inside individual commands. For example, updating
@@ -94,7 +101,7 @@
                     sent back to the host computer. This length is the size of the data and the CRC. It does not include the command header bytes nor the
                     packet length byte.
 
-                    <br><br><img src="../FirmwareImages/packetStructure.png" alt="USB Packet Structure"><br><br>
+                    <br><br><img src="../../FirmwareImages/packetStructure.png" alt="USB Packet Structure"><br><br>
 
                     To setup JSON responses we are using the cJSON library found on the GitHub page linked <a href="https://github.com/DaveGamble/cJSON?tab=readme-ov-file#welcome-to-cjson">here</a>. <br><br>
 
@@ -433,13 +440,82 @@
                     </div>
                 </div>
 
+                <h2 id="testing">Testing</h2>
+                <h3 id="testing-setup">Setup</h3>
+                <p>First download the most recent version of HTerm <a href="https://www.der-hammer.info/pages/terminal.html">here</a>
+                <br><br>
+                Connect one micro usb to the debug connection and another to the User micro usb port. Open the .project file, comment out the CRC check, and enter 
+                debug mode. Then unzip and open Hterm and connect it to the port labeled USB serial device. In the Input Control section uncheck the Ascii box 
+                and check the Hex box. Next, change the Type: box from Ascii to Hex.
+
+                </p>
+                <h3 id="testing-headers">Testing Specific Headers</h3>
+                <p>When testing a specific header, add a breakpoint somewhere inside the case statement, then send the 8xxx value if the statement does not need to 
+                    parse any values, or send [8x xx](header) [00 00 00 00](packet length) [xx xx …](data in hex). Step through as needed, and the response should 
+                    appear in the response section. Leave that section in Ascii.</p>
+                <h3 id="frequent-issues">Frequent Issues</h3>
+                <p>Every time you start a new debug run, you must disconnect and reconnect the port, or the response will not show up.</p>
+
                 <h2 id="data-streaming-setup">Data Streaming Setup</h2>
+                    <p>
+                        Data streaming utilizes a second COM port to keep the ability to have free flow standard command response
+                        communication on the other COM port. Using TinyUSB the firmware establishes a second COM port that is identical
+                        to the first. These COM ports are set up in the CDC to both be active on one USB connection. Thus, one USB-C
+                        connection provides access to two COM ports.
+                    </p>
+                    <p>
+                        The second COM port has a similar command setup to the original COM port with both command and response headers.
+                        The packets are designed the same way. Refer to <a href="#command-setup">Command Setup</a> and
+                        <a href="#response-setup">Response Setup</a> sections for more details about the packet structure.
+                        The supported commands are as follows:
+                    </p>
+
+                    <div class="terminal">
+                        <div class="terminal-body">
+                            <div class="t-cmd">
+                                typedef enum<br>
+                                {<br>
+                                &emsp;&emsp;<span class="light-red">//handshake command</span><br>
+                                &emsp;&emsp;e_GetStreamingConnection =&emsp;&emsp;0x4000u,<br>
+                                &emsp;&emsp;e_QuaternionData =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x4001u,<br>
+                                } StreamingMessageType;
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="terminal">
+                        <div class="terminal-body">
+                            <div class="t-cmd">
+                                typedef enum<br>
+                                {<br>
+                                &emsp;&emsp;<span class="light-red">//handshake command</span><br>
+                                &emsp;&emsp;e_ResGetStreamingConnection =&emsp;0x2000u,<br>
+                                &emsp;&emsp;e_ResQuaternionData =&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;0x2001u,<br>
+                                } StreamingResponseMessageType;
+                            </div>
+                        </div>
+                    </div>
+
+                    <p>
+                        To enable streaming the start streaming command must be sent to the main Command Response COM port. Each COM port
+                        has a different handshake command so that they can be easily identified. Once the streaming command is sent the
+                        Command Response port will send back an acknowledgement and the data stream will begin on the second COM port.
+                    </p>
+                    <p>
+                        The streaming is started by increasing a binary semaphore to allow a FreeRTOS task to begin looping. The task
+                        loops over a state variable that is set when the start and stop commands are received on the main COM port. The
+                        start command sets a streaming state and the stop command sets a not streaming state. The task loops over the
+                        state variable so that the stop command can change the variable, allowing the task to stop at the end of the
+                        current transmission and go back to polling on the semaphore. This embedded loop structure allows for seamless
+                        starting and stopping of the data streaming.
+                    </p>
+
 
             </section>
 
             <section>
                 <h2>Back to Firmware</h2>
-                <a href="./firmware.html" class="back-link">← Return to Firmware Overview</a>
+                <a href="../firmware.html" class="back-link">← Return to Firmware Overview</a>
             </section>
 
         </main>
@@ -448,7 +524,7 @@
     <footer>
         <div class="footer-brand">OSCAR <span>Docs</span></div>
         <ul class="footer-links">
-            <li><a href="./contact.html">Contact Us</a></li>
+            <li><a href="../contact.html">Contact Us</a></li>
             <li><a href="https://sddec26-05.sd.ece.iastate.edu/">Senior Design Website</a></li>
             <li><a href="https://github.com/gracefinger/OSCAR_Documentation.github.io">GitHub</a></li>
         </ul>

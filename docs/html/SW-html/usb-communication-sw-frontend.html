@@ -5,18 +5,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Frontend USB Communication</title>
-    <link rel="stylesheet" href="../styles/main.css">
-    <link rel="stylesheet" href="../styles/tableOfContents.css">
-    <link rel="stylesheet" href="../styles/chloeWorking.css">
+    <link rel="stylesheet" href="../../styles/main.css">
+    <link rel="stylesheet" href="../../styles/tableOfContents.css">
+    <link rel="stylesheet" href="../../styles/chloeWorking.css">
 </head>
 
 <body>
     <nav>
         <ul class="nav-links">
-            <li><a href="../index.html"><span class="nav-dot"></span>Home</a></li>
-            <li><a href="./hardware.html"><span class="nav-dot"></span>Hardware</a></li>
-            <li><a href="./firmware.html"><span class="nav-dot"></span>Firmware</a></li>
-            <li><a href="./software.html" class="active"><span class="nav-dot"></span>Software</a></li>
+            <li><a href="../../index.html"><span class="nav-dot"></span>Home</a></li>
+            <li><a href="../hardware.html"><span class="nav-dot"></span>Hardware</a></li>
+            <li><a href="../firmware.html"><span class="nav-dot"></span>Firmware</a></li>
+            <li><a href="../software.html" class="active"><span class="nav-dot"></span>Software</a></li>
         </ul>
     </nav>
 
@@ -179,7 +179,7 @@
                     </ol>
                 </p>
                 <h3>Flow Diagram</h3>
-                <img src="../SoftwareImages/DataFlowDiagram.png" alt="Diagram showing flow of data from Desktop Application to Firmware">
+                <img src="../../SoftwareImages/DataFlowDiagram.png" alt="Diagram showing flow of data from Desktop Application to Firmware">
                 <h2 id="native-c-module-overview">Native C Module</h2>
                 <h3>Overview</h3>
                 <p>The native C module serves as the communication bridge between the Electron application and the flight controller hardware. It is responsible for:
@@ -278,7 +278,7 @@
 
                 <h3 id="packet-structure">Packet Structure</h3>
                 <p>All communication follows a consistent packet format:
-                    <br><br><img src="../FirmwareImages/packetStructure.png" alt="Packet Structure"><br><br>
+                    <br><br><img src="../../FirmwareImages/packetStructure.png" alt="Packet Structure"><br><br>
                     <strong>Note:</strong> For more information about the packet structure, view Firmware's USB Communication documentation.
                 </p>
                 <h3 id="crc-validation">CRC Validation</h3>
@@ -296,7 +296,7 @@
                     </ul>
                     <p>If the CRC check fails, the packet is discarded and retried.
                         <br><br>
-                        <strong>Note:</strong> For more information about CRC validation, view <a href="./FW-html/usb-communication-fw.html">Firmwares USB Communication documentation</a>.
+                        <strong>Note:</strong> For more information about CRC validation, view <a href="../FW-html/usb-communication-fw.html">Firmwares USB Communication documentation</a>.
                     </p>
                 </p>
                 <h3 id="port-discovery">Port Discovery &amp; Handshake</h3>
@@ -338,7 +338,7 @@
                         <li>Extract JSON payload</li>
                         <li>Return result to JavaScript</li>
                     </ol>
-                    <p><strong>Note:</strong> For more information about Commands, view <a href="./FW-html/usb-communication-fw.html">Firmwares USB Communication documentation</a>.</p>
+                    <p><strong>Note:</strong> For more information about Commands, view <a href="../FW-html/usb-communication-fw.html">Firmwares USB Communication documentation</a>.</p>
                 </p>
                 <h3 id="reliable-communication">Reliable Communication</h3>
                 <p>To improve robustness, the module implements a retry mechanism:
@@ -809,7 +809,7 @@
 
             <section>
                 <h2>Back to Software</h2>
-                <a href="./software.html" class="back-link">← Return to Software Overview</a>
+                <a href="../software.html" class="back-link">← Return to Software Overview</a>
             </section>
         </main>
     </div>
@@ -817,13 +817,13 @@
     <footer>
         <div class="footer-brand">OSCAR <span>Docs</span></div>
         <ul class="footer-links">
-            <li><a href="./contact.html">Contact Us</a></li>
+            <li><a href="../contact.html">Contact Us</a></li>
             <li><a href="https://sddec26-05.sd.ece.iastate.edu/">Senior Design Website</a></li>
             <li><a href="https://github.com/gracefinger/OSCAR_Documentation.github.io">GitHub</a></li>
         </ul>
     </footer>
 
-    <script src="../components/main.js"></script>
+    <script src="../../components/main.js"></script>
 
 </body>
 
