@@ -1,0 +1,1574 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desktop Application Setup</title>
+    <link rel="stylesheet" href="../../styles/main.css">
+    <link rel="stylesheet" href="../../styles/tableOfContents.css">
+    <link rel="stylesheet" href="../../styles/chloeWorking.css">
+</head>
+
+<body>
+    <nav>
+        <ul class="nav-links">
+            <li><a href="../../index.html"><span class="nav-dot"></span>Home</a></li>
+            <li><a href="../hardware.html"><span class="nav-dot"></span>Hardware</a></li>
+            <li><a href="../firmware.html"><span class="nav-dot"></span>Firmware</a></li>
+            <li><a href="../software.html"><span class="nav-dot"></span>Software</a></li>
+        </ul>
+    </nav>
+
+    <div class="page-layout">
+
+        <!-- ── Sidebar ── -->
+        <aside id="doc-sidebar">
+            <div class="sidebar-title">On this page</div>
+            <ul id="sidebar-nav"></ul>
+        </aside>
+
+        <main class="doc-content">
+            <h1 id="desktop-application-setup">Desktop Application Setup</h1>
+            <section>
+                <h2 id="assumptions-expectations">Assumptions / Expectations</h2>
+                <p>You do not need to have prior coding experience to implement and use OSCAR Ground Station. This
+                    documentation will either provide you with all the information you need to get started, or it will
+                    direct you to helpful external resources if you need more assistance or background. While prior
+                    experience or exposure to web development concepts and communication protocols is helpful, it is by
+                    no
+                    means expected.</p>
+
+                <h2 id="environment-project-setup">Environment & Project Setup</h2>
+                <h3 id="electron-project-initialization">Electron Project Initialization</h3>
+                <h4 id="what-is-electron">What is Electron?</h4>
+                <p><a href="https://www.electronjs.org/">Electron</a> is the development framework under which OSCAR
+                    Ground
+                    Station was designed. Electron acts as a wrapper layer for web applications using a <a
+                        href="https://nodejs.org/en">Node.js</a> environment. Combining <a
+                        href="https://www.chromium.org/chromium-projects/">Chromium</a> and Node.js, Electron allows the
+                    desktop application to be packaged and built into a single binary file.</p>
+                <h4 id="why-electron">Why Electron?</h4>
+                <p>Electron was chosen as the framework for OSCAR Ground Station because it is built upon a web
+                    development
+                    environment, which has a less steep learning curve than other framework options. People often have
+                    more
+                    familiarity with, or at least more exposure to, web development concepts than other desktop
+                    application
+                    development frameworks. These web development technologies also have ample documentation available
+                    to
+                    learn and grow.</p>
+                <h4 id="other-resources">Other Resources</h4>
+                <p>Electron has a tutorial for setting up your own project <a
+                        href="https://www.electronjs.org/docs/latest/tutorial/tutorial-prerequisites">here</a>. An
+                    in-depth
+                    tutorial specific to the OSCAR Ground Station application is provided in this document for
+                    simplicity.
+                </p>
+                <p>Minimal background with web development or Node.js is expected. However, if you would like to know
+                    more,
+                    we recommend these resources:</p>
+                <ul>
+                    <li><a href="https://nodejs.org/en/learn/getting-started/introduction-to-nodejs">Node.js</a></li>
+                    <li><a href="https://www.w3schools.com/html/default.asp">HTML</a></li>
+                    <li><a href="https://www.w3schools.com/css/default.asp">CSS</a></li>
+                    <li><a href="https://www.w3schools.com/js/default.asp">JavaScript</a></li>
+                    <li><a href="https://www.w3schools.com/whatis/whatis_json.asp">JSON</a></li>
+                    <li><a href="https://nodesource.com/blog/an-absolute-beginners-guide-to-using-npm">npm</a></li>
+                </ul>
+                <h4 id="tools-required">Tools Required</h4>
+                <ul>
+                    <li>Code Editor</li>
+                    <ul>
+                        <li>We recommend <a href="https://code.visualstudio.com/">Visual Studio Code</a>, but it is up
+                            to
+                            your preference.</li>
+                    </ul>
+                    <li>Terminal / Command Line</li>
+                    <ul>
+                        <li>Windows: Command Prompt, Powershell, Git Bash, etc.</li>
+                    </ul>
+                    <li>Git and GitHub</li>
+                    <ul>
+                        <li>If you do not already have a GitHub account, you can create one <a
+                                href="https://docs.github.com/en/get-started/start-your-journey/creating-an-account-on-github">here</a>.
+                        </li>
+                        <li>If you do not already have Git installed on your machine, <a
+                                href="https://github.com/git-guides/install-git">install Git</a>.</li>
+                    </ul>
+                    <li>Node.js and npm</li>
+                    <li>Electron</li>
+                </ul>
+                <h4 id="how-to-setup-the-electron-project">How to Setup the Electron Project</h4>
+                <p>First, you need to ensure you have node.js. You can download node.js / npm for your machine's OS and
+                    architecture <a href="https://nodejs.org/en/download/">here</a>.</p>
+                <p>Next, you should verify your installation in your terminal to ensure it installed correctly:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div><span class="t-prompt">$</span> <span class="t-cmd">node -v</span></div>
+                        <div style="margin-top: 0.5rem;"><span class="t-prompt">$</span> <span class="t-cmd">npm
+                                -v</span>
+                        </div>
+                    </div>
+                </div>
+                <p>Now you are ready to initialize your project. We've included instructions here for OSCAR
+                    specifically,
+                    but additional relevant npm documentation can be found <a href="https://docs.npmjs.com/">here</a>.
+                </p>
+                <p>First, create a new directory for your project and navigate into it:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div><span class="t-prompt">$</span> <span class="t-cmd">mkdir my-electron-app</span></div>
+                        <div style="margin-top: 0.5rem;"><span class="t-prompt">$</span> <span class="t-cmd">cd
+                                my-electron-app</span>
+                        </div>
+                    </div>
+                </div>
+                <p>Then, initialize your npm project:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div><span class="t-prompt">$</span> <span class="t-cmd">npm init</span></div>
+                    </div>
+                </div>
+                <p>This will start a command line questionnaire to help you set up your package.json file. You can press
+                    enter to select the default for each question, but <strong class="red">make sure to
+                        set the entry point to "main.js"</strong>.</p>
+                <p>Once you complete the init process, a package.json file will be generated and placed in your current
+                    directory. Your package.json file is essentially a manifest of your project that includes the
+                    packages
+                    / applications it depends on, source control, and metadata.</p>
+                <p>To install packages into your project, you can use the following command:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div><span class="t-prompt">$</span> <span class="t-cmd">npm install &lt;package-name&gt;</span>
+                        </div>
+                    </div>
+                </div>
+                <p>You can add flags to the npm install command to specify the type of dependency you want to install.
+                    <strong class="red">"--save"</strong> will add the package as a dependency in your package.json
+                    file.
+                    <strong class="red">"--save-dev"</strong> will add the package as a development dependency. For
+                    example:
+                </p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div><span class="t-prompt">$</span> <span class="t-cmd">npm install --save
+                                &lt;package-name&gt;</span>
+                        </div>
+                        <div style="margin-top: 0.5rem;"><span class="t-prompt">$</span> <span class="t-cmd">npm install
+                                --save-dev &lt;package-name&gt;</span>
+                        </div>
+                    </div>
+                </div>
+                <p>For OSCAR Ground Station, you will need to install Electron as a development dependency:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div><span class="t-prompt">$</span> <span class="t-cmd">npm install --save-dev
+                                electron</span>
+                        </div>
+                    </div>
+                </div>
+                <p>The main.js file will be the entry point for your Electron application. We created it when we
+                    initialized
+                    the project. It controls the main process, which runs in a Node.js environment, and is responsible
+                    for
+                    the application life cycle, displaying native interfaces, performing privileged operations, and
+                    managing
+                    renderer processes.</p>
+                <p>Add "electron ." to the start command in the scripts field of your package.json in order to run the
+                    main.js file. For example:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            {<br>
+                            &emsp;&emsp;"name": "my-electron-app",<br>
+                            &emsp;&emsp;"version": "1.0.0",<br>
+                            &emsp;&emsp;"description": "Hello World!",<br>
+                            &emsp;&emsp;"main": "main.js",<br>
+                            &emsp;&emsp;"scripts": {<br>
+                            &emsp;&emsp;<strong class="red">"start": "electron .",</strong><br>
+                            &emsp;&emsp;"test": "echo \"Error: no test specified\" && exit 1"<br>
+                            },<br>
+                            &emsp;&emsp;"author": "Jane Doe",<br>
+                            &emsp;&emsp;"license": "MIT",<br>
+                            &emsp;&emsp;"devDependencies": {<br>
+                            &emsp;&emsp;"electron": "23.1.3"<br>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <p>If you have not already done so, you should create a file called "index.html". This file describes
+                    the
+                    page that the application will open up to. Its contents should look something like this (for now -
+                    you
+                    will update it later):</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            &lt;!DOCTYPE html&gt;<br>
+                            &lt;html&gt;<br>
+                            &emsp;&emsp;&lt;head&gt;<br>
+                            &emsp;&emsp;&emsp;&emsp;&lt;meta charset="UTF-8"/&gt;<br>
+                            &emsp;&emsp;&emsp;&emsp;&lt;meta<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;http-equiv="Content-Security-Policy"<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;content="default-src 'self'; script-src 'self'"<br>
+                            &emsp;&emsp;&emsp;&emsp;/&gt;<br>
+                            &emsp;&emsp;&emsp;&emsp;&lt;meta<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;http-equiv="X-Content-Security-Policy"<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;content="default-src 'self'; script-src 'self'"<br>
+                            &emsp;&emsp;&emsp;&emsp;/&gt;<br>
+                            &emsp;&emsp;&emsp;&emsp;&lt;title>Hello from Electron renderer!&lt;/title&gt;<br>
+                            &emsp;&emsp;&lt;/head&gt;<br>
+                            &emsp;&emsp;&lt;body&gt;<br>
+                            &emsp;&emsp;&emsp;&emsp;&lt;h1&gt;Hello from Electron renderer!&lt;/h1&gt;<br>
+                            &emsp;&emsp;&emsp;&emsp;&lt;p&gt;👋&lt;/p&gt;<br>
+                            &emsp;&emsp;&lt;/body&gt;<br>
+                            &lt;/html>
+                        </div>
+                    </div>
+                </div>
+                <p>Now that you have your first webpage, you will need to update your main.js to look like this:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            <div class="light-red">
+                                const { app, BrowserWindow } = require('electron')<br>
+                            </div>
+                            <br>
+                            <div class="light-green">
+                                const createWindow = () => {<br>
+                                &emsp;&emsp;const win = new BrowserWindow({<br>
+                                &emsp;&emsp;&emsp;&emsp;width: 800,<br>
+                                &emsp;&emsp;&emsp;&emsp;height: 600,<br>
+                                &emsp;&emsp;&emsp;&emsp;webPreferences: {<br>
+                                &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;nodeIntegration: true<br>
+                                &emsp;&emsp;&emsp;&emsp;}<br>
+                                &emsp;&emsp;})<br>
+                                <br>
+                                &emsp;&emsp;win.loadFile('index.html')<br>
+                                }<br>
+                            </div>
+                            <br>
+                            <div class="light-blue">
+                                app.whenReady().then(() => {<br>
+                                &emsp;&emsp;createWindow()<br>
+                                })<br>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <p>The <strong class="light-red">red</strong> section imports two modules: app and BrowserWindow using
+                    CommonJS module syntax. app controls the application lifecycle, and BrowserWindow creates and
+                    manages
+                    app windows.</p>
+                <p>The <strong class="light-green">green</strong> section defines the createWindow function, which loads
+                    your
+                    webpage (index.html) into a new BrowserWindow instance.</p>
+                <p>The <strong class="light-blue">blue</strong> section waits for the application to be ready before
+                    creating
+                    it.</p>
+
+                <h2 id="project-structure-architecture">Project Structure & Architecture</h2>
+                <h3 id="directory-layout">Directory Layout</h3>
+                <p>The directory structure for OSCAR Ground Station is comprised of the following folders:</p>
+                <ul>
+                    <li style="color:white">OSCAR-app/</li>
+                    <ul>
+                        <li style="color:white">build/</li>
+                        <ul>
+                            <li>Contains the compiled serial addon C node.</li>
+                        </ul>
+                        <li style="color:white">Communication/</li>
+                        <ul>
+                            <li>Contains the C module for USB Communication.</li>
+                        </ul>
+                        <li style="color:white">Components/</li>
+                        <ul>
+                            <li>Contains all javaScript files.</li>
+                        </ul>
+                        <li style="color:white">HTML/</li>
+                        <ul>
+                            <li>Contains all HTML files</li>
+                        </ul>
+                        <li style="color:white">images/</li>
+                        <ul>
+                            <li>Contains the images embedded in the application.</li>
+                        </ul>
+                        <li style="color:white">models/</li>
+                        <ul>
+                            <li>Contains the 3D model, and textures for the model, found in the textures/ folder.</li>
+                        </ul>
+                        <li style="color:white">node_modules/</li>
+                        <ul>
+                            <li>This folder serves as a container for all of your external dependencies.</li>
+                        </ul>
+                        <li style="color:white">Styles/</li>
+                        <ul>
+                            <li>Contains the CSS files for your project.</li>
+                        </ul>
+                        <li style="color:white">binding.gyp</li>
+                        <ul>
+                            <li>This is an important file that defines the paths to important libraries on your local
+                                machine. This is necessary for the Electron application to bind to the Native C Module.
+                            </li>
+                        </ul>
+                        <li style="color:white">package-lock.json</li>
+                        <ul>
+                            <li>This file ensures that dependencies between machines are consistent. It is similar to
+                                package.json, but contains more detail.</li>
+                        </ul>
+                        <li style="color:white">package.json</li>
+                        <ul>
+                            <li>This is the official manifest for the project, defining the name, version, dependencies,
+                                and
+                                more.</li>
+                        </ul>
+                    </ul>
+                </ul>
+
+                <h2 id="user-interface-architecture">User Interface Architecture</h2>
+                <h3 id="ui-framework">UI Framework</h3>
+                <p>The OSCAR Ground Station user interface is built using standard web technologies: HTML, CSS, and
+                    JavaScript. These technologies are executed within the Electron rendered process, which functions
+                    similarly to a traditional web browser environment.</p>
+                <p>HTML is used to define the structure and content of each page while CSS is responsible for styling
+                    and
+                    layout. JavaScript handles the dynamic behavior, even handling, and communication with the backend.
+                    This
+                    approach allows for a modular and flexible UI while leveraging widely understood and well-documented
+                    technologies.</p>
+                <p>Since Electron integrates with Chromium, the application can use modern JavaScript features and
+                    browser
+                    APIs without concern for cross-browser compatibility. This simplifies the development of the
+                    application
+                    and enables a more streamlined implementation of interactive UI components.</p>
+
+                <h3 id="theming-design-principles">Theming & Design Principles</h3>
+                <p>The UI follows a consistent theming strategy to ensure clarity, usability, and visual cohesion across
+                    all
+                    pages. A centralized color palette and shared styling rules are defined in global CSS files,
+                    allowing
+                    all components to maintain a uniform appearance.</p>
+                <p>Key design principles include:</p>
+                <ul>
+                    <li>Consistency: Reusable styles and standardized components are used throughout the application to
+                        create a predictable user experience.</li>
+                    <li>Readability: Clear typography, spacing, and contrast are prioritized to ensure information is
+                        easy
+                        to understand.</li>
+                    <li>Responsiveness: Layouts are designed to adapt to different window sizes without breaking
+                        structure
+                        or usability.</li>
+                    <li>Separation of concerns: Styling is kept within CSS, structure within HTML, and logic within
+                        JavaScript to improve maintainability.</li>
+                </ul>
+                <p>This approach ensures that updates to the UI can be made efficiently without introducing
+                    inconsistencies.
+                </p>
+                <img src="../../images/ThemingAndDesignPrinciples.png" alt="Theming & Design Principles Diagram"
+                    style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" />
+
+                <h3 id="layout-structure">Layout Structure</h3>
+                <p>The overall layout of the application is organized into clearly defined sections to improve usability
+                    and
+                    navigation. Each page typically consists of:</p>
+                <ul>
+                    <li>A header and title section that identifies the current page.</li>
+                    <li>A content area that contains forms, telemetry data, and visual components.</li>
+                    <li>Grouped configuration panels that organize related settings together.</li>
+                </ul>
+                <p>The layout relies primarily on CSS techniques such as flexbox and grid to align elements and manage
+                    spacing. This allows for a structured and scalable design that can accommodate additional UI
+                    elements as
+                    new features are introduced. Containers and layout classes are reused across multiple pages to
+                    maintain
+                    consistency and reduce redundant styling code.</p>
+                <img src="../../images/FrontendDiagram.png" alt="Layout Structure Flow Diagram"
+                    style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" />
+
+                <h3 id="component-reusing">Component Reusing</h3>
+                <p>To improve maintainability and scalability, the UI is built using reusable components and patterns
+                    rather
+                    than duplicating code for each page.</p>
+                <p>Common UI elements include but are not limited to:</p>
+                <ul>
+                    <li>Input fields</li>
+                    <li>Dropdown menus</li>
+                    <li>Configuration panels</li>
+                    <li>Telemetry display fields</li>
+                </ul>
+                <p>These are designed to follow consistent HTML structures and CSS classes. This allows the same styling
+                    and
+                    behavior to be applied to different parts of the application.</p>
+                <p>Additionally, JavaScript logic is written to operate on groups of elements using shared attributes.
+                    This
+                    eliminates the need to write custom update logic for each individual field and allows new UI
+                    elements to
+                    be added with minimal additional code. By emphasizing reusable components and generic update
+                    mechanisms,
+                    the UI remains easy to extend and reduces the risk of introducing bugs when new features are
+                    implemented.</p>
+
+                <!-- /////////////////HERE/////////////////// -->
+                <h2 id="usb-communication-data-flow">USB Communication & Data Flow</h2>
+                <h3 id="overview">Overview</h3>
+                <p>OSCAR Ground Station communicates with the flight controller over USB serial. Commands are sent from
+                    the
+                    PC to the flight controller, and responses or streamed telemetry data are returned. This
+                    communication
+                    is handled by a Native C Module that interfaces with the serial port, bridged into the Electron
+                    application via Node-API (NAPI) and Electron's IPC system.</p>
+
+                <h3 id="communication-flow-diagram">Communication Flow & Diagram</h3>
+                <h4 id="command-transmission-flow-pc-flight-controller">Command Transmission Flow (PC → Flight Controller)</h4>
+                <p>When a user submits a value or triggers a command from the UI, the following sequence occurs:</p>
+                <ul>
+                    <li>The frontend JavaScript calls an exposed IPC function via the preload bridge.</li>
+                    <li>The IPC message is received in main.js and forwarded to the addon worker.</li>
+                    <li>The native C module packages the command into a structured packet and transmits it over the
+                        serial
+                        port to the flight controller.</li>
+                </ul>
+
+                <h4 id="response-transmission-flow-flight-controller-pc">Response Transmission Flow (Flight Controller → PC)</h4>
+                <p>When the flight controller sends data back to the PC:</p>
+                <ul>
+                    <li>The native C module reads incoming bytes from the serial port.</li>
+                    <li>It validates the packet using CRC and parses the response payload.</li>
+                    <li>The result is sent back through the worker to main.js via IPC.</li>
+                    <li>main.js forwards the data to the renderer process, where the frontend updates the relevant UI
+                        elements.</li>
+                </ul>
+
+                <h4>Flow Diagram</h4>
+                <img src="../../images/placeholder-flow-diagram.png" alt="Communication Flow Diagram"
+                    style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" />
+
+                <h3 id="native-c-module">Native C Module</h3>
+                <h4 id="overview">Overview</h4>
+                <p>The Native C Module is a compiled Node.js addon written in C. It is responsible for all low-level
+                    serial
+                    communication between the desktop application and the flight controller. It is built using
+                    <strong>node-gyp</strong> and exposes its functionality to JavaScript through the Node-API (NAPI)
+                    interface.
+                </p>
+
+                <h4 id="high-level-responsibilities">High-Level Responsibilities</h4>
+                <ul>
+                    <li>Discovering available serial ports and performing a handshake to identify the correct device.
+                    </li>
+                    <li>Packaging outgoing commands into structured packets with headers, payloads, and CRC checksums.
+                    </li>
+                    <li>Transmitting commands to the flight controller and waiting for acknowledgment responses.</li>
+                    <li>Receiving and validating incoming packets from the flight controller.</li>
+                    <li>Streaming real-time telemetry data to the JavaScript layer.</li>
+                    <li>Handling communication errors and retrying failed transmissions.</li>
+                </ul>
+
+                <h4 id="node-api-integration">Node-API Integration</h4>
+                <p>The module integrates with Node.js using the Node-API (NAPI) layer, which provides a stable ABI
+                    (Application Binary Interface) between the C code and the JavaScript runtime. Functions are
+                    registered
+                    and exported using <strong>NAPI_MODULE</strong>, allowing them to be called from JavaScript as
+                    though
+                    they were native JavaScript functions.</p>
+
+                <h4 id="command-mapping">Command Mapping</h4>
+                <p>Each user-facing action in the UI corresponds to a specific command ID that the C module knows how to
+                    encode. A command map is maintained in the C module that associates logical command names with their
+                    corresponding numeric identifiers, expected payload structures, and response formats.</p>
+
+                <h4 id="packet-structure">Packet Structure</h4>
+                <p>Outgoing packets follow a defined structure to ensure reliable interpretation by the flight
+                    controller.
+                    A typical packet consists of:</p>
+                <ul>
+                    <li>A start-of-frame byte or header identifier.</li>
+                    <li>A command ID byte.</li>
+                    <li>A payload of fixed or variable length.</li>
+                    <li>A CRC checksum for error detection.</li>
+                </ul>
+
+                <h4 id="crc-validation">CRC Validation</h4>
+                <p>All packets include a CRC (Cyclic Redundancy Check) value computed over the packet contents. When a
+                    packet is received, the C module recomputes the CRC and compares it against the received value.
+                    Packets
+                    that fail CRC validation are discarded and may trigger a retry or error response.</p>
+
+                <h4 id="port-discovery-handshake">Port Discovery & Handshake</h4>
+                <p>On initialization, the C module enumerates available serial ports on the machine. It then sends a
+                    handshake packet to each candidate port and waits for a known response from the flight controller.
+                    The
+                    first port that responds with the expected handshake acknowledgment is selected for communication.
+                </p>
+
+                <h4 id="command-execution-flow">Command Execution Flow</h4>
+                <p>When a command is issued from JavaScript:</p>
+                <ul>
+                    <li>The NAPI binding receives the command name and parameter values.</li>
+                    <li>The command is looked up in the command map and encoded into a packet.</li>
+                    <li>The packet is written to the serial port.</li>
+                    <li>The module waits for an acknowledgment response within a defined timeout window.</li>
+                    <li>The result is returned to the JavaScript caller as a resolved or rejected promise.</li>
+                </ul>
+
+                <h4 id="reliable-communication-retries">Reliable Communication (Retries)</h4>
+                <p>To handle intermittent communication failures, the C module implements a retry mechanism. If a
+                    command
+                    does not receive an acknowledgment within the timeout period, it will be retransmitted up to a
+                    configurable number of times before the operation is declared a failure and an error is surfaced to
+                    the
+                    JavaScript layer.</p>
+
+                <h4 id="error-handling">Error Handling</h4>
+                <p>Errors detected at the C level — such as port disconnection, CRC failures, timeouts, or invalid
+                    responses — are propagated back through the NAPI layer as JavaScript exceptions or rejected
+                    promises.
+                    These are then caught in the JavaScript IPC handlers and surfaced to the UI via error modals.</p>
+
+                <h3 id="preload-ipc-bridge">Preload & IPC Bridge</h3>
+                <h4 id="inter-process-communication">Inter-Process Communication</h4>
+                <p>Electron separates its execution into two distinct process types: the <strong>main process</strong>
+                    and
+                    the <strong>renderer process</strong>. The main process runs in a full Node.js environment and has
+                    access to native system resources. The renderer process runs in a sandboxed Chromium environment and
+                    handles all UI rendering. Because of this separation, they cannot communicate directly — instead,
+                    they
+                    use Electron's built-in IPC (Inter-Process Communication) system.</p>
+                <h5 id="ipcMain">ipcMain</h5>
+                <p><strong>ipcMain</strong> is the IPC module used in the main process. It listens for messages sent
+                    from
+                    the renderer and handles them, optionally sending a response back. It is registered in main.js and
+                    acts
+                    as the bridge between the UI and the native C addon.</p>
+                <h5 id="ipcRenderer">ipcRenderer</h5>
+                <p><strong>ipcRenderer</strong> is the IPC module available in the renderer process. However, to
+                    maintain
+                    security, it is not exposed directly to the renderer. Instead, it is accessed through a preload
+                    script
+                    that selectively exposes safe functions to the frontend.</p>
+                <h5 id="ipc-setup-in-electron">IPC Setup in Electron</h5>
+                <p>To enable IPC communication in your Electron project, you need to configure the BrowserWindow to use
+                    a
+                    preload script. This is done in main.js when creating the window:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            const win = new BrowserWindow({<br>
+                            &emsp;&emsp;width: 800,<br>
+                            &emsp;&emsp;height: 600,<br>
+                            &emsp;&emsp;webPreferences: {<br>
+                            &emsp;&emsp;&emsp;&emsp;preload: path.join(__dirname, 'preload.js'),<br>
+                            &emsp;&emsp;&emsp;&emsp;contextIsolation: true,<br>
+                            &emsp;&emsp;&emsp;&emsp;nodeIntegration: false<br>
+                            &emsp;&emsp;}<br>
+                            });
+                        </div>
+                    </div>
+                </div>
+
+                <h4 id="making-the-usb-calls-in-javascript">Making the USB Calls in JavaScript</h4>
+                <p>The preload script (preload.js) uses <strong>contextBridge</strong> to safely expose specific IPC
+                    functions to the renderer. This allows the frontend JavaScript to trigger native USB operations
+                    without
+                    having direct access to Node.js or Electron internals:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            const { contextBridge, ipcRenderer } = require('electron');<br>
+                            <br>
+                            contextBridge.exposeInMainWorld('electronAPI', {<br>
+                            &emsp;&emsp;populateAll: () => ipcRenderer.invoke('populate-all'),<br>
+                            &emsp;&emsp;updateValue: (key, value) => ipcRenderer.invoke('update-value', key, value),<br>
+                            &emsp;&emsp;connectStream: () => ipcRenderer.invoke('connect-stream'),<br>
+                            &emsp;&emsp;onTelemetryUpdate: (callback) => ipcRenderer.on('telemetry-update',
+                            callback)<br>
+                            });
+                        </div>
+                    </div>
+                </div>
+                <p>In main.js, the corresponding IPC handlers receive these calls and forward them to the addon worker:
+                </p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            ipcMain.handle('populate-all', async () => {<br>
+                            &emsp;&emsp;return await worker.populateAll();<br>
+                            });<br>
+                            <br>
+                            ipcMain.handle('update-value', async (event, key, value) => {<br>
+                            &emsp;&emsp;return await worker.updateValue(key, value);<br>
+                            });
+                        </div>
+                    </div>
+                </div>
+
+                <h2 id="streaming-data">Streaming Data</h2>
+                <h3 id="overview">Overview</h3>
+                <p>Streaming is used to continuously receive real-time telemetry data from the flight controller. Unlike
+                    one-off command/response exchanges, streaming keeps the serial port open and continuously reads
+                    incoming packets, forwarding the data to the frontend for live display.</p>
+
+                <h3 id="architecture-threading">Architecture & Threading</h3>
+                <p>Because serial reading is a blocking operation, it must be performed on a separate thread to avoid
+                    freezing the Node.js event loop. The native C module spawns a dedicated background thread for the
+                    streaming loop. This thread reads data continuously and posts updates to the JavaScript layer using
+                    NAPI thread-safe function callbacks.</p>
+
+                <h3 id="streaming-flow">Streaming Flow</h3>
+                <p>The general streaming flow is as follows:</p>
+                <ul>
+                    <li>The frontend requests a stream connection via IPC.</li>
+                    <li>main.js forwards the request to the addon worker.</li>
+                    <li>The C module opens the serial port and starts the background streaming thread.</li>
+                    <li>As packets are received and validated, they are parsed and forwarded to JavaScript via a
+                        thread-safe
+                        callback.</li>
+                    <li>The worker relays each update to main.js, which pushes it to the renderer via ipcMain.</li>
+                    <li>The frontend receives the update and refreshes the relevant UI elements.</li>
+                </ul>
+
+                <h3 id="stream-initialization">Stream Initialization</h3>
+                <p>Before streaming begins, the correct serial port must be identified through the port discovery and
+                    handshake process described in the Native C Module section. Once a valid port is confirmed, the
+                    streaming mode can be activated.</p>
+
+                <h3 id="native-streaming-mode">Native Streaming Mode</h3>
+                <h4 id="streaming-loop-behavior">Streaming Loop Behavior</h4>
+                <p>The C-level streaming loop runs on a background thread and continuously reads from the serial port.
+                    Each
+                    iteration of the loop attempts to read a complete packet. If a valid packet is received, it is
+                    parsed
+                    and the data payload is extracted and forwarded. The loop continues running until a stop signal is
+                    received from the JavaScript layer.</p>
+
+                <h4 id="thread-separation">Thread Separation</h4>
+                <p>Keeping the streaming loop on a dedicated thread ensures that the Node.js event loop remains
+                    unblocked.
+                    The thread communicates results back to JavaScript using NAPI's
+                    <strong>napi_threadsafe_function</strong>, which safely queues callbacks for execution on the main
+                    JavaScript thread.
+                </p>
+
+                <h3 id="data-delivery-to-frontend">Data Delivery to Frontend</h3>
+                <p>Once a telemetry packet has been parsed by the C module and passed back to JavaScript, main.js pushes
+                    the data to the renderer process using <strong>webContents.send()</strong>. The frontend listens for
+                    these events and updates the appropriate display fields and the 3D gyroscope viewport accordingly.
+                </p>
+
+                <h3 id="error-handling-recovery">Error Handling & Recovery</h3>
+                <p>If the streaming thread encounters a read error or detects a disconnected port, it signals an error
+                    back
+                    to the JavaScript layer. The application will attempt to surface this error to the user via an error
+                    modal and may attempt to reconnect depending on the nature of the failure.</p>
+
+                <h3 id="ui-integration">UI Integration</h3>
+                <h4>How Data is Fed into the UI</h4>
+                <h5>Settings Population</h5>
+                <p>When a page is loaded that requires settings data, the frontend calls <strong>populateAll()</strong>
+                    via
+                    IPC. The C module reads the current configuration values from the flight controller and returns
+                    them.
+                    The JavaScript component layer then iterates over the returned values and populates the matching
+                    input
+                    fields and dropdowns based on shared data attributes.</p>
+
+                <h5>Telemetry Display</h5>
+                <p>Live telemetry values — such as voltage, current, motor speeds, and orientation — are pushed to the
+                    renderer as streaming events. The frontend's <strong>updateTelemetry()</strong> function receives
+                    these
+                    updates and writes the values into their corresponding display elements.</p>
+
+                <h4>Event-Based Updates</h4>
+                <p>Rather than polling for data at a fixed interval, the UI is driven by events. When the backend pushes
+                    new data, the frontend responds immediately by updating only the elements affected by that data.
+                    This
+                    reduces unnecessary DOM manipulation and keeps the interface responsive.</p>
+
+                <h5>Debouncing</h5>
+                <p>For user-triggered input events (such as slider movements or text field changes), debouncing is
+                    applied
+                    to prevent excessive IPC calls. The update is only transmitted after the user has stopped
+                    interacting
+                    with the control for a short delay, reducing redundant serial writes.</p>
+
+                <h5>Change Detection</h5>
+                <p>Before sending an update to the backend, the frontend compares the new value against the last known
+                    value for that field. If the value has not changed, the IPC call is skipped entirely. This prevents
+                    unnecessary communication overhead when the user interacts with a field without actually modifying
+                    its
+                    value.</p>
+
+                <h4 id="error-handling-recovery">Error Handling & Recovery</h4>
+                <h5 id="frontend-error-handling">Frontend Error Handling</h5>
+                <p>All IPC calls from the frontend are wrapped in try/catch blocks or promise rejection handlers. If a
+                    call
+                    fails, an error modal is displayed to the user describing what went wrong. The UI is designed to
+                    remain
+                    usable even in a partial failure state — for example, if telemetry streaming fails, the
+                    configuration
+                    pages can still be accessed.</p>
+
+                <h5 id="backend-error-propagation">Backend Error Propagation</h5>
+                <p>Errors originating in the C module are propagated upward through the NAPI layer as JavaScript
+                    exceptions, then caught by the IPC handler in main.js, which formats them and returns them as
+                    rejected
+                    promise values to the frontend.</p>
+
+                <h6 id="communication-failure-handling">Communication Failure Handling</h6>
+                <p>If the serial port becomes unavailable mid-session (e.g., the USB cable is disconnected), the C
+                    module
+                    detects the failure during the next read or write operation and signals the error. main.js then
+                    notifies
+                    the renderer, which shows a disconnection message and disables controls that require an active
+                    connection.</p>
+
+                <h6 id="recovery-strategies">Recovery Strategies</h6>
+                <p>Where possible, the application attempts automatic recovery. For transient errors, the retry
+                    mechanism
+                    in the C module handles re-transmission. For full disconnections, the user is prompted to reconnect
+                    the
+                    device and re-initialize the port connection from the Setup & Ports page.</p>
+                <!-- HERE -->
+
+                <h2 id="gyroscope-viewport">Gyroscope Viewport</h2>
+                <p>For the gyroscopic view, we used the <a href="https://threejs.org/">three.js</a> library. This
+                    library
+                    is responsible for creating the 3D viewport displayed within the Setup tab of the desktop
+                    application.
+                    It is also used to render a 3D model of a drone and update its orientation based on streamed data
+                    received from the firmware.</p>
+                <p>To learn more, refer to the official documentation: <a
+                        href="https://threejs.org/docs/">https://threejs.org/docs/</a></p>
+
+                <h3 id="installing-three-js">Installing three.js</h3>
+                <p>To install the library, navigate to the Electron project root folder and run the following command:
+                </p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div><span class="t-prompt">$</span> <span class="t-cmd">npm install three</span></div>
+                    </div>
+                </div>
+                <p>If the installation completes successfully, three.js is ready to use.</p>
+
+                <h3 id="3d-viewport-setup">3D Viewport Setup</h3>
+                <p>To set up the 3D viewport, you will need one JavaScript file and one HTML file. At the top of your
+                    JavaScript file, import three.js:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            import * as THREE from '../node_modules/three/build/three.module.js';
+                        </div>
+                    </div>
+                </div>
+                <p>It is recommended to begin with a simple cube before introducing a full 3D model. Many models have
+                    different forward axes, which can make alignment difficult for beginners.</p>
+
+                <h4 id="basic-scene-setup">Basic Scene Setup</h4>
+                <p>Start by creating the container, scene, camera, and renderer. When it comes to styling, check out the
+                    CSS style sheets found in the open source GitHub repository.</p>
+
+                <h5 id="javascript-structure">JavaScript Structure</h5>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            const container = document.getElementById("gyro-3d-view");<br>
+                            const scene = new THREE.Scene();<br>
+                            scene.background = new THREE.Color(0x1e1e1e);<br>
+                            const camera = new THREE.PerspectiveCamera(75, 600 / 400, 0.1, 1000);<br>
+                            const renderer = new THREE.WebGLRenderer({ antialias: true });<br>
+                            renderer.setSize(600, 400);<br>
+                            container.appendChild(renderer.domElement);
+                        </div>
+                    </div>
+                </div>
+
+                <h5 id="html-structure">HTML Structure</h5>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            &lt;div class="pb-container gyro-layout"&gt;<br>
+                            &emsp;&emsp;&lt;div class="config-box"&gt;<br>
+                            &emsp;&emsp;&emsp;&emsp;&lt;div class="config-header"&gt;Gyro Preview&lt;/div&gt;<br>
+                            &emsp;&emsp;&emsp;&emsp;&lt;div class="config-content"&gt;<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&lt;div class="form-row"&gt;<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&lt;label for="SelectViewAngle"&gt;Select
+                            Viewing Angle&lt;/label&gt;<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&lt;select id="SetCurrentView"&gt;<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&lt;option
+                            id="viewYAxis"&gt;Front
+                            (Y Axis) View&lt;/option&gt;<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&lt;option
+                            id="viewAngled"&gt;Angled
+                            View&lt;/option&gt;<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&lt;/select&gt;<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&lt;/div&gt;<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&lt;div class="gyro-image-container"&gt;<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&lt;div
+                            id="gyro-3d-view"&gt;&lt;/div&gt;<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&lt;/div&gt;<br>
+                            &emsp;&emsp;&emsp;&emsp;&lt;/div&gt;<br>
+                            &emsp;&emsp;&lt;/div&gt;<br>
+                            &lt;/div&gt;
+                        </div>
+                    </div>
+                </div>
+
+                <h4 id="next-steps">Next Steps</h4>
+                <p>After completing the initial setup, an empty scene should be visible. The following features should
+                    then
+                    be implemented:</p>
+                <ul>
+                    <li>Position the camera to face the center of the scene.</li>
+                    <li>Change the default up axis to Z for a more realistic coordinate system.</li>
+                    <li>Add a grid to represent the ground.</li>
+                    <li>Enable axis helpers:
+                        <ul>
+                            <li>X axis: red</li>
+                            <li>Y axis: green</li>
+                            <li>Z axis: blue</li>
+                        </ul>
+                    </li>
+                    <li>Create and add a cube to the scene.</li>
+                    <li>Add lighting.</li>
+                    <li>Implement an animation loop.</li>
+                </ul>
+
+                <h5 id="temporary-rotation">Temporary Rotation</h5>
+                <p>Before integrating real data, apply a simple rotation to verify rendering:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            fcCube.rotation.x += 0.01;<br>
+                            fcCube.rotation.y += 0.01;
+                        </div>
+                    </div>
+                </div>
+
+                <h5 id="quaternion-preparation">Quaternion Preparation</h5>
+                <p>Prepare functions to handle quaternion updates from streamed data:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            let currentQuat = new THREE.Quaternion();<br>
+                            <br>
+                            function updateQuaternion(w, x, y, z) {<br>
+                            &emsp;&emsp;currentQuat.set(x, y, z, w);<br>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <h4 id="final-implementation">Final Implementation</h4>
+                <p>At this stage, your JavaScript file should resemble the full implementation below:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            import * as THREE from '../node_modules/three/build/three.module.js';<br>
+                            <br>
+                            // Change default up axis to Z<br>
+                            THREE.Object3D.DEFAULT_UP.set(0, 0, 1);<br>
+                            <br>
+                            // Get container<br>
+                            const container = document.getElementById("gyro-3d-view");<br>
+                            <br>
+                            // Initialize Scene<br>
+                            const scene = new THREE.Scene();<br>
+                            scene.background = new THREE.Color(0x1e1e1e);<br>
+                            <br>
+                            // Initialize Camera<br>
+                            const camera = new THREE.PerspectiveCamera(75, 600 / 400, 0.1, 1000);<br>
+                            <br>
+                            function setAngledView() {<br>
+                            &emsp;&emsp;camera.position.set(2, 2, 2);<br>
+                            &emsp;&emsp;camera.lookAt(0, 0, 0);<br>
+                            }<br>
+                            <br>
+                            function setYAxisView() {<br>
+                            &emsp;&emsp;camera.position.set(0, 4, 1.5);<br>
+                            &emsp;&emsp;camera.lookAt(0, 0, -0.5);<br>
+                            }<br>
+                            <br>
+                            // Default to Y axis view<br>
+                            setYAxisView();<br>
+                            <br>
+                            // Renderer<br>
+                            const renderer = new THREE.WebGLRenderer({ antialias: true });<br>
+                            renderer.setSize(600, 400);<br>
+                            container.appendChild(renderer.domElement);<br>
+                            <br>
+                            // Grid floor<br>
+                            const grid = new THREE.GridHelper(20, 20);<br>
+                            grid.rotation.x = Math.PI / 2;<br>
+                            scene.add(grid);<br>
+                            <br>
+                            // Axis helper (X red, Y green, Z blue)<br>
+                            const axes = new THREE.AxesHelper(5);<br>
+                            scene.add(axes);<br>
+                            <br>
+                            // Cube geometry and material<br>
+                            const geometry = new THREE.BoxGeometry(1, 1, 1);<br>
+                            const material = new THREE.MeshStandardMaterial({ color: 0x3DDC97 });<br>
+                            const fcCube = new THREE.Mesh(geometry, material);<br>
+                            scene.add(fcCube);<br>
+                            <br>
+                            // Current orientation quaternion<br>
+                            let currentQuat = new THREE.Quaternion();<br>
+                            <br>
+                            function updateQuaternion(w, x, y, z) {<br>
+                            &emsp;&emsp;currentQuat.set(x, y, z, w);<br>
+                            }<br>
+                            <br>
+                            // Example incoming data<br>
+                            const data = { w: 0.923, x: 0.0, y: 0.382, z: 0.0 };<br>
+                            updateQuaternion(data.w, data.x, data.y, data.z);<br>
+                            <br>
+                            // Lighting<br>
+                            const light = new THREE.DirectionalLight(0xffffff, 1);<br>
+                            light.position.set(5, 5, 5);<br>
+                            scene.add(light);<br>
+                            <br>
+                            const ambient = new THREE.AmbientLight(0xffffff, 0.4);<br>
+                            scene.add(ambient);<br>
+                            <br>
+                            // Animation Loop<br>
+                            function animate() {<br>
+                            &emsp;&emsp;requestAnimationFrame(animate);<br>
+                            &emsp;&emsp;// Temporary rotation so it can be seen rotating<br>
+                            &emsp;&emsp;fcCube.rotation.x += 0.01;<br>
+                            &emsp;&emsp;fcCube.rotation.y += 0.01;<br>
+                            &emsp;&emsp;// To apply the most recent quaternion:<br>
+                            &emsp;&emsp;// fcCube.quaternion.copy(currentQuat);<br>
+                            &emsp;&emsp;renderer.render(scene, camera);<br>
+                            }<br>
+                            animate();<br>
+                            <br>
+                            // View dropdown listener<br>
+                            const viewSelect = document.getElementById("SetCurrentView");<br>
+                            viewSelect.addEventListener("change", (event) => {<br>
+                            &emsp;&emsp;const selected = event.target.value;<br>
+                            &emsp;&emsp;if (selected === "Angled View") {<br>
+                            &emsp;&emsp;&emsp;&emsp;setAngledView();<br>
+                            &emsp;&emsp;} else if (selected === "Front (Y Axis) View") {<br>
+                            &emsp;&emsp;&emsp;&emsp;setYAxisView();<br>
+                            &emsp;&emsp;}<br>
+                            });
+                        </div>
+                    </div>
+                </div>
+
+                <h3 id="uploading-3d-drone-model">Uploading 3D Drone Model</h3>
+                <p>Instead of using the cube to represent the drone's orientation, a 3D model can be downloaded and
+                    embedded
+                    into the THREE 3D scene within your application.</p>
+                <p>We recommend using the free model from this link: <a
+                        href="https://www.fab.com/listings/7e862e56-5134-4f46-8519-a7cb79692074">3D Drone Model</a></p>
+                <p>Download the .fbx file from the link, and move it into the /models folder in your project
+                    architecture.
+                    Name the file “drone.fbx”.</p>
+                <p>Now we need to embed the model into your scene. Within your JavaScript file, add the following code:
+                </p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            // at the beginning of the file, import the following:<br>
+                            import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';<br>
+                            <br>
+                            // rest of code<br>
+                            <br>
+                            let droneObject = null;<br>
+                            <br>
+                            const loader = new FBXLoader();<br>
+                            const textureLoader = new THREE.TextureLoader();<br>
+                            <br>
+                            loader.load(<br>
+                            &emsp;&emsp;'../models/drone.fbx',<br>
+                            &emsp;&emsp;(fbx) => {<br>
+                            &emsp;&emsp;&emsp;&emsp;droneObject = fbx;<br>
+                            <br>
+                            &emsp;&emsp;&emsp;&emsp;// here is where you can customize the colors of your drone<br>
+                            &emsp;&emsp;&emsp;&emsp;const materials = {};<br>
+                            <br>
+                            &emsp;&emsp;&emsp;&emsp;droneObject.traverse((child) => {<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;if (child.isMesh) {<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;const name = child.name.toLowerCase();<br>
+                            <br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;if (name.includes('body')) {<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;// child.material =
+                            materials.&lt;your color here&gt;<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;} else if (name.includes('wing')) {<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;// child.material =
+                            materials.&lt;your color here&gt;<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;} else if (name.includes('propeller') ||
+                            name.includes('prop')) {<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;// child.material =
+                            materials.&lt;your color here&gt;<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;} else if (name.includes('connection') ||
+                            name.includes('cam') || name.includes('design')) {<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;// child.material =
+                            materials.&lt;your color here&gt;<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;} else {<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;// child.material =
+                            materials.&lt;your color here&gt;<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;}<br>
+                            <br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;child.castShadow = true;<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;child.receiveShadow = true;<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;}<br>
+                            &emsp;&emsp;&emsp;&emsp;});<br>
+                            <br>
+                            &emsp;&emsp;&emsp;&emsp;droneObject.scale.setScalar(.05); // Blender models render too
+                            large;
+                            scale it down<br>
+                            &emsp;&emsp;&emsp;&emsp;droneObject.rotation.x = -Math.PI / 2; // corrects Blender model
+                            Z-up<br>
+                            <br>
+                            &emsp;&emsp;&emsp;&emsp;// Center at origin<br>
+                            &emsp;&emsp;&emsp;&emsp;const box = new THREE.Box3().setFromObject(droneObject);<br>
+                            &emsp;&emsp;&emsp;&emsp;const center = box.getCenter(new THREE.Vector3());<br>
+                            &emsp;&emsp;&emsp;&emsp;droneObject.position.sub(center);<br>
+                            <br>
+                            &emsp;&emsp;&emsp;&emsp;scene.add(droneObject);<br>
+                            &emsp;&emsp;&emsp;&emsp;animate(); // Only start the loop once the model is loaded<br>
+                            &emsp;&emsp;},<br>
+                            &emsp;&emsp;undefined, // onProgress parameter (can leave undefined)<br>
+                            &emsp;&emsp;(err) => {<br>
+                            &emsp;&emsp;&emsp;&emsp;console.error('FBX load error:', err);<br>
+                            &emsp;&emsp;}<br>
+                            &emsp;);<br>
+                        </div>
+                    </div>
+                </div>
+                <p>Be sure to remove the original cube once you implement the drone 3D model.</p>
+                <p>The downloaded 3D model is composed of meshes. Each mesh has a name. The names of this model's meshes
+                    are
+                    as follows:</p>
+                <ul>
+                    <li>WingBot_front_LP</li>
+                    <li>Upper_wing_LP</li>
+                    <li>propeller_back_LP</li>
+                    <li>Engine_LP</li>
+                    <li>kr_front_LP</li>
+                    <li>WingBot_back_LP</li>
+                    <li>kr_back_LP</li>
+                    <li>Bottom_wing_LP</li>
+                    <li>Bottom_wingD_LP</li>
+                    <li>Cam_LP</li>
+                    <li>Body_LP</li>
+                    <li>connection_LP</li>
+                    <li>Design</li>
+                    <li>propeller_Front_LP</li>
+                </ul>
+                <p>To define your materials that you assign to each mesh, you create a new MeshStandardMaterial.
+                    Documentation on this can be found <a
+                        href="https://threejs.org/docs/#MeshStandardMaterial">here</a>.
+                    Here is an example mesh standard material:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            pinkLight: new THREE.MeshStandardMaterial({<br>
+                            &emsp;&emsp;color: 0xFFD7E6,<br>
+                            &emsp;&emsp;emissive: 0xF8D7E4,<br>
+                            &emsp;&emsp;emissiveIntensity: 0.25,<br>
+                            &emsp;&emsp;roughness: 0.35,<br>
+                            &emsp;&emsp;metalness: 0.12<br>
+                            }),<br>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 id="handling-updates-from-streamed-data">Handling Updates from Streamed Data</h3>
+                <p>Data received in the stream from firmware needs to be updated in the UI as it is received. The data
+                    you
+                    will receive contains Quaternion W, X, Y, and Z values; and Roll, Pitch, Yaw, and Heading values
+                    (RPYH).
+                    These updates are handled in the JavaScript file.</p>
+                <p>The Quaternion values update the orientation of the 3D model, while RPYH values are displayed as
+                    numbers.
+                    These two types of values are handled by the functions updateQuaternion() and updateFCInfo().</p>
+                <p>The updateQuaternion() function acts as a wrapper for THREE's Quaternion set() function. It is
+                    defined as
+                    follows:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            function updateQuaternion(w, x, y, z) {<br>
+                            &emsp;&emsp;currentQuat.set(x, y, z, w);<br>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <p>The updateFCInfo() function updates the RPYH UI elements. The RPYH elements in the HTML must be
+                    tagged
+                    with “data-telemetry” in order for this function to work. The function is defined below:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            function updateFCInfo(roll, pitch, yaw, heading) {<br>
+                            &emsp;&emsp;const rollField = document.querySelector('[data-telemetry="roll"]');<br>
+                            &emsp;&emsp;const pitchField = document.querySelector('[data-telemetry="pitch"]');<br>
+                            &emsp;&emsp;const yawField = document.querySelector('[data-telemetry="yaw"]');<br>
+                            &emsp;&emsp;const headingField = document.querySelector('[data-telemetry="heading"]');<br>
+                            <br>
+                            &emsp;&emsp;// Update each element
+                            &emsp;&emsp;rollField.textContent = (roll !== undefined) ? roll.toFixed(2) : "--";<br>
+                            &emsp;&emsp;pitchField.textContent = (pitch !== undefined) ? pitch.toFixed(2) : "--";<br>
+                            &emsp;&emsp;yawField.textContent = (yaw !== undefined) ? yaw.toFixed(2) : "--";<br>
+                            &emsp;&emsp;headingField.textContent = (heading !== undefined) ? heading.toFixed(2) :
+                            "--";<br>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <h4 id="switching-between-radians-and-degrees">Switching Between Radians and Degrees</h4>
+                <p>To allow for increased customization for the user, you may add a dropdown for the user to switch
+                    between
+                    radians and degrees. Because this is a simple conversion, it can easily be handled within the
+                    frontend
+                    JavaScript.</p>
+                <p>Add a dropdown in your HTML like this:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            &lt;div class="form-row"&gt;<br>
+                            &emsp;&emsp;&lt;label for="SelectAngleMode"&gt;Angle Mode:&lt;/label&gt;<br>
+                            &emsp;&emsp;&lt;select id="SelectAngleMode"&gt;<br>
+                            &emsp;&emsp;&emsp;&emsp;&lt;option id="degrees"&gt;Degrees&lt;/option&gt;<br>
+                            &emsp;&emsp;&emsp;&emsp;&lt;option id="radians"&gt;Radians&lt;/option&gt;<br>
+                            &emsp;&emsp;&lt;/select&gt;<br>
+                            &lt;/div&gt;
+                        </div>
+                    </div>
+                </div>
+                <p>When you do this, you will need to attach a listener so that the streaming data knows when to switch
+                    from
+                    degrees to radians, or radians to degrees. The data from firmware is streamed as degrees, so the
+                    default
+                    setting is set to be in degrees. Here is the code for the angle mode listener:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            // Include this global variable that tracks whether we display angles in degrees or radians
+                            -<br>
+                            // default to degrees<br>
+                            let angleMode = "Degrees";<br>
+                            <br>
+                            function attachAngleModeListener() {<br>
+                            &emsp;&emsp;const angleModeSelect = document.getElementById("SelectAngleMode");<br>
+                            &emsp;&emsp;if (!angleModeSelect) return;<br>
+                            <br>
+                            &emsp;&emsp;angleModeSelect.addEventListener("change", (event) => {<br>
+                            &emsp;&emsp;&emsp;&emsp;const selected = event.target.value;<br>
+                            &emsp;&emsp;&emsp;&emsp;console.log("Angle mode changed to:", selected);<br>
+                            &emsp;&emsp;&emsp;&emsp;const modeValue = (selected === "Radians") ? "Radians" :
+                            "Degrees";<br>
+                            &emsp;&emsp;&emsp;&emsp;if (modeValue == "Radians") {<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;angleMode = "Radians";<br>
+                            &emsp;&emsp;&emsp;&emsp;} else {<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;angleMode = "Degrees";<br>
+                            &emsp;&emsp;&emsp;&emsp;}<br>
+                            &emsp;&emsp;});<br>
+                            }<br>
+                        </div>
+                    </div>
+                </div>
+                <p>Then, you can update the previously written flight controller information update function itself,
+                    with a
+                    helper function to update the HTML elements:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            // Helper function to update an element with a value, using a custom formatter<br>
+                            function updateElement(el, value, formatter) {<br>
+                            &emsp;&emsp;if (el && typeof value === 'number') {<br>
+                            &emsp;&emsp;&emsp;&emsp;el.textContent = formatter(value);<br>
+                            &emsp;&emsp;} else {<br>
+                            &emsp;&emsp;&emsp;&emsp;el.textContent = "--";<br>
+                            &emsp;&emsp;}<br>
+                            }<br>
+                            <br>
+                            function updateFCInfo(roll, pitch, yaw, heading) {<br>
+                            &emsp;&emsp;const rollEl = document.querySelector("[data-telemetry='Roll']");<br>
+                            &emsp;&emsp;const pitchEl = document.querySelector("[data-telemetry='Pitch']");<br>
+                            &emsp;&emsp;const yawEl = document.querySelector("[data-telemetry='Yaw']");<br>
+                            &emsp;&emsp;const headingEl = document.querySelector("[data-telemetry='Heading']");<br>
+                            <br>
+                            &emsp;&emsp;// Formatter for angles<br>
+                            &emsp;&emsp;const angleFormatter = (val) => {<br>
+                            &emsp;&emsp;&emsp;&emsp;if (angleMode === "Radians") {<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;return (MathUtils.degToRad(val) / Math.PI).toFixed(2) +
+                            " π
+                            rad";<br>
+                            &emsp;&emsp;&emsp;&emsp;} else {<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;return val.toFixed(2) + "°";<br>
+                            &emsp;&emsp;&emsp;&emsp;}<br>
+                            &emsp;&emsp;};<br>
+                            <br>
+                            &emsp;&emsp;// Formatter for heading<br>
+                            &emsp;&emsp;const headingFormatter = (val) => val.toFixed(2);<br>
+                            <br>
+                            &emsp;&emsp;// Update each element<br>
+                            &emsp;&emsp;updateElement(rollEl, roll, angleFormatter);<br>
+                            &emsp;&emsp;updateElement(pitchEl, pitch, angleFormatter);<br>
+                            &emsp;&emsp;updateElement(yawEl, yaw, angleFormatter);<br>
+                            &emsp;&emsp;updateElement(headingEl, heading, headingFormatter);<br>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <p>Be sure that you call your attachAngleModeListener() function when the DOM loads!</p>
+
+                <h2 id="making-an-executable-file-in-electron">Making an Executable File in Electron</h2>
+                <h3 id="overview">Overview</h3>
+                <p>To distribute the OSCAR Ground Station Application, it must be packaged into an executable file that
+                    can
+                    be installed on the target machine without requiring any development resources. This section covers
+                    how
+                    to configure Electron Forge and Electron Squirrel to produce a Windows Installer.</p>
+                <p>For additional resources, consult the following official documentation:</p>
+                <ul>
+                    <li><a href="https://www.electronjs.org/docs/latest/tutorial/application-distribution">Electron
+                            Application Packaging Documentation</a></li>
+                    <li><a href="https://www.electronforge.io/">Electron Forge</a></li>
+                    <li><a href="https://www.electronforge.io/config/makers/squirrel.windows">Squirrel.Windows
+                            Maker</a>
+                    </li>
+                </ul>
+                <p><strong class="red">Note: This will ONLY work on Windows.</strong></p>
+
+                <h3 id="important-notes-before-starting">Important Notes Before Starting</h3>
+                <ul>
+                    <li>All libraries and native dependencies used by the project must be present on the machine that
+                        builds
+                        the executable. This ensures everything gets bundled correctly into the final package.</li>
+                    <li>Native addons (.node files) and their associated DLLs must be handled specially. They cannot be
+                        packed inside the ASAR archive. See the Native Addon Packaging section below.</li>
+                    <li>The machine building the executable must have node-gyp and the appropriate build tools installed
+                        if
+                        the project uses native C addons.</li>
+                </ul>
+
+                <h3 id="setting-up-electron-forge">Setting Up Electron Forge</h3>
+                <p>Electron Forge is the recommended tool for packaging Electron applications. It handles bundling,
+                    packaging, and creating platform-specific installers. Since we already have an existing Electron
+                    project, we must import it into Electron Forge. The automatic method did not work in our case, so
+                    the
+                    manual setup is documented here.</p>
+
+                <h4>Step 1: Install Dependencies</h4>
+                <p>Navigate into the app root folder and run:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div><span class="t-prompt">$</span> <span class="t-cmd">npm install --save-dev
+                                @electron-forge/cli
+                                @electron-forge/maker-squirrel @electron-forge/maker-deb
+                                @electron-forge/maker-zip</span></div>
+                    </div>
+                </div>
+
+                <h4>Step 2: Add to package.json</h4>
+                <p>Locate the scripts in package.json and add the following:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            "scripts": {<br>
+                            &emsp;&emsp;"start": "electron-forge start",<br>
+                            &emsp;&emsp;"package": "electron-forge package",<br>
+                            &emsp;&emsp;"make": "electron-forge make",<br>
+                            &emsp;&emsp;"publish": "electron-forge publish"<br>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <p>Then add a forge configuration inside the config field in package.json:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            "config": {<br>
+                            &emsp;&emsp;"forge": {<br>
+                            &emsp;&emsp;&emsp;&emsp;"packagerConfig": {},<br>
+                            &emsp;&emsp;&emsp;&emsp;"makers": [<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;{<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"name":
+                            "@electron-forge/maker-squirrel",<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"config": { "name": "oscarapp" }<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;},<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;{<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"name": "@electron-forge/maker-zip",<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"platforms": ["darwin"]<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;},<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;{<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"name": "@electron-forge/maker-deb",<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"config": {}<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;},<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;{<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"name": "@electron-forge/maker-rpm",<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;"config": {}<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;}<br>
+                            &emsp;&emsp;&emsp;&emsp;]<br>
+                            &emsp;&emsp;}<br>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <h3 id="setting-up-squirrel-windows">Setting Up Squirrel.Windows</h3>
+                <p>Squirrel.Windows handles the Windows-specific installer behavior, including installation,
+                    shortcut
+                    creation, and uninstallation. Navigate to the root of the Electron project and run:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div><span class="t-prompt">$</span> <span class="t-cmd">npm install
+                                electron-squirrel-startup</span></div>
+                    </div>
+                </div>
+
+                <h4>Handling Squirrel Startup Events</h4>
+                <p>Squirrel launches your application with special arguments during install, update, and uninstall
+                    events.
+                    If these are not handled, the application may behave unexpectedly — such as launching multiple
+                    times
+                    or
+                    failing to create Start Menu shortcuts.</p>
+                <p>Add the following handler near the top of main.js, before any other application logic but after
+                    all
+                    const imports:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            const { spawn } = require('child_process');<br>
+                            <br>
+                            function handleSquirrelEvent() {<br>
+                            &emsp;&emsp;if (process.argv.length === 1) return false;<br>
+                            <br>
+                            &emsp;&emsp;const squirrelEvent = process.argv[1];<br>
+                            &emsp;&emsp;const exeName = path.basename(process.execPath);<br>
+                            &emsp;&emsp;const updateExe = path.resolve(path.dirname(process.execPath), '..',
+                            'Update.exe');<br>
+                            <br>
+                            &emsp;&emsp;const spawnUpdate = (args) => {<br>
+                            &emsp;&emsp;&emsp;&emsp;try {<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;return spawn(updateExe, args, { detached: true
+                            });<br>
+                            &emsp;&emsp;&emsp;&emsp;} catch (error) {<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;console.error("Failed to spawn Update.exe",
+                            error);<br>
+                            &emsp;&emsp;&emsp;&emsp;}<br>
+                            &emsp;&emsp;};<br>
+                            <br>
+                            &emsp;&emsp;switch (squirrelEvent) {<br>
+                            &emsp;&emsp;&emsp;&emsp;case '--squirrel-install':<br>
+                            &emsp;&emsp;&emsp;&emsp;case '--squirrel-updated':<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;spawnUpdate(['--createShortcut', exeName]);<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;setTimeout(app.quit, 1000);<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;return true;<br>
+                            &emsp;&emsp;&emsp;&emsp;case '--squirrel-uninstall':<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;spawnUpdate(['--removeShortcut', exeName]);<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;setTimeout(app.quit, 1000);<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;return true;<br>
+                            &emsp;&emsp;&emsp;&emsp;case '--squirrel-obsolete':<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;app.quit();<br>
+                            &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;return true;<br>
+                            &emsp;&emsp;}<br>
+                            &emsp;&emsp;return false;<br>
+                            }<br>
+                            <br>
+                            if (handleSquirrelEvent()) {<br>
+                            &emsp;&emsp;return;<br>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <p>This ensures that:</p>
+                <ul>
+                    <li>Start Menu and Desktop shortcuts are created on install.</li>
+                    <li>Shortcuts are removed cleanly on uninstall.</li>
+                    <li>The app does not launch a visible window during installer events.</li>
+                </ul>
+
+                <h3 id="naming-conventions">Naming Conventions</h3>
+                <p>Squirrel can behave unexpectedly when application names contain spaces or underscores. Until you
+                    are
+                    comfortable with Squirrel, use the following naming convention in package.json:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            {<br>
+                            &emsp;&emsp;"name": "oscarapp",<br>
+                            &emsp;&emsp;"productName": "OSCAR Ground Station"<br>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <p>And in the Squirrel maker config, use a CamelCase name with no spaces:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            {<br>
+                            &emsp;&emsp;"name": "@electron-forge/maker-squirrel",<br>
+                            &emsp;&emsp;"config": {<br>
+                            &emsp;&emsp;&emsp;&emsp;"name": "oscarapp"<br>
+                            &emsp;&emsp;}<br>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <h3 id="native-addon-packaging">Native Addon Packaging</h3>
+                <p>Because OSCAR Ground Station uses a native C addon (serial_addon.node) and an associated DLL
+                    (libserialport-0.dll), special packaging configuration is required. By default, Electron packs
+                    application files into an ASAR archive, which native binaries cannot be loaded from at runtime.
+                </p>
+
+                <h4>Unpacking Native Files</h4>
+                <p>Add the following to the packagerConfig section of your forge configuration in package.json to
+                    ensure
+                    .node and .dll files are placed outside the ASAR archive:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            "packagerConfig": {<br>
+                            &emsp;&emsp;"asar": {<br>
+                            &emsp;&emsp;&emsp;&emsp;"unpack": "**/*.{node,dll}"<br>
+                            &emsp;&emsp;}<br>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <p>These files will be placed in <strong>app.asar.unpacked/</strong> inside the installed
+                    application's
+                    resources folder.</p>
+
+                <h4>Updating the Addon Path at Runtime</h4>
+                <p>Because the file location differs between development and production, the addon path must be
+                    resolved
+                    dynamically in main.js:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            const isDev = !app.isPackaged;<br>
+                            const addonPath = isDev<br>
+                            &emsp;&emsp;? path.join(__dirname, '../build/Release/serial_addon.node')<br>
+                            &emsp;&emsp;: path.join(process.resourcesPath,
+                            'app.asar.unpacked/build/Release/serial_addon.node');
+                        </div>
+                    </div>
+                </div>
+                <p>Additionally, inject the addon directory into the system PATH before the worker starts so the DLL
+                    can
+                    be
+                    located by the operating system:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            process.env.PATH = path.dirname(addonPath) + ';' + process.env.PATH;
+                        </div>
+                    </div>
+                </div>
+
+                <h4>Rebuilding the Native Addon</h4>
+                <p>The native addon must be compiled specifically for the version of Electron being used, not the
+                    system
+                    Node.js version. Run the following command before building:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div><span class="t-prompt">$</span> <span class="t-cmd">npx electron-rebuild</span></div>
+                    </div>
+                </div>
+                <p><strong class="red">Note:</strong> This must be run anytime the Electron version changes or the
+                    native C
+                    source is recompiled.</p>
+
+                <h3 id="building-the-installer">Building the Installer</h3>
+                <p>Once everything is configured, build the installer with:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div><span class="t-prompt">$</span> <span class="t-cmd">npm run make</span></div>
+                    </div>
+                </div>
+                <p>This will generate the output files in
+                    <strong>../project-root/out/make/squirrel.windows/x64/</strong>.
+                    Run the executable named something like <strong>oscarapp-1.0.0 Setup.exe</strong>.
+                </p>
+                <p><strong class="red">Note:</strong> The Setup .exe is the installer, not the application itself.
+                    Once
+                    installed, use the Start Menu shortcut or the installed .exe to launch the app. Do not run the
+                    Setup
+                    file again unless reinstalling.</p>
+
+                <h3 id="installing-running-the-application">Installing & Running the Application</h3>
+                <p>After running the executable file, the installer will:</p>
+                <ul>
+                    <li>Extract all application files.</li>
+                    <li>Install the app to <strong>C:\Users\&lt;username&gt;\AppData\Local\oscarapp\</strong></li>
+                    <li>Create a Start Menu shortcut.</li>
+                    <li>Launch the application.</li>
+                </ul>
+                <p>After installation, the app can be launched from the Start Menu by searching OSCAR Ground
+                    Station, or
+                    by
+                    running <strong>oscarapp.exe</strong> directly from the install directory.</p>
+
+                <h3 id="troubleshooting">Troubleshooting</h3>
+                <p>As many issues were encountered while implementing this, here is a list of some of the issues
+                    encountered,
+                    their causes, and how they were resolved:</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Symptom</th>
+                            <th>Likely Cause</th>
+                            <th>Fix</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Installer opens and closes instantly</td>
+                            <td>Squirrel startup events not handled</td>
+                            <td>Add handleSquirrelEvent() to main.js</td>
+                        </tr>
+                        <tr>
+                            <td>App installs but no Start Menu shortcut</td>
+                            <td>--createShortcut not called</td>
+                            <td>Ensure spawnUpdate runs on --squirrel-install</td>
+                        </tr>
+                        <tr>
+                            <td>App launches in dev but crashes when installed</td>
+                            <td>Native addon path incorrect</td>
+                            <td>Use isDev path switching and asar.unpack</td>
+                        </tr>
+                        <tr>
+                            <td>C functions not responding, no error shown</td>
+                            <td>DLL not found at runtime</td>
+                            <td>Add process.env.PATH injection before worker starts</td>
+                        </tr>
+                        <tr>
+                            <td>Worker silently hangs with no response</td>
+                            <td>Worker crashed without rejecting pending requests</td>
+                            <td>Ensure worker error handler resolves all pending requests</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section>
+                <h2 id="back-to-software">Back to Software</h2>
+                <a href="../software.html" class="back-link">← Return to Software Overview</a>
+            </section>
+
+        </main>
+    </div>
+</body>
+
+<footer>
+    <div class="footer-brand">OSCAR <span>Docs</span></div>
+    <ul class="footer-links">
+        <li><a href="../contact.html">Contact Us</a></li>
+        <li><a href="https://sddec26-05.sd.ece.iastate.edu/">Senior Design Website</a></li>
+        <li><a href="https://github.com/gracefinger/OSCAR_Documentation.github.io">GitHub</a></li>
+    </ul>
+</footer>
+
+<script src="../../components/main.js"></script>
+
+</html>
