@@ -785,6 +785,54 @@ h6 em {
     }
 }
 
+/* ─── TABLES ───────────────────────────────────────────── */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.75rem 0;
+    font-family: var(--font-mono);
+    color: var(--text-secondary);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    box-shadow: inset 0 0 0 1px rgba(80, 200, 122, 0.08);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+thead {
+    background: rgba(80, 200, 122, 0.08);
+}
+
+thead th {
+    padding: 1rem 1.25rem;
+    text-align: left;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+}
+
+tbody tr {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+tbody tr:last-child {
+    border-bottom: none;
+}
+
+td,
+th {
+    padding: 1rem 1.25rem;
+}
+
+tbody td {
+    color: var(--text-secondary);
+}
+
+tbody tr:hover {
+    background: rgba(80, 200, 122, 0.04);
+}
+
 /* ─── FOOTER ─────────────────────────────────────────────── */
 footer {
     border-top: 1px solid var(--border);
