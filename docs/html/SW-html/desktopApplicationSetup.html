@@ -16,7 +16,7 @@
             <li><a href="../../index.html"><span class="nav-dot"></span>Home</a></li>
             <li><a href="../hardware.html"><span class="nav-dot"></span>Hardware</a></li>
             <li><a href="../firmware.html"><span class="nav-dot"></span>Firmware</a></li>
-            <li><a href="../software.html"><span class="nav-dot"></span>Software</a></li>
+            <li><a href="../software.html" class="active"><span class="nav-dot"></span>Software</a></li>
         </ul>
     </nav>
 
@@ -36,38 +36,32 @@
                     documentation will either provide you with all the information you need to get started, or it will
                     direct you to helpful external resources if you need more assistance or background. While prior
                     experience or exposure to web development concepts and communication protocols is helpful, it is by
-                    no
-                    means expected.</p>
+                    no means expected.</p>
 
                 <h2 id="environment-project-setup">Environment & Project Setup</h2>
                 <h3 id="electron-project-initialization">Electron Project Initialization</h3>
                 <h4 id="what-is-electron">What is Electron?</h4>
                 <p><a href="https://www.electronjs.org/">Electron</a> is the development framework under which OSCAR
-                    Ground
-                    Station was designed. Electron acts as a wrapper layer for web applications using a <a
+                    Ground Station was designed. Electron acts as a wrapper layer for web applications using a <a
                         href="https://nodejs.org/en">Node.js</a> environment. Combining <a
                         href="https://www.chromium.org/chromium-projects/">Chromium</a> and Node.js, Electron allows the
                     desktop application to be packaged and built into a single binary file.</p>
                 <h4 id="why-electron">Why Electron?</h4>
                 <p>Electron was chosen as the framework for OSCAR Ground Station because it is built upon a web
-                    development
-                    environment, which has a less steep learning curve than other framework options. People often have
-                    more
-                    familiarity with, or at least more exposure to, web development concepts than other desktop
-                    application
-                    development frameworks. These web development technologies also have ample documentation available
-                    to
-                    learn and grow.</p>
+                    development environment, which has a less steep learning curve than other framework options. People
+                    often have
+                    more familiarity with, or at least more exposure to, web development concepts than other desktop
+                    application development frameworks. These web development technologies also have ample documentation
+                    available
+                    to learn and grow.</p>
                 <h4 id="other-resources">Other Resources</h4>
                 <p>Electron has a tutorial for setting up your own project <a
                         href="https://www.electronjs.org/docs/latest/tutorial/tutorial-prerequisites">here</a>. An
-                    in-depth
-                    tutorial specific to the OSCAR Ground Station application is provided in this document for
+                    in-depth tutorial specific to the OSCAR Ground Station application is provided in this document for
                     simplicity.
                 </p>
                 <p>Minimal background with web development or Node.js is expected. However, if you would like to know
-                    more,
-                    we recommend these resources:</p>
+                    more, we recommend these resources:</p>
                 <ul>
                     <li><a href="https://nodejs.org/en/learn/getting-started/introduction-to-nodejs">Node.js</a></li>
                     <li><a href="https://www.w3schools.com/html/default.asp">HTML</a></li>
@@ -81,8 +75,7 @@
                     <li>Code Editor</li>
                     <ul>
                         <li>We recommend <a href="https://code.visualstudio.com/">Visual Studio Code</a>, but it is up
-                            to
-                            your preference.</li>
+                            to your preference.</li>
                     </ul>
                     <li>Terminal / Command Line</li>
                     <ul>
@@ -112,8 +105,8 @@
                     </div>
                 </div>
                 <p>Now you are ready to initialize your project. We've included instructions here for OSCAR
-                    specifically,
-                    but additional relevant npm documentation can be found <a href="https://docs.npmjs.com/">here</a>.
+                    specifically, but additional relevant npm documentation can be found <a
+                        href="https://docs.npmjs.com/">here</a>.
                 </p>
                 <p>First, create a new directory for your project and navigate into it:</p>
                 <div class="terminal">
@@ -135,8 +128,7 @@
                         set the entry point to "main.js"</strong>.</p>
                 <p>Once you complete the init process, a package.json file will be generated and placed in your current
                     directory. Your package.json file is essentially a manifest of your project that includes the
-                    packages
-                    / applications it depends on, source control, and metadata.</p>
+                    packages / applications it depends on, source control, and metadata.</p>
                 <p>To install packages into your project, you can use the following command:</p>
                 <div class="terminal">
                     <div class="terminal-body">
@@ -171,10 +163,8 @@
                 <p>The main.js file will be the entry point for your Electron application. We created it when we
                     initialized
                     the project. It controls the main process, which runs in a Node.js environment, and is responsible
-                    for
-                    the application life cycle, displaying native interfaces, performing privileged operations, and
-                    managing
-                    renderer processes.</p>
+                    for the application life cycle, displaying native interfaces, performing privileged operations, and
+                    managing renderer processes.</p>
                 <p>Add "electron ." to the start command in the scripts field of your package.json in order to run the
                     main.js file. For example:</p>
                 <div class="terminal">
@@ -198,10 +188,9 @@
                     </div>
                 </div>
                 <p>If you have not already done so, you should create a file called "index.html". This file describes
-                    the
-                    page that the application will open up to. Its contents should look something like this (for now -
-                    you
-                    will update it later):</p>
+                    the page that the application will open up to. Its contents should look something like this (for now
+                    -
+                    you will update it later):</p>
                 <div class="terminal">
                     <div class="terminal-body">
                         <div class="t-cmd">
@@ -259,14 +248,12 @@
                 </div>
                 <p>The <strong class="light-red">red</strong> section imports two modules: app and BrowserWindow using
                     CommonJS module syntax. app controls the application lifecycle, and BrowserWindow creates and
-                    manages
-                    app windows.</p>
+                    manages app windows.</p>
                 <p>The <strong class="light-green">green</strong> section defines the createWindow function, which loads
                     your
                     webpage (index.html) into a new BrowserWindow instance.</p>
                 <p>The <strong class="light-blue">blue</strong> section waits for the application to be ready before
-                    creating
-                    it.</p>
+                    creating it.</p>
 
                 <h2 id="project-structure-architecture">Project Structure & Architecture</h2>
                 <h3 id="directory-layout">Directory Layout</h3>
@@ -365,7 +352,7 @@
                 <p>This approach ensures that updates to the UI can be made efficiently without introducing
                     inconsistencies.
                 </p>
-                <img src="../../images/ThemingAndDesignPrinciples.png" alt="Theming & Design Principles Diagram"
+                <img src="../../SoftwareImages/ThemingAndDesignPrinciples.png" alt="Theming & Design Principles Diagram"
                     style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" />
 
                 <h3 id="layout-structure">Layout Structure</h3>
@@ -379,17 +366,15 @@
                 </ul>
                 <p>The layout relies primarily on CSS techniques such as flexbox and grid to align elements and manage
                     spacing. This allows for a structured and scalable design that can accommodate additional UI
-                    elements as
-                    new features are introduced. Containers and layout classes are reused across multiple pages to
-                    maintain
-                    consistency and reduce redundant styling code.</p>
-                <img src="../../images/FrontendDiagram.png" alt="Layout Structure Flow Diagram"
+                    elements as new features are introduced. Containers and layout classes are reused across multiple
+                    pages to
+                    maintain consistency and reduce redundant styling code.</p>
+                <img src="../../SoftwareImages/FrontendDiagram.png" alt="Layout Structure Flow Diagram"
                     style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" />
 
                 <h3 id="component-reusing">Component Reusing</h3>
                 <p>To improve maintainability and scalability, the UI is built using reusable components and patterns
-                    rather
-                    than duplicating code for each page.</p>
+                    rather than duplicating code for each page.</p>
                 <p>Common UI elements include but are not limited to:</p>
                 <ul>
                     <li>Input fields</li>
@@ -401,335 +386,10 @@
                     and
                     behavior to be applied to different parts of the application.</p>
                 <p>Additionally, JavaScript logic is written to operate on groups of elements using shared attributes.
-                    This
-                    eliminates the need to write custom update logic for each individual field and allows new UI
-                    elements to
-                    be added with minimal additional code. By emphasizing reusable components and generic update
-                    mechanisms,
-                    the UI remains easy to extend and reduces the risk of introducing bugs when new features are
-                    implemented.</p>
-
-                <!-- /////////////////HERE/////////////////// -->
-                <h2 id="usb-communication-data-flow">USB Communication & Data Flow</h2>
-                <h3 id="overview">Overview</h3>
-                <p>OSCAR Ground Station communicates with the flight controller over USB serial. Commands are sent from
-                    the
-                    PC to the flight controller, and responses or streamed telemetry data are returned. This
-                    communication
-                    is handled by a Native C Module that interfaces with the serial port, bridged into the Electron
-                    application via Node-API (NAPI) and Electron's IPC system.</p>
-
-                <h3 id="communication-flow-diagram">Communication Flow & Diagram</h3>
-                <h4 id="command-transmission-flow-pc-flight-controller">Command Transmission Flow (PC → Flight Controller)</h4>
-                <p>When a user submits a value or triggers a command from the UI, the following sequence occurs:</p>
-                <ul>
-                    <li>The frontend JavaScript calls an exposed IPC function via the preload bridge.</li>
-                    <li>The IPC message is received in main.js and forwarded to the addon worker.</li>
-                    <li>The native C module packages the command into a structured packet and transmits it over the
-                        serial
-                        port to the flight controller.</li>
-                </ul>
-
-                <h4 id="response-transmission-flow-flight-controller-pc">Response Transmission Flow (Flight Controller → PC)</h4>
-                <p>When the flight controller sends data back to the PC:</p>
-                <ul>
-                    <li>The native C module reads incoming bytes from the serial port.</li>
-                    <li>It validates the packet using CRC and parses the response payload.</li>
-                    <li>The result is sent back through the worker to main.js via IPC.</li>
-                    <li>main.js forwards the data to the renderer process, where the frontend updates the relevant UI
-                        elements.</li>
-                </ul>
-
-                <h4>Flow Diagram</h4>
-                <img src="../../images/placeholder-flow-diagram.png" alt="Communication Flow Diagram"
-                    style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" />
-
-                <h3 id="native-c-module">Native C Module</h3>
-                <h4 id="overview">Overview</h4>
-                <p>The Native C Module is a compiled Node.js addon written in C. It is responsible for all low-level
-                    serial
-                    communication between the desktop application and the flight controller. It is built using
-                    <strong>node-gyp</strong> and exposes its functionality to JavaScript through the Node-API (NAPI)
-                    interface.
-                </p>
-
-                <h4 id="high-level-responsibilities">High-Level Responsibilities</h4>
-                <ul>
-                    <li>Discovering available serial ports and performing a handshake to identify the correct device.
-                    </li>
-                    <li>Packaging outgoing commands into structured packets with headers, payloads, and CRC checksums.
-                    </li>
-                    <li>Transmitting commands to the flight controller and waiting for acknowledgment responses.</li>
-                    <li>Receiving and validating incoming packets from the flight controller.</li>
-                    <li>Streaming real-time telemetry data to the JavaScript layer.</li>
-                    <li>Handling communication errors and retrying failed transmissions.</li>
-                </ul>
-
-                <h4 id="node-api-integration">Node-API Integration</h4>
-                <p>The module integrates with Node.js using the Node-API (NAPI) layer, which provides a stable ABI
-                    (Application Binary Interface) between the C code and the JavaScript runtime. Functions are
-                    registered
-                    and exported using <strong>NAPI_MODULE</strong>, allowing them to be called from JavaScript as
-                    though
-                    they were native JavaScript functions.</p>
-
-                <h4 id="command-mapping">Command Mapping</h4>
-                <p>Each user-facing action in the UI corresponds to a specific command ID that the C module knows how to
-                    encode. A command map is maintained in the C module that associates logical command names with their
-                    corresponding numeric identifiers, expected payload structures, and response formats.</p>
-
-                <h4 id="packet-structure">Packet Structure</h4>
-                <p>Outgoing packets follow a defined structure to ensure reliable interpretation by the flight
-                    controller.
-                    A typical packet consists of:</p>
-                <ul>
-                    <li>A start-of-frame byte or header identifier.</li>
-                    <li>A command ID byte.</li>
-                    <li>A payload of fixed or variable length.</li>
-                    <li>A CRC checksum for error detection.</li>
-                </ul>
-
-                <h4 id="crc-validation">CRC Validation</h4>
-                <p>All packets include a CRC (Cyclic Redundancy Check) value computed over the packet contents. When a
-                    packet is received, the C module recomputes the CRC and compares it against the received value.
-                    Packets
-                    that fail CRC validation are discarded and may trigger a retry or error response.</p>
-
-                <h4 id="port-discovery-handshake">Port Discovery & Handshake</h4>
-                <p>On initialization, the C module enumerates available serial ports on the machine. It then sends a
-                    handshake packet to each candidate port and waits for a known response from the flight controller.
-                    The
-                    first port that responds with the expected handshake acknowledgment is selected for communication.
-                </p>
-
-                <h4 id="command-execution-flow">Command Execution Flow</h4>
-                <p>When a command is issued from JavaScript:</p>
-                <ul>
-                    <li>The NAPI binding receives the command name and parameter values.</li>
-                    <li>The command is looked up in the command map and encoded into a packet.</li>
-                    <li>The packet is written to the serial port.</li>
-                    <li>The module waits for an acknowledgment response within a defined timeout window.</li>
-                    <li>The result is returned to the JavaScript caller as a resolved or rejected promise.</li>
-                </ul>
-
-                <h4 id="reliable-communication-retries">Reliable Communication (Retries)</h4>
-                <p>To handle intermittent communication failures, the C module implements a retry mechanism. If a
-                    command
-                    does not receive an acknowledgment within the timeout period, it will be retransmitted up to a
-                    configurable number of times before the operation is declared a failure and an error is surfaced to
-                    the
-                    JavaScript layer.</p>
-
-                <h4 id="error-handling">Error Handling</h4>
-                <p>Errors detected at the C level — such as port disconnection, CRC failures, timeouts, or invalid
-                    responses — are propagated back through the NAPI layer as JavaScript exceptions or rejected
-                    promises.
-                    These are then caught in the JavaScript IPC handlers and surfaced to the UI via error modals.</p>
-
-                <h3 id="preload-ipc-bridge">Preload & IPC Bridge</h3>
-                <h4 id="inter-process-communication">Inter-Process Communication</h4>
-                <p>Electron separates its execution into two distinct process types: the <strong>main process</strong>
-                    and
-                    the <strong>renderer process</strong>. The main process runs in a full Node.js environment and has
-                    access to native system resources. The renderer process runs in a sandboxed Chromium environment and
-                    handles all UI rendering. Because of this separation, they cannot communicate directly — instead,
-                    they
-                    use Electron's built-in IPC (Inter-Process Communication) system.</p>
-                <h5 id="ipcMain">ipcMain</h5>
-                <p><strong>ipcMain</strong> is the IPC module used in the main process. It listens for messages sent
-                    from
-                    the renderer and handles them, optionally sending a response back. It is registered in main.js and
-                    acts
-                    as the bridge between the UI and the native C addon.</p>
-                <h5 id="ipcRenderer">ipcRenderer</h5>
-                <p><strong>ipcRenderer</strong> is the IPC module available in the renderer process. However, to
-                    maintain
-                    security, it is not exposed directly to the renderer. Instead, it is accessed through a preload
-                    script
-                    that selectively exposes safe functions to the frontend.</p>
-                <h5 id="ipc-setup-in-electron">IPC Setup in Electron</h5>
-                <p>To enable IPC communication in your Electron project, you need to configure the BrowserWindow to use
-                    a
-                    preload script. This is done in main.js when creating the window:</p>
-                <div class="terminal">
-                    <div class="terminal-body">
-                        <div class="t-cmd">
-                            const win = new BrowserWindow({<br>
-                            &emsp;&emsp;width: 800,<br>
-                            &emsp;&emsp;height: 600,<br>
-                            &emsp;&emsp;webPreferences: {<br>
-                            &emsp;&emsp;&emsp;&emsp;preload: path.join(__dirname, 'preload.js'),<br>
-                            &emsp;&emsp;&emsp;&emsp;contextIsolation: true,<br>
-                            &emsp;&emsp;&emsp;&emsp;nodeIntegration: false<br>
-                            &emsp;&emsp;}<br>
-                            });
-                        </div>
-                    </div>
-                </div>
-
-                <h4 id="making-the-usb-calls-in-javascript">Making the USB Calls in JavaScript</h4>
-                <p>The preload script (preload.js) uses <strong>contextBridge</strong> to safely expose specific IPC
-                    functions to the renderer. This allows the frontend JavaScript to trigger native USB operations
-                    without
-                    having direct access to Node.js or Electron internals:</p>
-                <div class="terminal">
-                    <div class="terminal-body">
-                        <div class="t-cmd">
-                            const { contextBridge, ipcRenderer } = require('electron');<br>
-                            <br>
-                            contextBridge.exposeInMainWorld('electronAPI', {<br>
-                            &emsp;&emsp;populateAll: () => ipcRenderer.invoke('populate-all'),<br>
-                            &emsp;&emsp;updateValue: (key, value) => ipcRenderer.invoke('update-value', key, value),<br>
-                            &emsp;&emsp;connectStream: () => ipcRenderer.invoke('connect-stream'),<br>
-                            &emsp;&emsp;onTelemetryUpdate: (callback) => ipcRenderer.on('telemetry-update',
-                            callback)<br>
-                            });
-                        </div>
-                    </div>
-                </div>
-                <p>In main.js, the corresponding IPC handlers receive these calls and forward them to the addon worker:
-                </p>
-                <div class="terminal">
-                    <div class="terminal-body">
-                        <div class="t-cmd">
-                            ipcMain.handle('populate-all', async () => {<br>
-                            &emsp;&emsp;return await worker.populateAll();<br>
-                            });<br>
-                            <br>
-                            ipcMain.handle('update-value', async (event, key, value) => {<br>
-                            &emsp;&emsp;return await worker.updateValue(key, value);<br>
-                            });
-                        </div>
-                    </div>
-                </div>
-
-                <h2 id="streaming-data">Streaming Data</h2>
-                <h3 id="overview">Overview</h3>
-                <p>Streaming is used to continuously receive real-time telemetry data from the flight controller. Unlike
-                    one-off command/response exchanges, streaming keeps the serial port open and continuously reads
-                    incoming packets, forwarding the data to the frontend for live display.</p>
-
-                <h3 id="architecture-threading">Architecture & Threading</h3>
-                <p>Because serial reading is a blocking operation, it must be performed on a separate thread to avoid
-                    freezing the Node.js event loop. The native C module spawns a dedicated background thread for the
-                    streaming loop. This thread reads data continuously and posts updates to the JavaScript layer using
-                    NAPI thread-safe function callbacks.</p>
-
-                <h3 id="streaming-flow">Streaming Flow</h3>
-                <p>The general streaming flow is as follows:</p>
-                <ul>
-                    <li>The frontend requests a stream connection via IPC.</li>
-                    <li>main.js forwards the request to the addon worker.</li>
-                    <li>The C module opens the serial port and starts the background streaming thread.</li>
-                    <li>As packets are received and validated, they are parsed and forwarded to JavaScript via a
-                        thread-safe
-                        callback.</li>
-                    <li>The worker relays each update to main.js, which pushes it to the renderer via ipcMain.</li>
-                    <li>The frontend receives the update and refreshes the relevant UI elements.</li>
-                </ul>
-
-                <h3 id="stream-initialization">Stream Initialization</h3>
-                <p>Before streaming begins, the correct serial port must be identified through the port discovery and
-                    handshake process described in the Native C Module section. Once a valid port is confirmed, the
-                    streaming mode can be activated.</p>
-
-                <h3 id="native-streaming-mode">Native Streaming Mode</h3>
-                <h4 id="streaming-loop-behavior">Streaming Loop Behavior</h4>
-                <p>The C-level streaming loop runs on a background thread and continuously reads from the serial port.
-                    Each
-                    iteration of the loop attempts to read a complete packet. If a valid packet is received, it is
-                    parsed
-                    and the data payload is extracted and forwarded. The loop continues running until a stop signal is
-                    received from the JavaScript layer.</p>
-
-                <h4 id="thread-separation">Thread Separation</h4>
-                <p>Keeping the streaming loop on a dedicated thread ensures that the Node.js event loop remains
-                    unblocked.
-                    The thread communicates results back to JavaScript using NAPI's
-                    <strong>napi_threadsafe_function</strong>, which safely queues callbacks for execution on the main
-                    JavaScript thread.
-                </p>
-
-                <h3 id="data-delivery-to-frontend">Data Delivery to Frontend</h3>
-                <p>Once a telemetry packet has been parsed by the C module and passed back to JavaScript, main.js pushes
-                    the data to the renderer process using <strong>webContents.send()</strong>. The frontend listens for
-                    these events and updates the appropriate display fields and the 3D gyroscope viewport accordingly.
-                </p>
-
-                <h3 id="error-handling-recovery">Error Handling & Recovery</h3>
-                <p>If the streaming thread encounters a read error or detects a disconnected port, it signals an error
-                    back
-                    to the JavaScript layer. The application will attempt to surface this error to the user via an error
-                    modal and may attempt to reconnect depending on the nature of the failure.</p>
-
-                <h3 id="ui-integration">UI Integration</h3>
-                <h4>How Data is Fed into the UI</h4>
-                <h5>Settings Population</h5>
-                <p>When a page is loaded that requires settings data, the frontend calls <strong>populateAll()</strong>
-                    via
-                    IPC. The C module reads the current configuration values from the flight controller and returns
-                    them.
-                    The JavaScript component layer then iterates over the returned values and populates the matching
-                    input
-                    fields and dropdowns based on shared data attributes.</p>
-
-                <h5>Telemetry Display</h5>
-                <p>Live telemetry values — such as voltage, current, motor speeds, and orientation — are pushed to the
-                    renderer as streaming events. The frontend's <strong>updateTelemetry()</strong> function receives
-                    these
-                    updates and writes the values into their corresponding display elements.</p>
-
-                <h4>Event-Based Updates</h4>
-                <p>Rather than polling for data at a fixed interval, the UI is driven by events. When the backend pushes
-                    new data, the frontend responds immediately by updating only the elements affected by that data.
-                    This
-                    reduces unnecessary DOM manipulation and keeps the interface responsive.</p>
-
-                <h5>Debouncing</h5>
-                <p>For user-triggered input events (such as slider movements or text field changes), debouncing is
-                    applied
-                    to prevent excessive IPC calls. The update is only transmitted after the user has stopped
-                    interacting
-                    with the control for a short delay, reducing redundant serial writes.</p>
-
-                <h5>Change Detection</h5>
-                <p>Before sending an update to the backend, the frontend compares the new value against the last known
-                    value for that field. If the value has not changed, the IPC call is skipped entirely. This prevents
-                    unnecessary communication overhead when the user interacts with a field without actually modifying
-                    its
-                    value.</p>
-
-                <h4 id="error-handling-recovery">Error Handling & Recovery</h4>
-                <h5 id="frontend-error-handling">Frontend Error Handling</h5>
-                <p>All IPC calls from the frontend are wrapped in try/catch blocks or promise rejection handlers. If a
-                    call
-                    fails, an error modal is displayed to the user describing what went wrong. The UI is designed to
-                    remain
-                    usable even in a partial failure state — for example, if telemetry streaming fails, the
-                    configuration
-                    pages can still be accessed.</p>
-
-                <h5 id="backend-error-propagation">Backend Error Propagation</h5>
-                <p>Errors originating in the C module are propagated upward through the NAPI layer as JavaScript
-                    exceptions, then caught by the IPC handler in main.js, which formats them and returns them as
-                    rejected
-                    promise values to the frontend.</p>
-
-                <h6 id="communication-failure-handling">Communication Failure Handling</h6>
-                <p>If the serial port becomes unavailable mid-session (e.g., the USB cable is disconnected), the C
-                    module
-                    detects the failure during the next read or write operation and signals the error. main.js then
-                    notifies
-                    the renderer, which shows a disconnection message and disables controls that require an active
-                    connection.</p>
-
-                <h6 id="recovery-strategies">Recovery Strategies</h6>
-                <p>Where possible, the application attempts automatic recovery. For transient errors, the retry
-                    mechanism
-                    in the C module handles re-transmission. For full disconnections, the user is prompted to reconnect
-                    the
-                    device and re-initialize the port connection from the Setup & Ports page.</p>
-                <!-- HERE -->
+                    This eliminates the need to write custom update logic for each individual field and allows new UI
+                    elements to be added with minimal additional code. By emphasizing reusable components and generic
+                    update mechanisms, the UI remains easy to extend and reduces the risk of introducing bugs when new
+                    features are implemented.</p>
 
                 <h2 id="gyroscope-viewport">Gyroscope Viewport</h2>
                 <p>For the gyroscopic view, we used the <a href="https://threejs.org/">three.js</a> library. This
@@ -1325,14 +985,10 @@
 
                 <h4>Handling Squirrel Startup Events</h4>
                 <p>Squirrel launches your application with special arguments during install, update, and uninstall
-                    events.
-                    If these are not handled, the application may behave unexpectedly — such as launching multiple
-                    times
-                    or
-                    failing to create Start Menu shortcuts.</p>
+                    events. If these are not handled, the application may behave unexpectedly — such as launching
+                    multiple times or failing to create Start Menu shortcuts.</p>
                 <p>Add the following handler near the top of main.js, before any other application logic but after
-                    all
-                    const imports:</p>
+                    all const imports:</p>
                 <div class="terminal">
                     <div class="terminal-body">
                         <div class="t-cmd">
@@ -1436,8 +1092,7 @@
                     </div>
                 </div>
                 <p>These files will be placed in <strong>app.asar.unpacked/</strong> inside the installed
-                    application's
-                    resources folder.</p>
+                    application's resources folder.</p>
 
                 <h4>Updating the Addon Path at Runtime</h4>
                 <p>Because the file location differs between development and production, the addon path must be
@@ -1455,9 +1110,7 @@
                     </div>
                 </div>
                 <p>Additionally, inject the addon directory into the system PATH before the worker starts so the DLL
-                    can
-                    be
-                    located by the operating system:</p>
+                    can be located by the operating system:</p>
                 <div class="terminal">
                     <div class="terminal-body">
                         <div class="t-cmd">
@@ -1491,10 +1144,8 @@
                     Run the executable named something like <strong>oscarapp-1.0.0 Setup.exe</strong>.
                 </p>
                 <p><strong class="red">Note:</strong> The Setup .exe is the installer, not the application itself.
-                    Once
-                    installed, use the Start Menu shortcut or the installed .exe to launch the app. Do not run the
-                    Setup
-                    file again unless reinstalling.</p>
+                    Once installed, use the Start Menu shortcut or the installed .exe to launch the app. Do not run the
+                    Setup file again unless reinstalling.</p>
 
                 <h3 id="installing-running-the-application">Installing & Running the Application</h3>
                 <p>After running the executable file, the installer will:</p>
@@ -1505,9 +1156,7 @@
                     <li>Launch the application.</li>
                 </ul>
                 <p>After installation, the app can be launched from the Start Menu by searching OSCAR Ground
-                    Station, or
-                    by
-                    running <strong>oscarapp.exe</strong> directly from the install directory.</p>
+                    Station, or by running <strong>oscarapp.exe</strong> directly from the install directory.</p>
 
                 <h3 id="troubleshooting">Troubleshooting</h3>
                 <p>As many issues were encountered while implementing this, here is a list of some of the issues
