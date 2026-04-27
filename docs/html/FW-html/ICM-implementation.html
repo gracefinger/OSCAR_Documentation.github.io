@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firmware ICM-40609 Implementation</title>
+    <link rel="stylesheet" href="../../styles/main.css">
+    <link rel="stylesheet" href="../../styles/tableOfContents.css">
+    <link rel="stylesheet" href="../../styles/chloeWorking.css">
+</head>
+
+<body>
+    <nav>
+        <ul class="nav-links">
+            <li><a href="../../index.html"><span class="nav-dot"></span>Home</a></li>
+            <li><a href="../hardware.html"><span class="nav-dot"></span>Hardware</a></li>
+            <li><a href="../firmware.html" class="active"><span class="nav-dot"></span>Firmware</a></li>
+            <li><a href="../software.html"><span class="nav-dot"></span>Software</a></li>
+        </ul>
+    </nav>
+
+    <div class="page-layout">
+
+        <!-- ── Sidebar ── -->
+        <aside id="doc-sidebar">
+            <div class="sidebar-title">On this page</div>
+            <ul id="sidebar-nav"></ul>
+        </aside>
+
+        <!-- ── Main content ── -->
+        <main class="doc-content">
+
+            <h1>ICM-40609 Implementation</h1>
+
+            <!-- Table of Contents -->
+            <!-- <div id="toc-block">
+                <h2 id="table-of-contents">Table of Contents</h2>
+                <ol>
+                    <li><a href="#sensor-init">Sensor Initialization and Configuration</a>
+                        <ol>
+                            <li><a href="#device-verification">Device Verification</a></li>
+                            <li><a href="#soft-reset">Soft Reset</a></li>
+                            <li><a href="#interface-power">Interface and Power Configuration</a></li>
+                            <li><a href="#accel-config">Accelerometer Configuration</a></li>
+                            <li><a href="#gyro-config">Gyroscope Configuration</a></li>
+                            <li><a href="#fifo-config">FIFO Configuration</a></li>
+                        </ol>
+                    </li>
+                    <li><a href="#init-summary">Summary of Initialization Sequence</a></li>
+                </ol>
+            </div> -->
+
+            <section>
+
+                <h2 id="sensor-init">ICM-40609 Sensor Initialization and Configuration</h2>
+                <p>
+                    The inertial measurement unit (IMU) used in this project is the ICM-40609, a six-axis sensor that combines a three-axis accelerometer 
+                    and a three-axis gyroscope. The device communicates with the microcontroller through a four-wire SPI interface. An initialization 
+                    routine was implemented to verify communication, reset the device, configure the internal sensors, and enable FIFO packet streaming 
+                    for efficient data acquisition.
+                </p>
+
+                <h3 id="device-verification">Device Verification</h3>
+                <p>
+                    The initialization procedure begins by verifying communication with the IMU. This is accomplished by reading the
+                    <code class="light-red">WHO_AM_I</code> register, which contains a fixed device identification value. For the ICM-40609, the expected
+                    value is <code class="light-red">0x3B</code>. If the returned value does not match this constant, the initialization routine terminates
+                    and returns an error. This check ensures that the SPI interface is functioning and that the correct device is
+                    connected before issuing any configuration commands.
+                </p>
+
+                <h3 id="soft-reset">Soft Reset</h3>
+                <p>
+                    After confirming communication, the device is placed into a known state using a software reset. The reset command
+                    writes to the <code class="light-red">DEVICE_CONFIG</code> register, clearing previous configuration values and returning the internal
+                    state machines to their default conditions. Following the reset, a delay of approximately 50 ms is applied to allow
+                    the gyroscope and internal clock systems to stabilize before further configuration. The device identification register is then read again 
+                    to confirm that the sensor successfully restarted.
+                </p>
+
+                <h3 id="interface-power">Interface and Power Configuration</h3>
+                <p>
+                    Once the reset process is complete, the interface configuration registers are programmed. The SPI interface is
+                    enabled, and the internal clock source is configured to use the device's phase-locked loop (PLL), which provides
+                    a stable, high-frequency clock required for high-data-rate sampling.
+                    <br><br>
+                    The <code class="light-red">PWR_MGMT0</code> register is then configured to place both the accelerometer and gyroscope into Low Noise
+                    mode. Low Noise mode is selected because the application requires high-quality motion data rather than minimal power
+                    consumption. This mode enables the highest bandwidth and lowest noise performance available from the sensor.
+                </p>
+
+                <h3 id="accel-config">Accelerometer Configuration</h3>
+                <p>
+                    The accelerometer is configured using the <code class="light-red">ACC_CONFIG0</code> register. Two parameters are defined:
+                </p>
+                <ul>
+                    <li><strong>Full-scale range</strong>: ±32 g</li>
+                    <li><strong>Output data rate</strong>: 32 kHz</li>
+                </ul>
+                <p>
+                    A ±32 g range was selected to accommodate the high dynamic accelerations expected in the application without
+                    saturating the sensor. The 32 kHz output data rate allows high-resolution motion capture and ensures that fast
+                    transient motion can be detected. Selecting the maximum output data rate also reduces latency between measurements.
+                </p>
+
+                <h3 id="gyro-config">Gyroscope Configuration</h3>
+                <p>
+                    The gyroscope is configured using the <code class="light-red">GYR_CONFIG0</code> register. The following parameters are selected:
+                </p>
+                <ul>
+                    <li><strong>Full-scale range</strong>: ±2000 degrees per second</li>
+                    <li><strong>Output data rate</strong>: 32 kHz</li>
+                </ul>
+                <p>
+                    The ±2000 dps range was chosen because it provides sufficient measurement headroom for rapid rotational motion
+                    while maintaining resolution. Matching the gyroscope output data rate to the accelerometer (32 kHz) ensures that
+                    both sensors produce synchronized measurements.
+                </p>
+
+                <h3 id="fifo-config">FIFO Configuration</h3>
+                <p>
+                    To efficiently transfer sensor data to the microcontroller, the IMU's internal FIFO (First-In First-Out) buffer
+                    is enabled. The FIFO allows multiple samples to accumulate inside the device before being read over SPI, reducing
+                    communication overhead and improving timing consistency.
+                    <br><br>
+                    The FIFO is configured to store packets containing:
+                </p>
+                <ul>
+                    <li>Temperature data</li>
+                    <li>Three-axis gyroscope measurements</li>
+                    <li>Three-axis accelerometer measurements</li>
+                </ul>
+                <p>
+                    Data is transmitted in little-endian format to match the microcontroller's native memory representation. This
+                    configuration simplifies data parsing and avoids additional byte-swapping operations in firmware.
+                </p>
+
+                <h2 id="init-summary">Summary of Initialization Sequence</h2>
+                <p>The final initialization sequence follows these steps:</p>
+                <ol class="numbered-list">
+                    <li>Verify device communication by reading the <code class="light-red">WHO_AM_I</code> register</li>
+                    <li>Issue a software reset to ensure a known device state.</li>
+                    <li>Confirm the device is responsive after a reset.</li>
+                    <li>Configure the interface and clock settings.</li>
+                    <li>Enable low-noise operation for the accelerometer and gyroscope.</li>
+                    <li>Configure accelerometer range and output data rate.</li>
+                    <li>Configure the gyroscope range and output data rate.</li>
+                    <li>Enable FIFO data packets containing temperature, gyroscope, and accelerometer measurements.</li>
+                </ol>
+                <br>
+                <p>
+                    This ordered configuration sequence ensures that the sensor begins operation from a known state and that all
+                    measurement channels operate with synchronized high-rate sampling. The use of the FIFO buffer further improves
+                    data transfer efficiency and reduces the processing overhead required on the microcontroller.
+                </p>
+
+            </section>
+
+            <section>
+                <h2>Back to Firmware</h2>
+                <a href="../firmware.html" class="back-link">← Return to Firmware Overview</a>
+            </section>
+
+        </main>
+    </div>
+
+    <footer>
+        <div class="footer-brand">OSCAR <span>Docs</span></div>
+        <ul class="footer-links">
+            <li><a href="../contact.html">Contact Us</a></li>
+            <li><a href="https://sddec26-05.sd.ece.iastate.edu/">Senior Design Website</a></li>
+            <li><a href="https://github.com/gracefinger/OSCAR_Documentation.github.io">GitHub</a></li>
+        </ul>
+    </footer>
+
+    <script src="../../components/main.js"></script>
+
+</body>
+
+</html>
