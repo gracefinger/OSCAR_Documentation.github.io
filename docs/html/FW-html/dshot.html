@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firmware DShot Implementation</title>
+    <link rel="stylesheet" href="../../styles/main.css">
+    <link rel="stylesheet" href="../../styles/tableOfContents.css">
+    <link rel="stylesheet" href="../../styles/chloeWorking.css">
+</head>
+
+<body>
+    <nav>
+        <ul class="nav-links">
+            <li><a href="../../index.html"><span class="nav-dot"></span>Home</a></li>
+            <li><a href="../hardware.html"><span class="nav-dot"></span>Hardware</a></li>
+            <li><a href="../firmware.html" class="active"><span class="nav-dot"></span>Firmware</a></li>
+            <li><a href="../software.html"><span class="nav-dot"></span>Software</a></li>
+        </ul>
+    </nav>
+
+    <div class="page-layout">
+
+        <!-- ── Sidebar ── -->
+        <aside id="doc-sidebar">
+            <div class="sidebar-title">On this page</div>
+            <ul id="sidebar-nav"></ul>
+        </aside>
+
+        <!-- ── Main content ── -->
+        <main class="doc-content">
+
+            <h1>DShot Implementation</h1>
+
+            <!-- Table of Contents -->
+            <!-- <div id="toc-block">
+                <h2 id="table-of-contents">Table of Contents</h2>
+                <ol>
+                    <li><a href="#flight-controller-implementation">Flight Controller Implementation</a>
+                        <ol>
+                            <li><a href="#pwm-setup">PWM Setup</a></li>
+                            <li><a href="#pwm-calculations">PWM Calculations</a></li>
+                            <li><a href="#pwm-configuration">PWM Configuration</a></li>
+                            <li><a href="#motor-values">Motor Values</a></li>
+                            <li><a href="#idle-motor-values">Idle Motor Values</a></li>
+                        </ol>
+                    </li>
+                    <li><a href="#esc-implementation">ESC Implementation</a>
+                        <ol>
+                            <li><a href="#bit-capture">Bit Capture</a></li>
+                            <li><a href="#bit-breakdown">Bit Breakdown</a></li>
+                        </ol>
+                    </li>
+                    <li><a href="#special-functions">Special Functions</a>
+                        <ol>
+                            <li><a href="#arming-sequence">Arming Sequence</a></li>
+                            <li><a href="#motor-spin-direction">Motor Spin Direction</a></li>
+                        </ol>
+                    </li>
+                </ol>
+            </div> -->
+
+            <section>
+
+                <h2 id="flight-controller-implementation">Flight Controller Implementation</h2>
+
+                <h3 id="pwm-setup">PWM Setup</h3>
+                <p>
+                    The following resources were used to determine the PWM setup:
+                    <a href="https://aleksandarhaber.com/generate-pwm-signals-in-stm32-microcontrollers/">STM32 PWM Signal Generation</a>,
+                    <a href="https://github.com/mokhwasomssi/stm32_hal_dshot/tree/main?tab=readme-ov-file">stm32_hal_dshot on GitHub</a>,
+                    and <a href="https://www.betaflight.com/docs/development/API/Dshot#bidirectional-dshot">Betaflight DShot API Docs</a>.
+                </p>
+
+                <h3 id="pwm-calculations">PWM Calculations</h3>
+                <p>
+                    <br><br><img src="../../FirmwareImages/DShot1.png" alt="DShot wave signal example" style="display: block; margin: 0 auto;"><br><br>
+                    
+                    T<sub>PWM</sub> is the period of the PWM pulse signal. We are using DShot600, so T<sub>PWM</sub> is 1.67 µs.
+                </p>
+                <p style="text-align: center;">
+                    ƒ<sub>PWM</sub> = 1 / T<sub>PWM</sub> = 1 / 1.67µs = 598,802.395 ≅ 600 KHz
+                </p>
+                <p>
+                    This is the bits/second rate of DShot600. The STM32 equation to find ƒ<sub>PWM</sub> is:
+                </p>
+                <p style="text-align: center;">
+                    ƒ<sub>PWM</sub> = ƒ<sub>TC</sub> / ((k<sub>PS</sub> + 1)(k<sub>P</sub> + 1) &times; f<sub>TC</sub>)
+                </p>
+                <p>
+                    ƒ<sub>TC</sub> is the frequency of the timer clock; we are using a timer clock of 240 MHz.
+                    k<sub>PS</sub> is the prescaler value. k<sub>P</sub> is the period value, also known as the auto reload register (ARR).
+                    <br><br>
+                    The prescaler is [240 MHz / 12,000,000 (DShot600) − 1] = 19. The tick rate = 240,000,000 / (19 + 1) = 12,000,000.
+                    The period of one tick is 1 / 12,000,000 = 83.3 ns. That is how long one timer tick takes. We need a full 1.67 µs frame.
+                    So we need 1.67 µs / 83.3 ns = 20 ticks. Our ARR will be set to 20. The counter will reset every 20 ticks as a full frame will 
+                    have completed in that time.
+                    <br><br>
+                    The duty cycle is calculated as D = CCR / (ARR + 1), where CCR is the capture/compare register.
+                    So, to find the CCR value for bit 0: 0.374 = CCR / (20 + 1), so CCR = 21 &times; 0.374 = 7.854 ≈ 8.
+                    The CCR valur for bit 1: 0.749 = CCR / (20 + 1), so CCR = 21 &times; 0.749 = 15.729 ≈ 16.
+                </p>
+
+                <h3 id="pwm-configuration">PWM Configuration</h3>
+                <p>
+                    For testing to see if the oscilloscope could capture the PWM output signal, one of the PWM pins was changed from normal mode to circular mode. 
+                    This means that the DMA buffer will continuously send the contents of the buffer to the pin. In a normal non-testing environment, 
+                    this will need to be changed back to normal so that the DMA contents are transferred once and then the buffer is freed.
+                </p>
+
+                <h3 id="motor-values">Motor Values</h3>
+                <p>
+                    The following resource was used to determine idle and dynamic motor values:
+                    <a href="https://www.betaflight.com/docs/wiki/guides/current/Dynamic-Idle">Betaflight Dynamic Idle</a>.
+                </p>
+
+                <h3 id="idle-motor-values">Idle Motor Values</h3>
+                <p>
+                    The recommended throttle idle value is 5.5% of the throttle range. The calculation is as follows:
+                </p>
+                <p style="text-align: center;">
+                    ((2048 − 48) &times; 0.055) + 48 = <strong>158</strong>
+                </p>
+                <p>
+                    158 is therefore our initial idle value.
+                </p>
+
+                <h2 id="esc-implementation">ESC Implementation</h2>
+                <p>
+                    Each of the 4 ESCs is set up similarly, with minor differences to allow identification by the flight controller.
+                </p>
+
+                <h3 id="bit-capture">Bit Capture</h3>
+                <p>
+                    The ESC is currently set to use input capture through timer 3. The input capture will trigger on each rising and falling 
+                    edge. Standard DShot frames are 16 bits long, meaning the buffer filled by DMA will have 32 entries. Counting both types 
+                    of edges will incur two entries per bit being transmitted. To decode the timings, the following duty cycle and bit timing 
+                    tables are used:
+                </p>
+
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            <span class="light-red">// Duty Cycle Table</span><br>
+                            Bit = 0 &emsp; Duty Cycle: 37.425%<br>
+                            Bit = 1 &emsp; Duty Cycle: 74.850%<br>
+                            <br>
+                            <span class="light-red">// Bit Timing Table</span><br>
+                            DShot 600 &emsp; 600,000 bits/s &emsp; 1.67 µs/bit &emsp; 26.7 µs/frame
+                        </div>
+                    </div>
+                </div>
+
+                <p>
+                    To calculate the value of each bit we take the difference between the second found edge and the first found edge. This will result in a positive time difference. Then, we compare that value to 
+                    1.67 µs &times; 0.7485. If the comparison finds that the captured value is less than the result of that multiplication, then the value of the bit is 0. Otherwise, the value of the bit is a 1. 
+                    This is done for each set of rising and falling edges. The results of the decoding are placed into a different buffer of length 16 to 
+                    match the bits found in a standard DShot frame.
+                </p>
+
+                <h3 id="bit-breakdown">Bit Breakdown</h3>
+                <p>The bits of the DShot frame are broken down as follows:</p>
+                <br><br><img src="../../FirmwareImages/DShot2.png" alt="DSHOT Signal Example" style="display: block; margin: 0 auto;"><br><br>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            11 bits : 0–47 = command, 48–2047 = throttle<br>
+                            &emsp;1 bit : telemetry request<br>
+                            &emsp;4 bits : checksum
+                        </div>
+                    </div>
+                </div>
+                <p>
+                    Once all bits are gathered, the CRC is calculated on the decoded bits. The formula is derived from
+                    <a href="https://www.betaflight.com/docs/development/API/Dshot#:~:text=The%20checksum%20is%20calculated%20over,1000001011000110">Betaflight's description of the DShot protocol</a>:
+                </p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            crc = (value ^ (value >> 4) ^ (value >> 8)) &amp; 0x0F;
+                        </div>
+                    </div>
+                </div>
+
+                <h2 id="special-functions">Special Functions</h2>
+
+                <h3 id="arming-sequence">Arming Sequence</h3>
+                <p>
+                    Currently, the arming sequence is sending beep 1, which corresponds to a throttle value of 1. Then there is a 260 ms delay, 
+                    followed by sending beep 2, which corresponds to a throttle value of 2, waiting 260 ms, sending beep 3, which is a throttle 
+                    value of 3, waiting 260 ms, sending zero throttle, which is a throttle value of zero, then waiting 520 ms.
+                </p>
+
+                <h3 id="motor-spin-direction">Motor Spin Direction</h3>
+                <p>
+                    When <code class="light-red">DSHOT_CMD_SPIN_DIRECTION_2</code> is sent, which corresponds to a throttle value of 8, 
+                    the direction that the motors are spinning should be reversed permanently until a time where
+                    <code class="light-red">DSHOT_CMD_SPIN_DIRECTION_1</code> is sent, which corresponds to a throttle value of 7.
+                    The same is true if <code class="light-red">DSHOT_CMD_SPIN_DIRECTION_1</code> is sent; it should persists until <code class="light-red">DSHOT_CMD_SPIN_DIRECTION_2</code> is sent.
+                    The motors should start in the default direction.
+                </p>
+
+            </section>
+
+            <section>
+                <h2>Back to Firmware</h2>
+                <a href="../firmware.html" class="back-link">← Return to Firmware Overview</a>
+            </section>
+
+        </main>
+    </div>
+
+    <footer>
+        <div class="footer-brand">OSCAR <span>Docs</span></div>
+        <ul class="footer-links">
+            <li><a href="../contact.html">Contact Us</a></li>
+            <li><a href="https://sddec26-05.sd.ece.iastate.edu/">Senior Design Website</a></li>
+            <li><a href="https://github.com/gracefinger/OSCAR_Documentation.github.io">GitHub</a></li>
+        </ul>
+    </footer>
+
+    <script src="../../components/main.js"></script>
+
+</body>
+
+</html>
