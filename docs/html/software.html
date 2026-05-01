@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Software</title>
     <link rel="stylesheet" href="../styles/main.css">
+    <link rel="stylesheet" href="../styles/chloeWorking.css">
 </head>
 
 <body>
@@ -21,23 +22,81 @@
     <main>
         <h1>Software</h1>
         <section>
+
+            <!-- APPLICATION INSTALLATION CARD -->
+            <div class="install-card">
+
+                <h2>Application Installation</h2>
+                <p style="margin-top: 0.5rem;">Download and install the OSCAR Ground Station desktop application for Windows.</p>
+
+                <div class="download-group">
+                    <h4>Windows x64 · ZIP Archive · v1.0.0</h4>
+                    <a class="btn-download"
+                       href="../ExecutableZips/x64-OscarGroundStation-Installer-V1.05.zip"
+                       download="OSCAR-Ground-Station-Installer">
+                        <span class="btn-icon">↓</span>
+                        &nbsp;&nbsp;OSCAR Ground Station — Version 1.0.0
+                    </a>
+                </div>
+
+                <h3>Installation Instructions</h3>
+                <ol class="numbered-list">
+                    <li>Click the download button above to save the ZIP file.</li>
+                    <li>Navigate to your <span class="emphasis">Downloads</span> folder and extract the ZIP file.</li>
+                    <li>Open the extracted folder and navigate to the <span class="emphasis">x64</span> directory.</li>
+                    <li>Double-click <span class="emphasis">OSCAR Ground Station-1.0.0 Setup</span>.</li>
+                    <li>Follow the on-screen prompts to complete the installation.</li>
+                </ol>
+
+            </div>
+
+            <!-- DOCUMENTATION LINKS -->
+            <!-- <h2>Documentation</h2> -->
+            <!-- COULD BE COOL Later????? -->
+            <!-- <div class="card-grid" style="margin-top: 1.25rem;">
+
+                <a href="./SW-html/desktopApplicationSetup.html" class="card" style="text-decoration: none;">
+                    <div class="card-icon">🖥</div>
+                    <h3>Desktop Application Setup</h3>
+                    <p>Configure and launch the OSCAR Ground Station application on your machine.</p>
+                    <span class="card-tag">Setup Guide</span>
+                </a>
+
+                <a href="./SW-html/usb-communication-sw-frontend.html" class="card" style="text-decoration: none;">
+                    <div class="card-icon">⚡</div>
+                    <h3>Frontend USB Communication</h3>
+                    <p>How the UI layer interfaces with USB serial data from the ground station hardware.</p>
+                    <span class="card-tag">Frontend</span>
+                </a>
+
+                <a href="./SW-html/usb-communication-sw-backend.html" class="card" style="text-decoration: none;">
+                    <div class="card-icon">🔌</div>
+                    <h3>Backend USB Communication</h3>
+                    <p>Low-level protocol and data handling for USB communication on the backend.</p>
+                    <span class="card-tag">Backend</span>
+                </a>
+
+            </div> -->
+
+            <!-- DOCUMENTATION LINKS -->
             <h2>Documentation</h2>
             <a href="./SW-html/desktopApplicationSetup.html" class="section-label">Desktop Application Setup</a>
             <br>
             <a href="./SW-html/usb-communication-sw-frontend.html" class="section-label">Frontend USB Communication</a>
             <br>
             <a href="./SW-html/usb-communication-sw-backend.html" class="section-label">Backend USB Communication</a>
+
         </section>
     </main>
+
+    <footer>
+        <div class="footer-brand">OSCAR <span>Docs</span></div>
+        <ul class="footer-links">
+            <li><a href="contact.html">Contact Us</a></li>
+            <li><a href="https://sddec26-05.sd.ece.iastate.edu/">Senior Design Website</a></li>
+            <li><a href="https://github.com/gracefinger/OSCAR_Documentation.github.io">GitHub</a></li>
+        </ul>
+    </footer>
+
 </body>
-
-<footer>
-    <div class="footer-brand">OSCAR <span>Docs</span></div>
-    <ul class="footer-links">
-        <li><a href="contact.html">Contact Us</a></li>
-        <li><a href="https://sddec26-05.sd.ece.iastate.edu/">Senior Design Website</a></li>
-        <li><a href="https://github.com/gracefinger/OSCAR_Documentation.github.io">GitHub</a></li>
-    </ul>
-</footer>
-
 </html>
