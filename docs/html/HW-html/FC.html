@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flight Controller Design Justification</title>
+    <link rel="stylesheet" href="../../styles/main.css">
+    <link rel="stylesheet" href="../../styles/tableOfContents.css">
+    <link rel="stylesheet" href="../../styles/chloeWorking.css">
+</head>
+
+<body>
+    <nav>
+        <ul class="nav-links">
+            <li><a href="../../index.html"><span class="nav-dot"></span>Home</a></li>
+            <li><a href="../../hardware.html" class="active"><span class="nav-dot"></span>Hardware</a></li>
+            <li><a href="../../firmware.html"><span class="nav-dot"></span>Firmware</a></li>
+            <li><a href="../../software.html"><span class="nav-dot"></span>Software</a></li>
+        </ul>
+    </nav>
+
+    <div class="page-layout">
+
+        <!-- ── Sidebar ── -->
+        <aside id="doc-sidebar">
+            <div class="sidebar-title">On this page</div>
+            <ul id="sidebar-nav"></ul>
+        </aside>
+
+        <!-- ── Main content ── -->
+        <main class="doc-content">
+
+            <h1>Flight Controller Design Justification</h1>
+
+            <section>
+                <h2 id="high-level-overview">High Level Overview</h2>
+
+                <h3 id="description-of-project">Description of Project</h3>
+                <p>
+                    The OSCAR quadcopter is a senior design project developing a custom flight stack from the board
+                    level up. This document covers the flight controller (FC), one of three custom PCBs in the stack
+                    alongside the Electronic Speed Controller (ESC) and the GNSS/Receiver board. The FC is a 4-layer
+                    board built around the <strong>STM32H753VIT6</strong> microcontroller, sized to mount on a 5&quot;
+                    frame with a 50&times;50&nbsp;mm M2 hole pattern.
+                </p>
+                <p>
+                    The FC's role is to close the inner attitude control loop: read the IMU and barometer, fuse them
+                    with off-board GNSS and magnetometer data, run the PID loop, and drive four DSHOT motor outputs to
+                    the ESC. It also exposes a USB-C interface for configuration and logging, an SWD port for
+                    development, and a UART to the ExpressLRS receiver.
+                </p>
+                <p>
+                    The hardware is designed to support two firmware paths. The first is <strong>Betaflight</strong> as
+                    the baseline target, which gets the craft flying with a known good codebase. The second is a
+                    <strong>custom firmware target</strong> intended for research workloads (custom estimators,
+                    observers, outer-loop control) layered on top of the inner loop. The H7 was selected specifically to
+                    leave headroom for the second path without having to redesign the board.
+                </p>
+
+                <h3 id="scope">Scope</h3>
+                <p>This document is a block-by-block design justification for Rev 1.0 of the FC PCB. Each subsystem is
+                    presented with its part selection rationale, key datasheet parameters, the calculations or design
+                    references used to set component values, and the resulting margin against the application
+                    requirement.</p>
+                <p><strong>In scope:</strong></p>
+                <ul>
+                    <li>Power tree (input protection, source OR-ing, 3.3&nbsp;V buck, 1.8&nbsp;V LDO)</li>
+                    <li>MCU subsystem (part selection, clocks, boot/reset, SWD, indicator LEDs)</li>
+                    <li>Communication and I/O (USB 2.0 FS, DSHOT outputs)</li>
+                    <li>On-board sensors (primary IMU, barometer, EEPROM, secondary IMU placeholder)</li>
+                </ul>
+                <p><strong>Out of scope</strong> and covered in companion documents: the ESC board, the GNSS/Receiver
+                    board (including the L1 patch antenna and TESEO-LIV3R front end), frame mechanical design, and
+                    firmware implementation. Off-board sensor selection (magnetometer, GNSS) is summarized in Section
+                    4.4.5 for context but justified in the GNSS Design Justification document.</p>
+
+                <h3 id="block-diagram">Block Diagram</h3>
+                <p>The figure below shows the FC's functional groupings and the interfaces it presents to the rest of
+                    the OSCAR stack.</p>
+                <figure>
+                    <img src="../../HardwareImages/FC/figure1.png" alt="Flight Controller Schematic"
+                        style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" />
+                    <figcaption>Figure 1: Flight Controller Schematic</figcaption>
+                </figure>
+                <p>
+                    Power enters from one of two sources. USB-C delivers 5&nbsp;V during bench work and configuration;
+                    the ESC delivers 8.8&nbsp;V regulated (derived from a 3S-4S LiPo running 11.1-14.8&nbsp;V nominal)
+                    during flight. Both feed a dual Schottky diode array that selects whichever rail is higher and
+                    blocks reverse current into the inactive source. The OR'd output drives the 3.3&nbsp;V switching
+                    regulator, which supplies the MCU's VDDIO through bulk decoupling and VDDA through a separate analog
+                    filter network. A 1.8&nbsp;V LDO branches off the 3.3&nbsp;V rail to supply the ENS220 barometer.
+                </p>
+                <p>
+                    The STM32H753 sits at the center. On-board sensors connect locally: the ICM-40609-D IMU over SPI,
+                    and the barometer and magnetometer over I2C. USB D+/D&minus; routes from the USB-C connector
+                    through a USBLC6-2 ESD array to the H7's OTG_FS peripheral. Four DSHOT lines run to the ESC, which
+                    in turn drives the four motors. An SWD header exposes SWDIO/SWCLK for the ST-Link programmer.
+                </p>
+                <p>
+                    Two RF paths terminate off-board and are shown for context only. The 1.575&nbsp;GHz GPS L1 signal
+                    reaches the TESEO-LIV3R through a patch antenna on the GNSS daughter board, which returns position
+                    to the H7 over UART. The 2.4&nbsp;GHz ExpressLRS link terminates on the receiver module and returns
+                    control inputs to the H7 over a second UART.
+                </p>
+
+                <h2 id="system-constraints">System Constraints</h2>
+                <p>This section sets the fixed boundaries the design has to fit inside: physical geometry, input power
+                    range, layer stackup, and what JLCPCB can actually fabricate. Every part choice in Section 4 is
+                    constrained by one or more of these.</p>
+
+                <h3 id="size">Size</h3>
+                <p>
+                    The FC mounts to a 5&quot; quadcopter frame using the standard 50&times;50&nbsp;mm M2 hole pattern.
+                    The outer board envelope is 56&times;56&nbsp;mm, set by the frame's mid-plate cutout and the need
+                    to clear the four arm bolts. This footprint is the binding constraint on the MCU package (LQFP100
+                    at 14&times;14&nbsp;mm fits; larger BGA parts do not leave room for the sensor cluster and
+                    connectors), on connector placement, and on routing density. All passives use 0603 to keep
+                    hand-rework feasible during bring-up; the ESD601 TVS diodes are the single 0402 exception, which
+                    are optional if ESD events are not a concern.
+                </p>
+
+                <h3 id="power-input">Power Input</h3>
+                <p>
+                    The FC accepts two power sources that may be present simultaneously. Each source feeds the diode-OR
+                    network described in Section 4.1.2; the higher rail wins and the other is reverse-biased.
+                </p>
+                <p>
+                    <strong>Dual Source support.</strong> USB-C provides 5&nbsp;V at up to 1.5&nbsp;A during bench
+                    work, configuration, and firmware flashing. The ESC-derived rail provides 8.8&nbsp;V (regulated
+                    down from a 3S-4S LiPo running 11.1-14.8&nbsp;V nominal) during flight. The 3.3&nbsp;V buck
+                    (AP63203) accepts 3.8&nbsp;V to 32&nbsp;V, so the headroom above the highest expected ESC rail is
+                    sufficient.
+                </p>
+
+                <h3 id="board-stackup">Board Stackup (4-layer)</h3>
+                <p>The board is designed in KiCad and fabricated by JLCPCB. The 4-layer stackup is:</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Layer</th>
+                            <th>Type</th>
+                            <th>Material</th>
+                            <th>Thickness</th>
+                            <th>&epsilon;<sub>r</sub></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>F.Cu</td>
+                            <td>Copper (1 oz)</td>
+                            <td>—</td>
+                            <td>0.035 mm</td>
+                            <td>—</td>
+                        </tr>
+                        <tr>
+                            <td>Dielectric 1</td>
+                            <td>Prepreg 7628</td>
+                            <td>—</td>
+                            <td>0.2104 mm</td>
+                            <td>4.4</td>
+                        </tr>
+                        <tr>
+                            <td>In1.Cu</td>
+                            <td>Copper (0.5 oz)</td>
+                            <td>—</td>
+                            <td>0.0152 mm</td>
+                            <td>—</td>
+                        </tr>
+                        <tr>
+                            <td>Dielectric 2</td>
+                            <td>Core FR-4</td>
+                            <td>—</td>
+                            <td>1.065 mm</td>
+                            <td>4.6</td>
+                        </tr>
+                        <tr>
+                            <td>In2.Cu</td>
+                            <td>Copper (0.5 oz)</td>
+                            <td>—</td>
+                            <td>0.0152 mm</td>
+                            <td>—</td>
+                        </tr>
+                        <tr>
+                            <td>Dielectric 3</td>
+                            <td>Prepreg 7628</td>
+                            <td>—</td>
+                            <td>0.2104 mm</td>
+                            <td>4.4</td>
+                        </tr>
+                        <tr>
+                            <td>B.Cu</td>
+                            <td>Copper (1 oz)</td>
+                            <td>—</td>
+                            <td>0.035 mm</td>
+                            <td>—</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>Total board thickness is 1.606&nbsp;mm, within tolerance of the 1.6&nbsp;mm JLCPCB option. Layer
+                    net assignments are:</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Layer</th>
+                            <th>Purpose</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>F.Cu</td>
+                            <td>Signal + GND pour</td>
+                        </tr>
+                        <tr>
+                            <td>In1.Cu</td>
+                            <td>GND (solid)</td>
+                        </tr>
+                        <tr>
+                            <td>In2.Cu</td>
+                            <td>3.3&nbsp;V</td>
+                        </tr>
+                        <tr>
+                            <td>B.Cu</td>
+                            <td>Signal + GND pour</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>
+                    Three of the four layers carry ground. F.Cu and B.Cu are flooded with ground pour because most
+                    subcircuits reference ground locally. In1.Cu is solid ground for two reasons: it gives the USB
+                    differential pair on F.Cu a continuous reference 0.2104&nbsp;mm directly below the trace (the
+                    dielectric height used in the CPWG geometry in Section 4.3.1), and sandwiching the 3.3&nbsp;V plane
+                    (In2.Cu) between two ground references lowers loop inductance for the buck regulator and contains
+                    switching noise. In2.Cu carries 3.3&nbsp;V because that rail powers the MCU, both IMUs, the EEPROM,
+                    magnetometer, and SWD header — a dedicated plane removes the need to route 3.3&nbsp;V as a trace
+                    anywhere.
+                </p>
+
+                <h3 id="manufacturing-capabilities">Manufacturing Capabilities (JLCPCB Constraints)</h3>
+                <p>The design adheres to JLCPCB's standard multilayer capabilities as of April 2026. The binding
+                    constraints that show up in the layout are:</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>JLCPCB Capability</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Min. trace width / spacing</td>
+                            <td>3.5 mil (0.09 mm) multilayer</td>
+                        </tr>
+                        <tr>
+                            <td>Min. via hole / diameter</td>
+                            <td>0.2 mm / 0.45 mm (no upcharge)</td>
+                        </tr>
+                        <tr>
+                            <td>Board thickness</td>
+                            <td>1.6 mm selected</td>
+                        </tr>
+                        <tr>
+                            <td>Outer / inner copper weight</td>
+                            <td>1 oz / 0.5 oz</td>
+                        </tr>
+                        <tr>
+                            <td>Min. annular ring</td>
+                            <td>0.13 mm</td>
+                        </tr>
+                        <tr>
+                            <td>Min. drill-to-copper</td>
+                            <td>0.2 mm</td>
+                        </tr>
+                        <tr>
+                            <td>Min. silkscreen width / height</td>
+                            <td>0.15 mm / 1 mm</td>
+                        </tr>
+                        <tr>
+                            <td>Surface finish</td>
+                            <td>HASL (with lead)</td>
+                        </tr>
+                        <tr>
+                            <td>Impedance tolerance</td>
+                            <td>&plusmn;10% (controlled impedance)</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>
+                    The 1.6&nbsp;mm board with 1&nbsp;oz outer / 0.5&nbsp;oz inner copper produces a dielectric height
+                    of 0.21&nbsp;mm between F.Cu and In1.Cu. This height feeds directly into the CPWG width calculation
+                    for the USB pair in Section 4.3.1, where a 0.2286&nbsp;mm trace width with 0.2&nbsp;mm gap to
+                    ground gives the required 45&nbsp;&Omega; single-ended (90&nbsp;&Omega; differential) impedance.
+                    The 0.2&nbsp;mm via hole / 0.45&nbsp;mm diameter is the smallest size JLCPCB does not surcharge
+                    for; it is also large enough to fit between adjacent pins on the LQFP100 fanout without violating
+                    the 0.09&nbsp;mm spacing rule.
+                </p>
+                <p class="red"><strong>IMPORTANT:</strong> In JLCPCB's Gerber viewer, always run the Design for
+                    Manufacturing check to validate your board is meeting specification before purchasing.</p>
+
+                <h2 id="system-interfaces">System Interfaces</h2>
+                <p>This section defines the FC's contract with the rest of the OSCAR stack: the connectors it exposes,
+                    the signals on each pin, and the protocols spoken over them.</p>
+
+                <h3 id="usb-c">USB-C (data + power)</h3>
+                <p>
+                    The USB-C port (J1) is the FC's bench interface for firmware flashing and configurator access. It is
+                    wired as a USB 2.0 Full Speed device on the H7's OTG_FS peripheral.
+                </p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Connector</td>
+                            <td>USB-C 2.0 receptacle, 16 pin</td>
+                        </tr>
+                        <tr>
+                            <td>Role</td>
+                            <td>USB device</td>
+                        </tr>
+                        <tr>
+                            <td>Speed</td>
+                            <td>Full Speed, 12 Mbps</td>
+                        </tr>
+                        <tr>
+                            <td>Power in</td>
+                            <td>5&nbsp;V nominal, up to 1.5&nbsp;A from host</td>
+                        </tr>
+                        <tr>
+                            <td>Data lines</td>
+                            <td>D+/D&minus; routed as 90&nbsp;&Omega; differential pair</td>
+                        </tr>
+                        <tr>
+                            <td>Cable</td>
+                            <td>Any standard USB-C cable</td>
+                        </tr>
+                        <tr>
+                            <td>Orientation</td>
+                            <td>Reversible</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>
+                    Enumeration behavior is set by the BOOT0 switch (Section 4.2.3): with BOOT0 high the H7 enumerates
+                    as a DFU device for firmware flashing; with BOOT0 low it boots user firmware and enumerates as
+                    whatever the firmware presents (CDC for Betaflight Configurator, MSC for blackbox access). VBUS is
+                    OR'd with the ESC rail internally so the board may be powered from USB alone for bench work.
+                </p>
+
+                <h3 id="esc-interface">ESC Interface (power input, DSHOT outputs, telemetry return)</h3>
+                <p>The ESC interface is the in-flight power and control link between the FC and the OSCAR ESC board. It
+                    carries the 8.8&nbsp;V rail up to the FC and four DSHOT motor commands plus one telemetry return
+                    down to the ESC.</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Pin</th>
+                            <th>Signal</th>
+                            <th>Direction</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>8V8</td>
+                            <td>ESC &rarr; FC</td>
+                            <td>8.8&nbsp;V power input from ESC, feeds diode-OR network</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>NC</td>
+                            <td>—</td>
+                            <td>Reserved</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>FC_RX</td>
+                            <td>ESC &rarr; FC</td>
+                            <td>ESC telemetry return (UART RX into FC)</td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td>Motor 1</td>
+                            <td>FC &rarr; ESC</td>
+                            <td>DSHOT command to motor 1</td>
+                        </tr>
+                        <tr>
+                            <td>5</td>
+                            <td>Motor 2</td>
+                            <td>FC &rarr; ESC</td>
+                            <td>DSHOT command to motor 2</td>
+                        </tr>
+                        <tr>
+                            <td>6</td>
+                            <td>Motor 3</td>
+                            <td>FC &rarr; ESC</td>
+                            <td>DSHOT command to motor 3</td>
+                        </tr>
+                        <tr>
+                            <td>7</td>
+                            <td>Motor 4</td>
+                            <td>FC &rarr; ESC</td>
+                            <td>DSHOT command to motor 4</td>
+                        </tr>
+                        <tr>
+                            <td>8</td>
+                            <td>GND</td>
+                            <td>—</td>
+                            <td>Return reference</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Power in</td>
+                            <td>8.8&nbsp;V nominal from ESC BEC, up to 32&nbsp;V tolerated by buck</td>
+                        </tr>
+                        <tr>
+                            <td>Motor protocol</td>
+                            <td>DSHOT300 (bidirectional capable)</td>
+                        </tr>
+                        <tr>
+                            <td>Motor count</td>
+                            <td>4 (M1-M4)</td>
+                        </tr>
+                        <tr>
+                            <td>Telemetry</td>
+                            <td>One UART RX line, ESC side baud rate per ESC firmware</td>
+                        </tr>
+                        <tr>
+                            <td>ESD protection</td>
+                            <td>TVS array (D23-D28) on all signal lines</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>Bidirectional DSHOT is supported by the hardware but enabled or disabled in firmware. The motor
+                    pinout (M1-M4 ordering) follows the Betaflight convention so the standard mixer mapping applies
+                    without remapping.</p>
+
+                <h3 id="external-board-interfaces">External Board Interfaces</h3>
+                <p>The FC exposes four 4-pin headers for off-board connections. Each header follows the same pattern:
+                    power, ground, and two signal lines.</p>
+
+                <h4 id="swd-debug-header">SWD Debug Header</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Pin</th>
+                            <th>Signal</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>GND</td>
+                            <td>Return / Reference</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>SWDIO</td>
+                            <td>Bidirectional data, to PA13</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>SWCLK</td>
+                            <td>Clock from debugger, to PA14</td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td>3V3</td>
+                            <td>Target reference voltage</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>ST-Link compatible. 2.54&nbsp;mm pitch.</p>
+
+                <h4 id="magnetometer-i2c">Magnetometer I2C Breakout</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Pin</th>
+                            <th>Signal</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>GND</td>
+                            <td>Return / Reference</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>MAG_SDA</td>
+                            <td>I2C Data</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>MAG_SCL</td>
+                            <td>I2C Clock</td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td>3V3</td>
+                            <td>Supply to MMC5983MA</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>400&nbsp;kHz I2C, dedicated bus (not shared).</p>
+
+                <h4 id="gnss-uart">GNSS UART Breakout</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Pin</th>
+                            <th>Signal</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>GND</td>
+                            <td>Return / Reference</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>GPS_TX</td>
+                            <td>FC &rarr; GNSS, config into GNSS</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>GPS_RX</td>
+                            <td>GNSS &rarr; FC, NMEA out of GNSS</td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td>3V3</td>
+                            <td>Supply to TESEO-LIV3R</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>9600 baud default, configurable to 115200. NMEA 0183.</p>
+
+                <h4 id="expresslrs-header">ExpressLRS Receiver Header</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Pin</th>
+                            <th>Signal</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>GND</td>
+                            <td>Return / Reference</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>ELRS_TX</td>
+                            <td>FC &rarr; ELRS</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>ELRS_RX</td>
+                            <td>ELRS &rarr; FC</td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td>3V3</td>
+                            <td>Supply to ELRS receiver</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>420&nbsp;kbaud, CRSF protocol. Pinout follows the Betaflight Connector Standard for ELRS Nano
+                    receivers.</p>
+
+                <h4 id="power-test-header">Power Test Header</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Pin</th>
+                            <th>Signal</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>GND</td>
+                            <td>Return / Reference</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>1V8</td>
+                            <td>From MIC5317 LDO output</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>3V3</td>
+                            <td>From AP63203 buck output</td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td>8V8</td>
+                            <td>From ESC rail</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>Current available on each rail is bounded by the upstream regulator: 150&nbsp;mA on 1V8, 2&nbsp;A on
+                    3V3, and 2&nbsp;A on the ESC's 8V8.</p>
+
+                <h3 id="firmware-target">Firmware Target (Betaflight &amp; Custom Firmware)</h3>
+                <p><em>Under construction — to be developed later in the semester.</em></p>
+                <p>The FC supports two firmware paths sharing the same hardware. Detailed target definitions, resource
+                    assignments, and build instructions will be added as bring-up progresses.</p>
+                <p>
+                    <strong>Path 1: Betaflight (baseline).</strong> A custom Betaflight target will be submitted
+                    following manufacturer guidelines. Key target metadata includes: target name (TBD, format
+                    OSCAR_FC_H753), MCU define STM32H743xx, sensor defines for the ICM-40609-D, ENS220 barometer
+                    (driver TBD), and MMC5983MA magnetometer (driver TBD). The receiver will use
+                    USE_SERIALRX_CRSF on the ELRS UART, with 4&times; DSHOT300 motor outputs on TIM1/TIM8 channels
+                    and an 8&nbsp;kHz PID loop with bidirectional DSHOT enabled.
+                </p>
+                <p>The ENS220 barometer and MMC5983MA magnetometer are not in mainline Betaflight as of this revision.
+                    Driver work is required before the Betaflight path is functional.</p>
+                <p>
+                    <strong>Path 2: Custom research firmware.</strong> A bare-metal or HAL-based firmware built on
+                    STM32CubeIDE for downstream research work. Both paths flash over USB DFU (BOOT0 switch high) or
+                    over SWD.
+                </p>
+                <p>Flashing. Both paths flash over USB DFU (BOOT0 switch high, see Section 4.2.3) or over SWD. A
+                    standalone How to Flash document will accompany the firmware release.</p>
+
+                <h3 id="connector-pinout-summary">Connector Pinout Summary</h3>
+                <p><em>Under construction — to be developed next semester.</em></p>
+
+                <h2 id="block-by-block-verification">Block by Block Verification</h2>
+
+                <h3 id="power-tree">Power Tree</h3>
+
+                <h4 id="input-protection-tvs">Input Protection &amp; TVS Diodes</h4>
+                <p>This section covers three distinct protection elements: general purpose TVS diodes on exposed
+                    external signal lines, the dedicated USB data-line ESD array, and the diode array network that
+                    isolates the dual power sources.</p>
+
+                <p><strong>Key TVS Selection Parameters.</strong> A TVS diode is characterized by four parameters that
+                    together determine whether it will protect the downstream circuit without disturbing it:</p>
+                <ul>
+                    <li><strong>Reverse stand-off voltage (V<sub>RWM</sub>):</strong> Must exceed the highest
+                        steady-state signal voltage on the protected line.</li>
+                    <li><strong>Breakdown / clamping voltage (V<sub>BR</sub> or V<sub>CL</sub>):</strong> The clamp
+                        voltage must stay below the protected device's absolute maximum input rating.</li>
+                    <li><strong>Dynamic resistance (R<sub>DYN</sub>):</strong> Lower R<sub>DYN</sub> means the clamp
+                        voltage rises less under high surge currents.</li>
+                    <li><strong>Line capacitance (C<sub>Line</sub>):</strong> On high-speed signals this directly
+                        degrades edge rates.</li>
+                </ul>
+
+                <h4 id="tvs-esd601">General Purpose TVS — TI ESD601</h4>
+                <p>The TI ESD601 was selected for ESD protection on exposed external signal and power pins (UART
+                    headers, SWD Debug, 3.3V, etc). The diode is bidirectional and sized as a 0402 device with the 18V
+                    reverse stand off, 33V clamp at 2.77A, a dynamic resistance of 0.9Ω and a typical line capacitance
+                    of 0.3pF, this is from figure 5.1 of electrical characteristics from ESD601. The ESD601 carries IEC
+                    61000-4-2 ratings of 15kV contact and 15kV air discharge, which is well above the required
+                    <a
+                        href="https://www.esda.org/esd-overview/esd-fundamentals/part-6-esd-standards/#:~:text=A%20separate%20class%20of%20standards,cable%20discharge%20events%20(CDE).">IEC
+                        61000-4-2</a> approval of 8kV contact and 15kV air discharge.
+                </p>
+
+                <h4 id="tvs-usblc6">USB Data-Line Protection — ST USBLC6-2</h4>
+                <p>
+                    The USB D+ and D- lines are exposed externally though the USB-C connector, making them vulnerable to
+                    ESD events before the signal reaches the MCU. The USBLC6-2SC6 is a dedicated USB ESD protection
+                    array in an SOT-23-6 package, placed as close to the connector as possible on F.Cu. The part
+                    contains two diode pairs, one for D+ and one for the D-, with a shared VBUS rail and a shared
+                    ground. Any positive ESD transient on either dataline is clamped to VBUS any negative transient is
+                    clamped to GND. The clamping voltage stays well below the STM32H7's GPIO absolute maximum of 4.0V
+                    (STM32H753 datasheet, Section 6.3.1).
+                </p>
+                <p>Key parameters from the USBLC6-2 datasheet (Table 2, Electrical Characteristics):</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Value</th>
+                            <th>Requirement</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Reverse stand-off voltage</td>
+                            <td>5&nbsp;V</td>
+                            <td>Matches VBUS (5&nbsp;V USB)</td>
+                        </tr>
+                        <tr>
+                            <td>Line capacitance (D+/D&minus;)</td>
+                            <td>1.7&nbsp;pF maximum</td>
+                            <td>Low enough for USB FS (12&nbsp;Mbps)</td>
+                        </tr>
+                        <tr>
+                            <td>IEC 61000-4-2 contact discharge</td>
+                            <td>&plusmn;8&nbsp;kV</td>
+                            <td>&plusmn;8&nbsp;kV</td>
+                        </tr>
+                        <tr>
+                            <td>IEC 61000-4-2 air discharge</td>
+                            <td>&plusmn;15&nbsp;kV</td>
+                            <td>&plusmn;15&nbsp;kV</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h4 id="power-supply-isolation">Power Supply Source Isolation (USB vs. LiPo)</h4>
+                <p>
+                    The board accepts power from two sources: USB-C (5&nbsp;V nominal) and the ESC-derived rail
+                    (8.8&nbsp;V nominal). Both can be present simultaneously, most commonly during bench testing when
+                    USB is connected for debugging while the battery is also live for the motors. Without isolation, the
+                    higher voltage source would force current backward into the lower one, potentially damaging the USB
+                    host.
+                </p>
+                <p>
+                    Each source feeds a forward-biased diode with both cathodes tied together at the regulator input.
+                    The diode with the higher anode voltage conducts and supplies the load; the other is reverse-biased
+                    and blocks. The OR'd node sits at the conducting source voltage minus one forward drop of
+                    approximately 0.39&nbsp;V.
+                </p>
+                <p>
+                    <strong>Part Selection — ROHM RBE2EA20A.</strong> A dual Schottky in a SOT-25T package, with both
+                    diodes brought out independently so a single part covers both sources. Schottky was chosen for its
+                    lower forward drop (V<sub>F</sub>&nbsp;=&nbsp;0.39&nbsp;V) compared to the 0.7&nbsp;V drop of a
+                    standard PN diode, which directly reduces continuous power dissipation.
+                </p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Rating</th>
+                            <th>Application</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Reverse Voltage — V<sub>R</sub></td>
+                            <td>20&nbsp;V</td>
+                            <td>Blocks 12&nbsp;V max ESC rail from the USB (met with margin)</td>
+                        </tr>
+                        <tr>
+                            <td>Steady Draw — I<sub>O</sub></td>
+                            <td>2&nbsp;A</td>
+                            <td>3.3&nbsp;V regulator maximum output — met with margin</td>
+                        </tr>
+                        <tr>
+                            <td>Surge Current — I<sub>FSM</sub></td>
+                            <td>5&nbsp;A</td>
+                            <td>Regulator inrush headroom</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>
+                    <strong>Tradeoff acknowledgement.</strong> Diode-OR-ing continuously dissipates power proportional
+                    to forward voltage. Worst case at full load: P<sub>diode</sub>&nbsp;=&nbsp;0.39&nbsp;V &times;
+                    2&nbsp;A&nbsp;=&nbsp;780&nbsp;mW. In practice, measured board current during active firmware is
+                    roughly 200&nbsp;mA, giving P<sub>diode</sub>&nbsp;&approx;&nbsp;78&nbsp;mW continuously. The
+                    alternative of a physical jumper separating each power supply was considered but is more tedious
+                    during testing.
+                </p>
+
+                <h4 id="buck-3v3">Buck to 3.3&nbsp;V</h4>
+                <p>
+                    The board's primary rail is 3.3&nbsp;V, supplying the MCU, both IMUs, EEPROM, magnetometer, GNSS,
+                    and SWD header. The Diodes Inc. <strong>AP63203</strong> was selected to step down the OR'd input
+                    (nominally 4.6&nbsp;V to 8.4&nbsp;V after the Schottky drop) to a fixed 3.3&nbsp;V output.
+                </p>
+                <p>
+                    <strong>Why a switching regulator over an LDO.</strong> An LDO dropping the worst-case 8.4&nbsp;V
+                    to 3.3&nbsp;V at 2&nbsp;A output would dissipate 10.2&nbsp;W as heat — unacceptable on a
+                    50&times;50&nbsp;mm board with no heatsinking. Even at a more realistic 300&nbsp;mA load, an LDO
+                    would dissipate 1.53&nbsp;W. The AP63203 at roughly 92% efficiency dissipates approximately
+                    86&nbsp;mW for the same 300&nbsp;mA load, which is acceptable.
+                </p>
+                <figure>
+                    <img src="../../HardwareImages/FC/figure2.png" alt="AP63203 Buck Regulator"
+                        style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" />
+                    <figcaption>Figure 2: AP63203 Buck Regulator</figcaption>
+                </figure>
+                <p>C10 (10&nbsp;&mu;F) is the input bulk cap, L1 (3.9&nbsp;&mu;H) and C12 (100&nbsp;nF, bootstrap)
+                    follow the datasheet recommended values, and C14/C15 (2&times;&nbsp;22&nbsp;&mu;F) form the output
+                    filter. JP2 isolates the buck output from the 3.3&nbsp;V rail during bring-up so the regulator can
+                    be verified before any downstream load is connected.</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Rating</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Input Voltage Range — V<sub>IN</sub></td>
+                            <td>3.8&nbsp;V - 32&nbsp;V</td>
+                        </tr>
+                        <tr>
+                            <td>Output Current — I<sub>OUT</sub></td>
+                            <td>2&nbsp;A continuous</td>
+                        </tr>
+                        <tr>
+                            <td>Switching frequency — f<sub>SW</sub></td>
+                            <td>1.1&nbsp;MHz</td>
+                        </tr>
+                        <tr>
+                            <td>Fixed Output Voltage — V<sub>OUT</sub></td>
+                            <td>3.3&nbsp;V</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>
+                    <strong>Component value verification.</strong> Component values were taken from AP63203 datasheet
+                    Table 2 (recommended selection for fixed 3.3V output). The calculations below verify they satisfy
+                    the design equations at the worst-case input voltage.
+                </p>
+                <p>Looking at the worst case ripple is highest VIN.
+                    Using VIN = 8.4V, VOUT = 3.3V, fSW = 1.1MHz, and recommend L = 3.9H.</p>
+                <img src="../../HardwareImages/FC/componentValueEquations.png" alt="Component Value Calculations"
+                    style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" />
+                <p>The datasheet targets a ripple ratio between 30% and 50% for optimal inductor sizing. At 23.4% our
+                    inductor sits below the rated range which means the recommended inductor is slightly oversized
+                    relative to where the datasheet would place the optimum. Having a smaller &delta;I<sub>L</sub> means
+                    that our peak current is less from equation 8, in addition that we will have a smaller ripple which
+                    is a benefit for this design. </p>
+                <p>The minimum output capacitance to hold a 100mV overshoot during a full 2A load step <em>(AP63203 Eq.
+                        10)</em>:</p>
+                <img src="../../HardwareImages/FC/outputCapacitanceEquations.png" alt="Output Capacitance Calculation"
+                    style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" />
+                <p>The design places 2x 22uF X5R ceramic capacitors on the output for 44uF total, which is above the
+                    minimum. Additional decoupling capacitors distributed along the 3.3V plane increase the effective
+                    output capacitance further.</p>
+                <p>Output voltage ripple from ESR <em>(AP63203 Eq. 9)</em>:</p>
+                <img src="../../HardwareImages/FC/vRipple.png" alt="ESR Ripple Calculation"
+                    style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" />
+                <p>We have already calculated &delta;I<sub>L</sub> from before in Eq. 7. However the capacitors I had
+                    specified for our design did not mention the ESR. However we can estimate, based on utilizing a
+                    ceramic capacitor rated at X5R, we can expect an ESR &lt; 0.015 from <a
+                        href="https://web.archive.org/web/20221015065249/http://my.execpc.com/~endlr/esr.html">here</a>.
+                    Making these assumptions, two in parallel of our worst case would assume 7.5mΩ.</p>
+                <img src="../../HardwareImages/FC/vRipple2.png" alt="ESR Ripple Calculation"
+                    style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" />
+                <p>This is approximately 0.1% of V<sub>OUT</sub> which is well inside the supply tolerance for the MCU
+                    and other peripherals. The ICM-40609-D is the most ripple-sensitive load on this rail and its
+                    datasheet allows up to 50 mV peak-to-peak on its supply, so the 3.5 mV figure clears that
+                    requirement by more than an order of magnitude even before accounting for the IMU's local
+                    decoupling.</p>
+                <figure>
+                    <img src="../../HardwareImages/FC/figure3.png" alt="AP63203 Layout"
+                        style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" />
+                    <figcaption>Figure 3: AP63203 Layout</figcaption>
+                </figure>
+                <p>The high-di/dt loop (input cap C1 to VIN to GND return) is kept tight on F.Cu with a single short
+                    return path to minimize loop area. The SW node copper (green) is held to the minimum area needed to
+                    carry inductor current, since any extra copper here radiates at f<sub>SW</sub> . The Output caps C1
+                    and C2 return to the same GND pour as the input cap, finally the feedback trace (red dashed) is
+                    routed away from the SW node to keep switching noise out of the Feedback path. </p>
+
+                <!-- LEFT OFF HERE -->
+                <h4 id="ldo-1v8">Linear Regulator to 1.8&nbsp;V</h4>
+                <p>
+                    The ENS220 barometer requires a dedicated 1.8&nbsp;V supply. The Microchip
+                    <strong>MIC5317-1.8YM5</strong> (SOT23-5) is a fixed 1.8&nbsp;V, 150&nbsp;mA LDO with a 2.5&nbsp;V
+                    to 6&nbsp;V input range. Feeding 3.3&nbsp;V from the AP63203 directly into VIN is within spec. EN
+                    is tied to V<sub>IN</sub>, so the regulator turns on whenever the 3.3&nbsp;V rail is present.
+                </p>
+                <p>
+                    <strong>Dropout check.</strong> Maximum dropout at 150&nbsp;mA is 380&nbsp;mV, so the minimum
+                    V<sub>IN</sub> needed is 1.8&nbsp;V&nbsp;+&nbsp;0.38&nbsp;V&nbsp;=&nbsp;2.18&nbsp;V. The 3.3&nbsp;V
+                    supply gives 1.12&nbsp;V of headroom, so dropout is not a concern.
+                </p>
+                <p>
+                    <strong>Thermal check.</strong> The ENS220 is the only load on this rail, consuming 75&nbsp;&mu;A
+                    typical. Using 100&nbsp;&mu;A as a conservative bound:
+                </p>
+                <p style="font-family: monospace; padding-left: 1.5rem;">
+                    P<sub>D</sub> = (3.3&nbsp;V &minus; 1.8&nbsp;V) &times; 0.0001&nbsp;A = 0.15&nbsp;mW<br>
+                    T<sub>J</sub> = 85&deg;C + 0.15&nbsp;mW &times; 253&deg;C/W = 85.04&deg;C
+                </p>
+                <p>
+                    Junction temperature is essentially equal to ambient at this load level, so thermal performance is
+                    not a binding constraint. JP1 sits between the LDO output and the ENS220 supply pin; it is left
+                    open during initial bring-up so the 1.8&nbsp;V rail can be measured without risk to the barometer,
+                    then bridged with solder for normal operation.
+                </p>
+
+                <h3 id="mcu">MicroController Unit</h3>
+
+                <h4 id="mcu-selection">MCU Selection Justification (STM32H753 vs. F4/F7/G4)</h4>
+                <p>
+                    Flight controller MCU selection is constrained by three dominant pressures: the control loop must
+                    close at a rate high enough that gyro samples do not age between iterations, the chip must expose
+                    enough timers, DMA streams, and serial peripherals to drive every motor and sensor without pin
+                    conflicts, and the firmware target should align with a maintained Betaflight build.
+                </p>
+                <p>
+                    <strong>Part selection — STM32H753VIT6.</strong> Single-core Cortex-M7 at 480&nbsp;MHz with a
+                    double-precision FPU, 16&nbsp;kB cache, 2&nbsp;MB dual-bank flash, 1&nbsp;MB RAM, and an LQFP100
+                    package. The 480&nbsp;MHz core delivers roughly 3&times; the cycles per control period of the F4 at
+                    168&nbsp;MHz, and roughly 2&times; an F7 at 216&nbsp;MHz. The double-precision FPU matters for
+                    research add-ons where outer-loop estimators operating on accumulated state are sensitive to
+                    single-precision drift.
+                </p>
+                <p>
+                    The DMAMUX subsystem is the second decisive feature. On F4-class parts each peripheral is
+                    hard-wired to a specific DMA stream, which forces the well-known Betaflight pin-conflict tables. On
+                    the H7, DMAMUX1 and DMAMUX2 route any peripheral request to any DMA stream, so the four DSHOT
+                    outputs, the SPI buses to both IMUs, the I²C bus to the barometer, and every UART coexist without
+                    that combinatorial constraint.
+                </p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Resource</th>
+                            <th>H753VIT6 Capacity</th>
+                            <th>Application Demand</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Core clock</td>
+                            <td>480&nbsp;MHz Cortex-M7 + DP FPU</td>
+                            <td>Inner loop, filtering, headroom for user code</td>
+                        </tr>
+                        <tr>
+                            <td>Flash</td>
+                            <td>2&nbsp;MB</td>
+                            <td>Betaflight, configuration, OSD, etc.</td>
+                        </tr>
+                        <tr>
+                            <td>RAM</td>
+                            <td>1&nbsp;MB</td>
+                            <td>HAL-based drivers</td>
+                        </tr>
+                        <tr>
+                            <td>Advanced timers</td>
+                            <td>TIM1, TIM8</td>
+                            <td>Up to 8 DSHOT channels with complementary outputs</td>
+                        </tr>
+                        <tr>
+                            <td>USART / UART</td>
+                            <td>4 USART + 4 UART</td>
+                            <td>ESC telemetry, GPS, ELRS, debug</td>
+                        </tr>
+                        <tr>
+                            <td>SPI</td>
+                            <td>6</td>
+                            <td>IMU selection</td>
+                        </tr>
+                        <tr>
+                            <td>I2C</td>
+                            <td>4</td>
+                            <td>Barometer, magnetometer, EEPROM</td>
+                        </tr>
+                        <tr>
+                            <td>USB</td>
+                            <td>OTG FS and OTG HS</td>
+                            <td>Device FS</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>
+                    <strong>Tradeoff.</strong> The H753VIT6 is a 100-pin LQFP with 0.5&nbsp;mm pitch and draws
+                    meaningfully more current than the F4 at idle (up to 200&nbsp;mA vs. 10–20&nbsp;mA), and is
+                    approximately 3&times; more expensive. It also occupies more board area. These tradeoffs were
+                    accepted in exchange for the performance headroom and flexible DMA routing.
+                </p>
+
+                <h4 id="clock-source">Clock Source</h4>
+                <p>
+                    The design uses the internal 64&nbsp;MHz HSI as the PLL input and leaves the HSE pins unpopulated.
+                    The OSC_IN and OSC_OUT footprints were removed from this revision — the crystal, load capacitors,
+                    and feedback resistor are not on the board.
+                </p>
+                <p>
+                    HSI is sufficient because this board uses neither USB High-Speed (480&nbsp;Mbps) nor Ethernet MAC,
+                    the two cases that normally force an external HSE. Full-Speed USB (12&nbsp;Mbps) tolerates the HSI
+                    because the H7's Clock Recovery System (CRS) trims HSI48 against USB SOF packets in hardware,
+                    pulling the 48&nbsp;MHz USB clock inside the &plusmn;0.25% Full-Speed spec without any external
+                    reference. DSHOT, UART, SPI, and I²C all derive their bit timing from the same SYSCLK and tolerate
+                    the HSI's &plusmn;1% factory trim without issue.
+                </p>
+
+                <h4 id="boot-reset">Boot and Reset Circuitry</h4>
+                <p>
+                    <strong>Boot select — SPDT switch on BOOT0.</strong> A Single Pole Double Throw (SPDT) switch ties
+                    BOOT0 either to 3.3&nbsp;V (system bootloader / DFU mode) or to GND (user flash / normal
+                    operation). R12 sits in series between the switch wiper and BOOT0 to bound fault current if the pin
+                    is externally driven while the switch holds the opposite rail, turning a potential hard short into a
+                    sub-mA event.
+                </p>
+                <p>
+                    <strong>Reset — NRST with debounce cap and pushbutton.</strong> NRST is tied directly to a
+                    0.1&nbsp;&mu;F capacitor to GND with SW2 providing an optional external reset path to ground. NRST
+                    has a permanent internal pull-up (~40&nbsp;k&Omega; typical), so no external pull-up is needed. The
+                    RC time constant is:
+                </p>
+                <p style="font-family: monospace; padding-left: 1.5rem;">
+                    &tau; = 40&nbsp;k&Omega; &times; 0.1&nbsp;&mu;F = 4&nbsp;ms
+                </p>
+                <p>This is well above any contact bounce duration and above the H7's reset recognition thresholds.</p>
+
+                <h4 id="swd-debug">SWD Debug Interface</h4>
+                <p>
+                    The SWD port provides flash programming, breakpoint debugging, and register inspection. SWD was
+                    chosen over JTAG because it uses only two signal pins instead of five, freeing PB3, PB4, and PA15
+                    for other functions.
+                </p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Signal</th>
+                            <th>Pin</th>
+                            <th>Function</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>SWDIO</td>
+                            <td>PA13</td>
+                            <td>Bidirectional data</td>
+                        </tr>
+                        <tr>
+                            <td>SWCLK</td>
+                            <td>PA14</td>
+                            <td>Clock from debugger</td>
+                        </tr>
+                        <tr>
+                            <td>3.3&nbsp;V</td>
+                            <td>header</td>
+                            <td>Target reference voltage</td>
+                        </tr>
+                        <tr>
+                            <td>GND</td>
+                            <td>header</td>
+                            <td>Return path (Reference)</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>
+                    PA13 and PA14 are dedicated SWD pins that come up in their debug alternate function automatically
+                    out of reset, so no firmware configuration is required to attach a debugger to a freshly programmed
+                    or bricked part. No external pull-up resistors are needed — the H753 enables the correct internal
+                    pull-up on PA13 and a pull-down on PA14 while the pins are in their debug alternate function.
+                </p>
+
+                <h4 id="debug-leds">Debug LEDs</h4>
+                <p>The Debug LEDs serve two purposes:</p>
+                <ul>
+                    <li>Allow firmware development testing and indicate if any thread has ended for any reason.</li>
+                    <li>Used for calibration before flight to verify all sensors are well calibrated before flying.</li>
+                </ul>
+                <p>
+                    The board contains a red, green, and blue LED. The red LED is tied to the output of the 3.3&nbsp;V
+                    regulator to indicate if power is on (180&nbsp;&Omega; current-limiting resistor, ~7.5&nbsp;mA).
+                    The blue and green LEDs are driven from GPIO outputs for debugging purposes (50&nbsp;&Omega; and
+                    60&nbsp;&Omega; respectively, ~10&nbsp;mA each).
+                </p>
+
+                <h3 id="communication-io">Communication &amp; I/O</h3>
+
+                <h4 id="usb-fs">USB 2.0 Full Speed Implementation</h4>
+                <p>
+                    USB 2.0 Full Speed (12&nbsp;Mbps) was selected as the bench interface because it is sufficient for
+                    Betaflight Configurator, firmware flashing via DFU, and blackbox log retrieval, without requiring
+                    the external crystal that USB High-Speed demands. The connector is a 16-pin USB-C receptacle (J1)
+                    with CC1 and CC2 tied through 5.1&nbsp;k&Omega; resistors to GND, signaling to the host that the
+                    device accepts 5&nbsp;V at up to 1.5&nbsp;A (USB-C default current). VBUS is sensed through a
+                    resistor divider (R4 5.1&nbsp;k&Omega; / R6 15&nbsp;k&Omega;) that produces ~3.0&nbsp;V at the
+                    MCU's VBUS sensing pin. SBU1, SBU2, and the shield pin (S1) are left unconnected.
+                </p>
+                <p>
+                    The D+ and D&minus; traces are routed as a Coplanar Waveguide with Ground (CPWG) differential pair
+                    on F.Cu, targeted at 45&nbsp;&Omega; single-ended (90&nbsp;&Omega; differential). Using the JLCPCB
+                    4-layer stackup with a dielectric height of 0.21&nbsp;mm (&epsilon;<sub>r</sub>&nbsp;=&nbsp;4.34)
+                    and a 0.2&nbsp;mm gap to the coplanar ground, a trace width of 0.2286&nbsp;mm yields
+                    Z<sub>0</sub>&nbsp;&asymp;&nbsp;45.3&nbsp;&Omega;. Both traces are length-matched to 11.0&nbsp;mm.
+                </p>
+
+                <h4 id="dshot-outputs">DSHOT Motor Outputs</h4>
+                <p>
+                    Four DSHOT300 motor command lines are driven from STM32H7 timer channels (TIM1/TIM8) using DMA,
+                    enabling the digital protocol without CPU intervention during each frame. Bidirectional DSHOT is
+                    supported in hardware. The specific timer-to-pin mapping will be finalized during firmware bring-up
+                    and documented in a companion target definition file.
+                </p>
+
+                <h3 id="sensors">Sensors</h3>
+                <p>The FC integrates sensors sufficient for both manual and autonomous flight modes. Manual flight
+                    requires an IMU and magnetometer for attitude estimation. Autonomous flight additionally requires a
+                    barometer for altitude hold and GNSS for position.</p>
+
+                <h4 id="primary-imu">Primary IMU — ICM-40609-D</h4>
+                <p>The ICM-40609-D was selected as the primary inertial measurement unit. Key characteristics:</p>
+                <ul>
+                    <li><strong>Power consumption:</strong> 3.3&nbsp;V &times; 0.77&nbsp;mA = 2.5&nbsp;mW</li>
+                    <li><strong>Output data rate:</strong> Up to 32&nbsp;kHz for both accelerometer and gyroscope</li>
+                    <li><strong>Gyroscope range:</strong> Up to &plusmn;2000&nbsp;&deg;/s (handles fast flight
+                        maneuvers)</li>
+                    <li><strong>Accelerometer range:</strong> Up to &plusmn;32&nbsp;g</li>
+                    <li><strong>Sensitivity error:</strong> &plusmn;0.5% for both accel and gyro</li>
+                </ul>
+                <p>The IMU connects to the MCU over SPI. Local decoupling consists of a 100&nbsp;nF and a
+                    2.2&nbsp;&mu;F capacitor on the VDD supply pin.</p>
+
+                <h4 id="secondary-imu">Secondary IMU — BNO055</h4>
+                <p>
+                    The BNO055 was included as a failsafe / backup IMU because team members had prior programming
+                    experience with it, making it easier to bring up quickly. However, it offers a lower output data
+                    rate and no significant advantage in noise or error performance over the ICM-40609-D. It was not
+                    utilized in this revision and <strong>will be removed in the next revision</strong>.
+                </p>
+
+                <h4 id="barometer">Barometer — ENS220</h4>
+                <p>The ENS220 was selected to provide altitude and temperature measurements. Key characteristics:</p>
+                <ul>
+                    <li><strong>Power consumption:</strong> 1.8&nbsp;V &times; 75&nbsp;&mu;A = 1.35&nbsp;&mu;W</li>
+                    <li><strong>Output data rate:</strong> Up to 1&nbsp;kHz</li>
+                    <li><strong>Relative altitude accuracy:</strong> &plusmn;20&nbsp;cm in air</li>
+                </ul>
+                <p>The ENS220 is powered from the dedicated 1.8&nbsp;V LDO described in Section 4.1.4 and communicates
+                    over I2C with 2.7&nbsp;k&Omega; pull-up resistors.</p>
+
+                <h4 id="eeprom">EEPROM — ST M24512-RMN6TP</h4>
+                <p>
+                    A 512-Kbit serial I2C bus EEPROM included for both flight data logging and USB communication in the
+                    future. Address pins E0-E2 are tied to GND, setting the I2C address to 0x50 as expected by the
+                    STM32 HAL. WC# is tied high to enable write operations during normal use. Supply range is
+                    2.4-5.5&nbsp;V; the 3.3&nbsp;V rail is well within spec.
+                </p>
+
+                <h4 id="off-board-sensors">Off-Board Sensors (GNSS, Magnetometer)</h4>
+                <p>
+                    <strong>Magnetometer — MMC5983MA.</strong> Selected for orientation measurement.
+                </p>
+                <ul>
+                    <li><strong>Power consumption:</strong> 3.3&nbsp;V &times; 1&nbsp;&mu;A = 3.3&nbsp;&mu;W</li>
+                    <li><strong>Output data rate:</strong> Up to 1&nbsp;kHz</li>
+                    <li><strong>Heading accuracy:</strong> &plusmn;0.5&deg;</li>
+                </ul>
+                <p>
+                    The magnetometer was placed on a separate board further from the FC to avoid EMI interference from
+                    the motors, which could otherwise corrupt heading measurements.
+                </p>
+                <p>
+                    <strong>GNSS — TESEO-LIV3R.</strong> Selected for X/Y position estimation.
+                </p>
+                <ul>
+                    <li><strong>Power consumption (tracking):</strong> 3.3&nbsp;V &times; 21&nbsp;mA = 70&nbsp;mW</li>
+                    <li><strong>Constellations:</strong> GPS, GLONASS, BeiDou</li>
+                    <li><strong>Output data rate:</strong> Up to 10&nbsp;Hz</li>
+                    <li><strong>Position accuracy:</strong> &lt;1.8&nbsp;m CEP (50%)</li>
+                </ul>
+                <p>
+                    The GNSS module was also placed on a separate board for RF reasons: a patch antenna requires a long,
+                    uninterrupted ground plane and no boundary conditions that would attenuate the weak GPS L1 signal.
+                    Both the magnetometer and the GNSS/receiver boards are contained on the same daughter board mounted
+                    directly above the flight controller. Full design justification for the GNSS front-end is provided
+                    in the companion GNSS Design Justification document.
+                </p>
+
+            </section>
+
+            <section>
+                <h2>Back to Hardware</h2>
+                <a href="../hardware.html" class="back-link">← Return to Hardware Overview</a>
+            </section>
+
+        </main>
+    </div>
+
+    <footer>
+        <div class="footer-brand">OSCAR <span>Docs</span></div>
+        <ul class="footer-links">
+            <li><a href="../contact.html">Contact Us</a></li>
+            <li><a href="https://sddec26-05.sd.ece.iastate.edu/">Senior Design Website</a></li>
+            <li><a href="https://github.com/gracefinger/OSCAR_Documentation.github.io">GitHub</a></li>
+        </ul>
+    </footer>
+
+    <script src="../../components/main.js"></script>
+
+</body>
+
+</html>
