@@ -1097,10 +1097,10 @@
                 <!-- LEFT OFF HERE-->
                 <h4 id="swd-debug">SWD Debug Interface</h4>
                 <p>
-                    The SWD port provides flash programming, breakpoint debugging, and register inspection. SWD was
-                    chosen over JTAG because it uses only two signal pins instead of five, freeing PB3, PB4, and
-                    PA15
-                    for other functions.
+                    The SWD (Serial Wire Debug) port is the development and recovery interface for the MCU; it provides
+                    flash programming, breakpoint debugging, and register inspection. SWD was chosen over the older JTAG
+                    mode because it uses only two signal pins instead of five, freeing PB3, PB4, and PA15 for other
+                    functions.
                 </p>
                 <table>
                     <thead>
@@ -1133,14 +1133,14 @@
                         </tr>
                     </tbody>
                 </table>
-                <p>
-                    PA13 and PA14 are dedicated SWD pins that come up in their debug alternate function
-                    automatically
-                    out of reset, so no firmware configuration is required to attach a debugger to a freshly
-                    programmed
-                    or bricked part. No external pull-up resistors are needed — the H753 enables the correct
-                    internal
-                    pull-up on PA13 and a pull-down on PA14 while the pins are in their debug alternate function.
+                <figure>
+                    <img src="../../HardwareImages/FC/figure9.png" alt="SWD Header"
+                        style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" />
+                    <figcaption>Figure 9: SWD Board and Schematic</figcaption>
+                </figure>
+                <p>PA13 and PA14 are dedicated SWD pins listed in the H753 datasheet pinout tables (Section 5, “pinouts
+                    and pin description). There is no external pull up resistors, The H753 enables the correct internal
+                    pull up on PA13 as well as a pull down on PA14 while the pins are in their debug alternate function
                 </p>
 
                 <h4 id="debug-leds">Debug LEDs</h4>
@@ -1151,16 +1151,20 @@
                     </li>
                 </ul>
                 <p>
-                    The board contains a red, green, and blue LED. The red LED is tied to the output of the
-                    3.3&nbsp;V
-                    regulator to indicate if power is on (180&nbsp;&Omega; current-limiting resistor, ~7.5&nbsp;mA).
-                    The blue and green LEDs are driven from GPIO outputs for debugging purposes (50&nbsp;&Omega; and
-                    60&nbsp;&Omega; respectively, ~10&nbsp;mA each).
+                    The board contains a red, green, and blue led. The red led is set to the output of the 3.3V
+                    regulator to indicate if power is on. While the blue and green leds are set from the GPIO's to
+                    indicate for debugging purposes.
                 </p>
+                <figure>
+                    <img src="../../HardwareImages/FC/figure10.png" alt="Debug LEDs"
+                        style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" />
+                    <figcaption>Figure 10: Debug LEDs Schematic</figcaption>
+                </figure>
 
                 <h3 id="communication-io">Communication &amp; I/O</h3>
+                <p><strong>The rest of this documentation is in progress.</strong></p>
 
-                <h4 id="usb-fs">USB 2.0 Full Speed Implementation</h4>
+                <!-- <h4 id="usb-fs">USB 2.0 Full Speed Implementation</h4>
                 <p>
                     USB 2.0 Full Speed (12&nbsp;Mbps) was selected as the bench interface because it is sufficient
                     for
@@ -1277,7 +1281,7 @@
                     directly above the flight controller. Full design justification for the GNSS front-end is
                     provided
                     in the companion GNSS Design Justification document.
-                </p>
+                </p> -->
 
             </section>
 
