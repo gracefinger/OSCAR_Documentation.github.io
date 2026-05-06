@@ -14,7 +14,7 @@
     <nav>
         <ul class="nav-links">
             <li><a href="../../index.html"><span class="nav-dot"></span>Home</a></li>
-            <li><a href="../hardware.html"><span class="nav-dot"></span>Hardware</a></li>
+            <li><a href="../hardware.html" class="active"><span class="nav-dot"></span>Hardware</a></li>
             <li><a href="../firmware.html"><span class="nav-dot"></span>Firmware</a></li>
             <li><a href="../software.html"><span class="nav-dot"></span>Software</a></li>
         </ul>
@@ -38,74 +38,117 @@
                 <h2 id="absolute-system-limits">Absolute System Limits</h2>
 
                 <h3 id="voltage">Voltage</h3>
-                <p>This Electronic Speed Controller (ESC) is designed to function with a 4S (4 LiPo battery cells in series) with a voltage that ranges from 
-                    <code class="amber">16.8V - 12V</code> during a full battery's charge cycle. The motors turning and stopping can create <strong class="light-red">transient voltage spikes</strong> that are
-                     <code class="amber">50-100%</code> more than the nominal voltage if transient suppression isn't accounted for.</p>
+                <p>This Electronic Speed Controller (ESC) is designed to function with a 4S (4 LiPo battery cells in
+                    series) with a voltage that ranges from
+                    <code class="amber">16.8V - 12V</code> during a full battery's charge cycle. The motors turning and
+                    stopping can create <strong class="light-red">transient voltage spikes</strong> that are
+                    <code class="amber">50-100%</code> more than the nominal voltage if transient suppression isn't
+                    accounted for.
+                </p>
 
                 <h3 id="current">Current</h3>
-                <p>The current motors that we have have a maximum current of 35A per motor. We would like to have support for a wide range of motor 
-                    options. The high end of the 4S motor options are <strong class="emphasis">50A</strong> motors so this is what we have designed for. 
-                    This 50A is only at 100% throttle bursts with regular 50% throttle (typical operation) being about 35% of this or about 20A.</p>
+                <p>The current motors that we have have a maximum current of 35A per motor. We would like to have
+                    support for a wide range of motor
+                    options. The high end of the 4S motor options are <strong class="emphasis">50A</strong> motors so
+                    this is what we have designed for.
+                    This 50A is only at 100% throttle bursts with regular 50% throttle (typical operation) being about
+                    35% of this or about 20A.</p>
 
                 <h3 id="communication-protocol">Communication Protocol</h3>
-                <p>For communicating between the flight controller and ESCs, most modern ESCs support digital communication instead of just 
-                    analog. This is since it is less sensitive to noise which the ESCs generate excess amounts of. We have chosen to design 
-                    around the digital protocol called DSHOT, specifically <strong class="emphasis">DSHOT600</strong>. This protocol also supports bidirectional communication 
-                    so we can send back sensor information to the flight controller from the ESC. For ESC to gate driver communication we will 
+                <p>For communicating between the flight controller and ESCs, most modern ESCs support digital
+                    communication instead of just
+                    analog. This is since it is less sensitive to noise which the ESCs generate excess amounts of. We
+                    have chosen to design
+                    around the digital protocol called DSHOT, specifically <strong class="emphasis">DSHOT600</strong>.
+                    This protocol also supports bidirectional communication
+                    so we can send back sensor information to the flight controller from the ESC. For ESC to gate driver
+                    communication we will
                     use simple PWM signals. These PWM signals can range from <code class="amber">16-48kHz</code>.</p>
 
                 <h3 id="firmware">Firmware</h3>
-                <p>We would like to create our own custom firmware to communicate with the Flight Controller and command motors.
-                     However, we have also designed compatibility with an alternative open source firmware called <strong class="emphasis">AM32</strong> which is designed 
-                     to run on 32-bit ARM processors like the ones in the STM microcontrollers we have designed for.</p>
+                <p>We would like to create our own custom firmware to communicate with the Flight Controller and command
+                    motors.
+                    However, we have also designed compatibility with an alternative open source firmware called <strong
+                        class="emphasis">AM32</strong> which is designed
+                    to run on 32-bit ARM processors like the ones in the STM microcontrollers we have designed for.</p>
 
                 <h3 id="motor-driving-technique">Motor Driving Technique</h3>
-                <p>For our design, we have chosen to drive the motors with a <strong class="emphasis">6-step trapezoidal commutation</strong> technique. This technique is 
-                    simple yet effective for high speed motor control. In 6-step commutation, two phases are energized at a time leaving 
-                    the third phase floating which can be used to measure the phase of the motor in its rotation. This will be done using a 
-                    back-emf (electromotive force) detection network and comparators on the microcontroller to detect each motor commutation.</p>
+                <p>For our design, we have chosen to drive the motors with a <strong class="emphasis">6-step trapezoidal
+                        commutation</strong> technique. This technique is
+                    simple yet effective for high speed motor control. In 6-step commutation, two phases are energized
+                    at a time leaving
+                    the third phase floating which can be used to measure the phase of the motor in its rotation. This
+                    will be done using a
+                    back-emf (electromotive force) detection network and comparators on the microcontroller to detect
+                    each motor commutation.</p>
 
                 <h3 id="size">Size</h3>
-                <p>The size of our ESC board is determined by the size of our quadcopter frame. We would like to keep this working with a 5 
-                    inch drone. This limits the maximum size of each board to about <code class="amber">50x50mm</code>. This size is so restrictive with our manufacturing 
-                    capabilities that we have chosen to put just two motor control circuits on each ESC board. Two boards total with two ESCs on 
+                <p>The size of our ESC board is determined by the size of our quadcopter frame. We would like to keep
+                    this working with a 5
+                    inch drone. This limits the maximum size of each board to about <code class="amber">50x50mm</code>.
+                    This size is so restrictive with our manufacturing
+                    capabilities that we have chosen to put just two motor control circuits on each ESC board. Two
+                    boards total with two ESCs on
                     each gets us our 4 motors.</p>
 
                 <h3 id="connections-outputs">Connections &amp; Outputs</h3>
-                <p>We need to connect three wires per motor (one per phase), two battery leads (positive and ground), a programming
-                     connection per microcontroller (SWDIO/SWCLK for both), and a connection to the flight controller. The flight 
-                     controller will need to share power from the battery which is connected to the ESC boards. We have chosen to make 
-                     one of the ESC boards connect its voltage regulator to the flight controller. This voltage will need to support the 
-                     entire flight controller circuitry as well as any peripherals (Video transmitter, GPS board, IMU, etc.). We will still 
-                     use a separate 3.3v regulator on the flight controller so that it can support USB power as well.</p>
+                <p>We need to connect three wires per motor (one per phase), two battery leads (positive and ground), a
+                    programming
+                    connection per microcontroller (SWDIO/SWCLK for both), and a connection to the flight controller.
+                    The flight
+                    controller will need to share power from the battery which is connected to the ESC boards. We have
+                    chosen to make
+                    one of the ESC boards connect its voltage regulator to the flight controller. This voltage will need
+                    to support the
+                    entire flight controller circuitry as well as any peripherals (Video transmitter, GPS board, IMU,
+                    etc.). We will still
+                    use a separate 3.3v regulator on the flight controller so that it can support USB power as well.</p>
 
                 <h2 id="block-by-block-verification">Block-by-block Verification</h2>
 
                 <h3 id="microcontroller-communication">Microcontroller &amp; Communication</h3>
-                <p>We chose the <strong class="emphasis">STM32G071</strong> as our ESC microcontroller since it is a 32-bit microcontroller that is supported by the AM32 firmware. 
-                    The specific package we chose was the STM32G071KBU3 which is a 32 pin, UFQFPN - Ultra-thin Fine-pitch Quad Flat No-lead 
-                    package. This package is incredibly small but still possible for us to design with by using a PCB stencil and a reflow oven. 
-                    This small package will give us more room to route inside our small <code class="amber">50x50mm</code> design. This design also features a working 
-                    temperature range of <code class="amber">-40°C ~ 125°C</code>. The higher temperature range will extend the MCU lifespan if temperatures rise to the 
+                <p>We chose the <strong class="emphasis">STM32G071</strong> as our ESC microcontroller since it is a
+                    32-bit microcontroller that is supported by the AM32 firmware.
+                    The specific package we chose was the STM32G071KBU3 which is a 32 pin, UFQFPN - Ultra-thin
+                    Fine-pitch Quad Flat No-lead
+                    package. This package is incredibly small but still possible for us to design with by using a PCB
+                    stencil and a reflow oven.
+                    This small package will give us more room to route inside our small <code
+                        class="amber">50x50mm</code> design. This design also features a working
+                    temperature range of <code class="amber">-40°C ~ 125°C</code>. The higher temperature range will
+                    extend the MCU lifespan if temperatures rise to the
                     upper ranges from the high current on the board.</p>
 
                 <h3 id="mosfets">MOSFETs</h3>
-                <p>The MOSFET needs a V<sub>DSS</sub> that exceeds the battery voltage plus any transient spikes. If our battery voltage is 16.8v, 
-                    a safe V<sub>DSS</sub> would be <code class="amber">30v or greater</code>. The chosen MOSFETs have a V<sub>DSS</sub> of <strong class="emphasis">40v</strong>. The next important 
-                    specification is the R<sub>DS(on)</sub> which should be <code class="amber">as low as possible ideally below 2m&#x2126;</code>. This is critical because 
-                    <code class="light-blue">P<sub>loss</sub> = I² × R<sub>DS(on)</sub></code> and I could be as high as 50A bursts. The MOSFET, <strong class="emphasis">STL165N4F8AG</strong> by Infineon, 
-                    is rated to handle 150A and the PowerFlat™ 5x6 package that it comes in is able to handle the ≈ 2.5W of 30A 
-                    continuous current draw. The R<sub>DS(on)</sub> typical value is 2.2m&#x2126; when in the range of <code class="amber">8-10V</code> as can be seen in 
-                    figure 1. <span class="light-red">It is important that our PCB design is able to pull as much heat away from these MOSFETs as possible to 
-                    keep them from overheating at high currents.</span></p>
+                <p>The MOSFET needs a V<sub>DSS</sub> that exceeds the battery voltage plus any transient spikes. If our
+                    battery voltage is 16.8v,
+                    a safe V<sub>DSS</sub> would be <code class="amber">30v or greater</code>. The chosen MOSFETs have a
+                    V<sub>DSS</sub> of <strong class="emphasis">40v</strong>. The next important
+                    specification is the R<sub>DS(on)</sub> which should be <code
+                        class="amber">as low as possible ideally below 2m&#x2126;</code>. This is critical because
+                    <code class="light-blue">P<sub>loss</sub> = I² × R<sub>DS(on)</sub></code> and I could be as high as
+                    50A bursts. The MOSFET, <strong class="emphasis">STL165N4F8AG</strong> by Infineon,
+                    is rated to handle 150A and the PowerFlat™ 5x6 package that it comes in is able to handle the ≈ 2.5W
+                    of 30A
+                    continuous current draw. The R<sub>DS(on)</sub> typical value is 2.2m&#x2126; when in the range of
+                    <code class="amber">8-10V</code> as can be seen in
+                    figure 1. <span class="light-red">It is important that our PCB design is able to pull as much heat
+                        away from these MOSFETs as possible to
+                        keep them from overheating at high currents.</span>
+                </p>
                 <figure>
-                    <img src="../../HardwareImages/ESC/figure1.png" alt="Typical On-Resistance vs. Gate Voltage (from ST)">
+                    <img src="../../HardwareImages/ESC/figure1.png"
+                        alt="Typical On-Resistance vs. Gate Voltage (from ST)">
                     <figcaption>Figure 1: Typical On-Resistance vs. Gate Voltage (from ST)</figcaption>
                 </figure>
-                <p>The last consideration is the gate charge Q<sub>G</sub>. A smaller gate charge results in faster switching and less switching loss 
-                    (heat generated during the transition from off to on and vice-versa). The gate charge at <code class="amber">8-10v 
-                    V<sub>GS</sub></code> and 20V V<sub>DD</sub> is about 25 nC which is very low for a mosfet of this current rating. 
-                    This will allow us to get quick, <code class="amber">sub 100ns</code> switching speed on our MOSFETs.</p>
+                <p>The last consideration is the gate charge Q<sub>G</sub>. A smaller gate charge results in faster
+                    switching and less switching loss
+                    (heat generated during the transition from off to on and vice-versa). The gate charge at <code
+                        class="amber">8-10v 
+                    V<sub>GS</sub></code> and 20V V<sub>DD</sub> is about 25 nC which is very low for a mosfet of this
+                    current rating.
+                    This will allow us to get quick, <code class="amber">sub 100ns</code> switching speed on our
+                    MOSFETs.</p>
                 <figure>
                     <img src="../../HardwareImages/ESC/figure2.png" alt="Typical Gate Charge Characteristics (from ST)">
                     <figcaption>Figure 2: Typical Gate Charge Characteristics (from ST)</figcaption>
@@ -114,54 +157,102 @@
                 <h3 id="gate-drivers">Gate Drivers</h3>
 
                 <h4 id="3-phase-gate-driver-ic">3-phase gate driver IC</h4>
-                <p>For powering each of the brushless DC (BLDC) motors we will need to generate three phases. Each of these phases will need MOSFETs 
-                    that connect to both a high (+Batt) and low (GND) power rail. In order to switch the MOSFETs efficiently, 
-                    the gate voltage needs to be a certain voltage above the source. <span class="light-red">The microcontroller will only generate 3.3V signals </span>
-                    which is not a large enough voltage to switch the MOSFETs efficiently. To generate these six amplified signals 
-                    (one for each MOSFET) we will need to use a 3-phase gate driver IC. Our main considerations for our gate drivers are power 
-                    dissipation, peak current sink/source, shoot-through prevention, bootstrap component choice, and operating voltage.</p>
-                <p>The gate driver supply voltage, G<sub>VDD</sub> should match the voltage we wish to drive the MOSFETs at. From our <a href="#mosfets">MOSFETs</a> design choice we need this to handle at least <code class="amber">8-10V</code>. The high side gate still needs to be able to drive the MOSFET with the high side connected to the load which can be as high as 16.8V. For this reason, the high-side source pin voltage needs to be rated for at least 16.8V plus any transient spikes (see figure 3).</p>
+                <p>For powering each of the brushless DC (BLDC) motors we will need to generate three phases. Each of
+                    these phases will need MOSFETs
+                    that connect to both a high (+Batt) and low (GND) power rail. In order to switch the MOSFETs
+                    efficiently,
+                    the gate voltage needs to be a certain voltage above the source. <span class="light-red">The
+                        microcontroller will only generate 3.3V signals </span>
+                    which is not a large enough voltage to switch the MOSFETs efficiently. To generate these six
+                    amplified signals
+                    (one for each MOSFET) we will need to use a 3-phase gate driver IC. Our main considerations for our
+                    gate drivers are power
+                    dissipation, peak current sink/source, shoot-through prevention, bootstrap component choice, and
+                    operating voltage.</p>
+                <p>The gate driver supply voltage, G<sub>VDD</sub> should match the voltage we wish to drive the MOSFETs
+                    at. From our <a href="#mosfets">MOSFETs</a> design choice we need this to handle at least <code
+                        class="amber">8-10V</code>. The high side gate still needs to be able to drive the MOSFET with
+                    the high side connected to the load which can be as high as 16.8V. For this reason, the high-side
+                    source pin voltage needs to be rated for at least 16.8V plus any transient spikes (see figure 3).
+                </p>
                 <figure>
                     <img src="../../HardwareImages/ESC/figure3.png" alt="Gate driver circuit example (from TI)">
                     <figcaption>Figure 3: Gate driver circuit example (from TI)</figcaption>
                 </figure>
-                <p>A high-side source voltage of <code class="amber">30V or higher</code> will work. The logic input voltage needs to support our MCU logic level of 3.3V and
-                    the PWM frequency should support the fastest PWM frequency we plan to use for our 4S drone which is <code class="amber">48kHz</code>. In general, <span class="light-red">the gate 
-                        driver supply voltage should be above the Undervoltage Lockout (UVLO)</span> to prevent it from turning itself off. For our design, the UVLO should not be 
-                            greater than the <code class="amber">8-10V</code> gate driver voltage we choose from our voltage regulator.</p>
+                <p>A high-side source voltage of <code class="amber">30V or higher</code> will work. The logic input
+                    voltage needs to support our MCU logic level of 3.3V and
+                    the PWM frequency should support the fastest PWM frequency we plan to use for our 4S drone which is
+                    <code class="amber">48kHz</code>. In general, <span class="light-red">the gate
+                        driver supply voltage should be above the Undervoltage Lockout (UVLO)</span> to prevent it from
+                    turning itself off. For our design, the UVLO should not be
+                    greater than the <code class="amber">8-10V</code> gate driver voltage we choose from our voltage
+                    regulator.</p>
 
-                <p>Next is gate driver power dissipation. This can be found from the equation <code class="light-blue">P<sub>Drive</sub> = 2(Q<sub>G</sub> × V<sub>Drive</sub> × f<sub>PWM</sub>)</code>. The 2x comes from having to switch two MOSFETs. Our gate charge is about 25nC from <a href="#mosfets">MOSFETs</a> and our V<sub>Drive</sub> is <code class="amber">8-10V</code> and our PWM speed is <code class="amber">24-48kHz</code>. So the max power dissipation for our design is:</p>
+                <p>Next is gate driver power dissipation. This can be found from the equation <code
+                        class="light-blue">P<sub>Drive</sub> = 2(Q<sub>G</sub> × V<sub>Drive</sub> × f<sub>PWM</sub>)</code>.
+                    The 2x comes from having to switch two MOSFETs. Our gate charge is about 25nC from <a
+                        href="#mosfets">MOSFETs</a> and our V<sub>Drive</sub> is <code class="amber">8-10V</code> and
+                    our PWM speed is <code class="amber">24-48kHz</code>. So the max power dissipation for our design
+                    is:</p>
                 <p><code class="light-blue">P<sub>Drive</sub> = 2(25nC × 10V × 48,000Hz) = 0.026W</code>.</p>
                 <p>This is very small and most gate drivers will be able to handle this.</p>
-                <p>In order to reduce switching losses, the switching time should be <code class="amber">less than 100ns</code>. If we aim for 50ns then <code class="light-blue">I<sub>peak</sub> = 28nC / 50ns = 0.56A</code>. The peak current source capabilities of the gate driver we choose should be able to satisfy this 560mA.</p>
-                <p>The bootstrap circuitry will require a bootstrap diode to allow the bootstrap capacitor to charge up when the low side MOSFET is conducting. Some gate drivers have this built into them. It is better for our case if the bootstrap diode is built in since this will reduce manufacturing complexity, BOM size, and routing space requirements.</p>
-                <p>The gate driver, <strong class="emphasis">DRV8300UDRGER</strong>, is a perfect candidate for many reasons. First, it has built-in bootstrap diodes so we don't need to find those separately. Second, the peak source current is 0.75A and 1.5A sink current which satisfies our <code class="amber">0.56A</code> design choice. Next, the voltage rating is 100V which greatly exceeds the battery voltage and any transient spikes. The gate driver voltage also supports <code class="amber">8-20V</code> which fits our requirement. Logic level high is 2.0V which supports our 3.3V logic.</p>
-                <p>The maximum PWM frequency is 200kHz which satisfies the <code class="amber">48kHz</code> constraint. This IC also has 200ns of 
-                    dead-time (this is much less than the software dead-time built into AM32 at 830ns) and built-in cross conduction prevention to <span class="light-red">
-                        prevent both the high and low MOSFETs from conducting simultaneously</span>, shorting the battery to ground and burning up the board.</p>
+                <p>In order to reduce switching losses, the switching time should be <code
+                        class="amber">less than 100ns</code>. If we aim for 50ns then <code
+                        class="light-blue">I<sub>peak</sub> = 28nC / 50ns = 0.56A</code>. The peak current source
+                    capabilities of the gate driver we choose should be able to satisfy this 560mA.</p>
+                <p>The bootstrap circuitry will require a bootstrap diode to allow the bootstrap capacitor to charge up
+                    when the low side MOSFET is conducting. Some gate drivers have this built into them. It is better
+                    for our case if the bootstrap diode is built in since this will reduce manufacturing complexity, BOM
+                    size, and routing space requirements.</p>
+                <p>The gate driver, <strong class="emphasis">DRV8300UDRGER</strong>, is a perfect candidate for many
+                    reasons. First, it has built-in bootstrap diodes so we don't need to find those separately. Second,
+                    the peak source current is 0.75A and 1.5A sink current which satisfies our <code
+                        class="amber">0.56A</code> design choice. Next, the voltage rating is 100V which greatly exceeds
+                    the battery voltage and any transient spikes. The gate driver voltage also supports <code
+                        class="amber">8-20V</code> which fits our requirement. Logic level high is 2.0V which supports
+                    our 3.3V logic.</p>
+                <p>The maximum PWM frequency is 200kHz which satisfies the <code class="amber">48kHz</code> constraint.
+                    This IC also has 200ns of
+                    dead-time (this is much less than the software dead-time built into AM32 at 830ns) and built-in
+                    cross conduction prevention to <span class="light-red">
+                        prevent both the high and low MOSFETs from conducting simultaneously</span>, shorting the
+                    battery to ground and burning up the board.</p>
 
                 <h4 id="bootstrap-capacitor">Bootstrap capacitor</h4>
-                <p>We need to calculate the bootstrap capacitor needed for our MOSFETs from the formula given in our gate driver datasheet.</p>
+                <p>We need to calculate the bootstrap capacitor needed for our MOSFETs from the formula given in our
+                    gate driver datasheet.</p>
                 <p><code class="light-blue">C<sub>BST_MIN</sub> = Q<sub>TOT</sub> / &#x394;V<sub>BSTX</sub></code></p>
                 <p>The following formula will help us solve for this.</p>
-                <p><code class="light-blue">Q<sub>TOT</sub> = Q<sub>G</sub> + ( I<sub>LBS_TRAN</sub> / f<sub>SW</sub>) = 25nC + ( 220&micro;A / 48kHz ) = 25nC + 4.58nC = 29.58nC</code></p>
+                <p><code
+                        class="light-blue">Q<sub>TOT</sub> = Q<sub>G</sub> + ( I<sub>LBS_TRAN</sub> / f<sub>SW</sub>) = 25nC + ( 220&micro;A / 48kHz ) = 25nC + 4.58nC = 29.58nC</code>
+                </p>
                 <p>where:</p>
                 <ul>
                     <li>Q<sub>G</sub> is the total MOSFET gate charge</li>
                     <li>I<sub>LBS_TRAN</sub> is the bootstrap pin leakage current</li>
                     <li>f<sub>SW</sub> is the PWM frequency</li>
                 </ul>
-                <p>Also from the datasheet, "any of commercial, industrial, and automotive applications use ripple value between 0.5 V to 1 V" and should be minimized as much as possible.</p>
-                <p>If we assume a &#x394;V<sub>BSTX</sub> of 0.5V we get <code class="light-blue">C<sub>BST_MIN</sub> = 29.58nC / 0.5V ≈ 60nF</code>. For our case we should use 100nF as 
-                    60nF is the minimum C<sub>BST</sub>. Lastly, the G<sub>CDD</sub> capacitor needs to be at least 10 times larger than C<sub>BST</sub>. For this we should choose a 1uF 
-                    C<sub>GVDD</sub> capacitor. <span class="light-red">Both of these capacitors should be rated for at least twice the voltage they are exposed to</span>, as much of the 
-                        capacitance is lost due to capacitor DC voltage derating.</p>
+                <p>Also from the datasheet, "any of commercial, industrial, and automotive applications use ripple value
+                    between 0.5 V to 1 V" and should be minimized as much as possible.</p>
+                <p>If we assume a &#x394;V<sub>BSTX</sub> of 0.5V we get <code
+                        class="light-blue">C<sub>BST_MIN</sub> = 29.58nC / 0.5V ≈ 60nF</code>. For our case we should
+                    use 100nF as
+                    60nF is the minimum C<sub>BST</sub>. Lastly, the G<sub>CDD</sub> capacitor needs to be at least 10
+                    times larger than C<sub>BST</sub>. For this we should choose a 1uF
+                    C<sub>GVDD</sub> capacitor. <span class="light-red">Both of these capacitors should be rated for at
+                        least twice the voltage they are exposed to</span>, as much of the
+                    capacitance is lost due to capacitor DC voltage derating.</p>
 
                 <h4 id="mosfet-series-resistors">MOSFET series resistors</h4>
-                <p>Without a series resistor, the gate capacitance along with the PCB trace inductance will form an LC circuit which has the potential for 
-                    ringing. We can add a series resistor before the gate input to reduce this ringing. It also serves to reduce the current output of the gate driver so 
-                    it isn't outputting at its maximum. Current can be found by Ohm's law <code class="light-blue">V = IR</code> or:</p>
-                <p><code class="light-blue">I = V<sub>Drive</sub> / (R<sub>DRV</sub> + R<sub>G</sub> + R<sub>EXT</sub>)</code></p>
+                <p>Without a series resistor, the gate capacitance along with the PCB trace inductance will form an LC
+                    circuit which has the potential for
+                    ringing. We can add a series resistor before the gate input to reduce this ringing. It also serves
+                    to reduce the current output of the gate driver so
+                    it isn't outputting at its maximum. Current can be found by Ohm's law <code
+                        class="light-blue">V = IR</code> or:</p>
+                <p><code
+                        class="light-blue">I = V<sub>Drive</sub> / (R<sub>DRV</sub> + R<sub>G</sub> + R<sub>EXT</sub>)</code>
+                </p>
                 <p>With:</p>
                 <ul>
                     <li>R<sub>DRV</sub> = Gate driver internal resistance = 10&#x2126;</li>
@@ -169,15 +260,20 @@
                     <li>R<sub>EXT</sub> = External series resistor. For now we choose 10&#x2126;</li>
                 </ul>
                 <p><code class="light-blue">I = 8 to 10V / (10 + 5 + 10) = 0.32A to 0.40A</code></p>
-                <p>This current is safely below the <code class="amber">0.75A peak current</code> but will change our switching time slightly so lets calculate that again.</p>
+                <p>This current is safely below the <code class="amber">0.75A peak current</code> but will change our
+                    switching time slightly so lets calculate that again.</p>
                 <p><code class="light-blue">t<sub>switch</sub> = 28nC / 0.4A = 70ns</code></p>
                 <p>This is still less than the desired <code class="amber">100ns</code> switching speed.</p>
 
                 <h4 id="mosfet-pull-down-resistor">MOSFET pull down resistor</h4>
-                <p>During transients, it is theoretically possible for a gate to charge up to a high enough voltage that the MOSFET starts conducting. 
-                    If this happens to both the high and low side MOSFETs at the same time, the battery will short to ground. To prevent this we can add a pull down 
-                    resistor between the gate and source of the low side mosfet. At 10k&#x2126;, the resistor divider formed by the new resistor will barely affect the 
-                    voltage seen at the MOSFET gate. The 10k&#x2126; resistor will still bleed off stray charge quickly.</p>
+                <p>During transients, it is theoretically possible for a gate to charge up to a high enough voltage that
+                    the MOSFET starts conducting.
+                    If this happens to both the high and low side MOSFETs at the same time, the battery will short to
+                    ground. To prevent this we can add a pull down
+                    resistor between the gate and source of the low side mosfet. At 10k&#x2126;, the resistor divider
+                    formed by the new resistor will barely affect the
+                    voltage seen at the MOSFET gate. The 10k&#x2126; resistor will still bleed off stray charge quickly.
+                </p>
                 <figure>
                     <img src="../../HardwareImages/ESC/figure4.png" alt="Figure 4: Pull down resistor example">
                     <figcaption>Figure 4: Pull down resistor example</figcaption>
@@ -186,89 +282,223 @@
                 <h3 id="power-regulation">Power Regulation</h3>
 
                 <h4 id="gate-driver-voltage-regulation">Gate driver voltage regulation</h4>
-                <p>Our gate drivers step up our microcontroller PWM signals to a high enough gate voltage to ensure the MOSFETs function in the saturation region so as to reduce the drain to source resistance as much as possible thus reducing power lost to heat. We need to generate this voltage to give to the gate drivers by regulating down the battery voltage. We do this instead of using battery voltage since the battery voltage is highly variable and changes significantly over the course of a flight.</p>
+                <p>Our gate drivers step up our microcontroller PWM signals to a high enough gate voltage to ensure the
+                    MOSFETs function in the saturation region so as to reduce the drain to source resistance as much as
+                    possible thus reducing power lost to heat. We need to generate this voltage to give to the gate
+                    drivers by regulating down the battery voltage. We do this instead of using battery voltage since
+                    the battery voltage is highly variable and changes significantly over the course of a flight.</p>
 
                 <h4 id="voltage-regulator-ic">Voltage regulator IC</h4>
-                <p>Our gate drivers require a clean voltage below its maximum rating but still above its UVLO voltage. The gate driver we chose in <a href="#3-phase-gate-driver-ic">3-phase gate driver IC</a> requires a voltage supply of at least <code class="amber">8V</code> to avoid UVLO. To prevent blackouts, we should choose a 10V supply to provide a decent safety margin. This voltage is also well below the <code class="amber">20V maximum</code> voltage the gate driver can take and the worst case battery voltage of 12V.</p>
-                <p>For compatibility with a future video transmitter (VTX), we would like to reuse the output voltage we generate for the gate driver IC. This means a high output current (greater than 1A) is desirable. The input voltage must be able to handle <code class="amber">12 - 17V</code> from the battery. Given the high current demand, a switching regulator should be chosen over a linear regulator since they are much more efficient when regulating a large voltage change (i.e. 16.8V down to 10V). With these considerations the <strong class="emphasis">AP63201WU-7</strong> will work very well. The input voltage of <code class="amber">3.8 - 32V</code> and the variable output voltage from 1.2 - 12V fit perfectly with our requirements. Additionally, the output current is rated for 2A.</p>
+                <p>Our gate drivers require a clean voltage below its maximum rating but still above its UVLO voltage.
+                    The gate driver we chose in <a href="#3-phase-gate-driver-ic">3-phase gate driver IC</a> requires a
+                    voltage supply of at least <code class="amber">8V</code> to avoid UVLO. To prevent blackouts, we
+                    should choose a 10V supply to provide a decent safety margin. This voltage is also well below the
+                    <code class="amber">20V maximum</code> voltage the gate driver can take and the worst case battery
+                    voltage of 12V.</p>
+                <p>For compatibility with a future video transmitter (VTX), we would like to reuse the output voltage we
+                    generate for the gate driver IC. This means a high output current (greater than 1A) is desirable.
+                    The input voltage must be able to handle <code class="amber">12 - 17V</code> from the battery. Given
+                    the high current demand, a switching regulator should be chosen over a linear regulator since they
+                    are much more efficient when regulating a large voltage change (i.e. 16.8V down to 10V). With these
+                    considerations the <strong class="emphasis">AP63201WU-7</strong> will work very well. The input
+                    voltage of <code class="amber">3.8 - 32V</code> and the variable output voltage from 1.2 - 12V fit
+                    perfectly with our requirements. Additionally, the output current is rated for 2A.</p>
 
                 <h4 id="external-component-network">External component network</h4>
-                <p>In order to get the voltage regulator to function correctly, specific requirements need to be met from the external component network. The first choice is the inductor value and rating. The datasheet gives the equation, <code class="light-blue">L =( V<sub>out</sub>(V<sub>IN</sub> - V<sub>OUT</sub>) )/ (V<sub>IN</sub> × &#x394;I<sub>L</sub> × f<sub>sw</sub>)</code>. When plugging in these values, the inductor value should be around <code class="amber">7-10µH</code>, higher value being more efficient at low loads. A 10µH inductor was chosen for these reasons. Another consideration for the inductor is the max current rating. From the datasheet, the max current rating of the inductor should be at least 35% higher than the maximum load current of 2A. Lastly, the DC resistance should be <code class="amber">less than 100m&#x2126;</code>.</p>
-                <p>Second, care needs to be taken when choosing an input capacitor. To start, <span class="light-red">this capacitor will be connected to the main battery voltage which can spike up to 30V in worst case transient situations.</span> The voltage rating of this capacitor should be either <code class="amber">35V or 50V</code>. The capacitor should be a low ESR ceramic capacitor of at least 10µF as per the datasheet.</p>
-                <p>Next, to set the output voltage to 10V, the resistor divider network needs to be set according to this formula <code class="light-blue">R1 = R2(V<sub>out</sub> / 0.8V - 1)</code>. We chose 10k&#x2126; and 115k&#x2126; for these resistor values. Finally, the remaining components were taken from the recommended component tables found in the datasheet. The board layout for these components was done using Figure 5 as a reference.</p>
+                <p>In order to get the voltage regulator to function correctly, specific requirements need to be met
+                    from the external component network. The first choice is the inductor value and rating. The
+                    datasheet gives the equation, <code
+                        class="light-blue">L =( V<sub>out</sub>(V<sub>IN</sub> - V<sub>OUT</sub>) )/ (V<sub>IN</sub> × &#x394;I<sub>L</sub> × f<sub>sw</sub>)</code>.
+                    When plugging in these values, the inductor value should be around <code
+                        class="amber">7-10µH</code>, higher value being more efficient at low loads. A 10µH inductor was
+                    chosen for these reasons. Another consideration for the inductor is the max current rating. From the
+                    datasheet, the max current rating of the inductor should be at least 35% higher than the maximum
+                    load current of 2A. Lastly, the DC resistance should be <code
+                        class="amber">less than 100m&#x2126;</code>.</p>
+                <p>Second, care needs to be taken when choosing an input capacitor. To start, <span
+                        class="light-red">this capacitor will be connected to the main battery voltage which can spike
+                        up to 30V in worst case transient situations.</span> The voltage rating of this capacitor should
+                    be either <code class="amber">35V or 50V</code>. The capacitor should be a low ESR ceramic capacitor
+                    of at least 10µF as per the datasheet.</p>
+                <p>Next, to set the output voltage to 10V, the resistor divider network needs to be set according to
+                    this formula <code class="light-blue">R1 = R2(V<sub>out</sub> / 0.8V - 1)</code>. We chose
+                    10k&#x2126; and 115k&#x2126; for these resistor values. Finally, the remaining components were taken
+                    from the recommended component tables found in the datasheet. The board layout for these components
+                    was done using Figure 5 as a reference.</p>
                 <figure>
                     <img src="../../HardwareImages/ESC/figure5.png" alt="Figure 5: AP63201 recommended layout">
                     <figcaption>Figure 5: AP63201 recommended layout</figcaption>
                 </figure>
 
                 <h3 id="logic-level-voltage-regulation">Logic-level voltage regulation (3.3V)</h3>
-                <p>Our microcontrollers require a steady clean 3.3V power source in order to function correctly. The two options here are a linear regulator such as a low drop-out (LDO) regulator or a switching regulator like the one used for the gate driver voltage regulator. Given the relatively low current demand of our 3.3V microcontrollers (and any current sensing ICs) and the desire for a clean (low voltage ripple) voltage source, a linear regulator is chosen.</p>
-                <p>The important design considerations for the 3.3V regulator are the input voltage and the power handling. The input voltage should be able to support the <code class="amber">10V</code> from the previous voltage regulator. Since the design uses a linear regulator, the efficiency is dependent on the difference in supply voltage and output voltage. The power lost follows the formula <code class="light-blue">P = (V<sub>in</sub> - V<sub>out</sub>) × I<sub>out</sub></code>.</p>
-                <p>The majority of current will be drawn from the STM32G071KBU6 microcontrollers. Any other sensors used will need to be accounted for as well.</p>
-                <p>The STM32G071KBU6 datasheet lets us know that the total injected current (sum of all I/Os and control pins) is 25 mA. We have two of these microcontrollers on one board which totals 50 mA. Adding a layer of safety, the 3.3V regulator should be able to source about <code class="amber">100 mA</code> (this will also account for all miscellaneous components). From the equation, <code class="light-blue">P = (V<sub>in</sub> - V<sub>out</sub>) × I<sub>out</sub></code> we can find the power requirement to be:</p>
+                <p>Our microcontrollers require a steady clean 3.3V power source in order to function correctly. The two
+                    options here are a linear regulator such as a low drop-out (LDO) regulator or a switching regulator
+                    like the one used for the gate driver voltage regulator. Given the relatively low current demand of
+                    our 3.3V microcontrollers (and any current sensing ICs) and the desire for a clean (low voltage
+                    ripple) voltage source, a linear regulator is chosen.</p>
+                <p>The important design considerations for the 3.3V regulator are the input voltage and the power
+                    handling. The input voltage should be able to support the <code class="amber">10V</code> from the
+                    previous voltage regulator. Since the design uses a linear regulator, the efficiency is dependent on
+                    the difference in supply voltage and output voltage. The power lost follows the formula <code
+                        class="light-blue">P = (V<sub>in</sub> - V<sub>out</sub>) × I<sub>out</sub></code>.</p>
+                <p>The majority of current will be drawn from the STM32G071KBU6 microcontrollers. Any other sensors used
+                    will need to be accounted for as well.</p>
+                <p>The STM32G071KBU6 datasheet lets us know that the total injected current (sum of all I/Os and control
+                    pins) is 25 mA. We have two of these microcontrollers on one board which totals 50 mA. Adding a
+                    layer of safety, the 3.3V regulator should be able to source about <code class="amber">100 mA</code>
+                    (this will also account for all miscellaneous components). From the equation, <code
+                        class="light-blue">P = (V<sub>in</sub> - V<sub>out</sub>) × I<sub>out</sub></code> we can find
+                    the power requirement to be:</p>
                 <p><code class="light-blue">P = (10V - 3.3V) × 0.1A = 0.63W</code></p>
-                <p>This wattage is manageably low and many different packages would work to support this power dissipation. An SOT-89 package or larger will be sufficient in our case.</p>
-                <p>For our design, the <strong class="emphasis">AZ1117CH-3.3TRG1</strong> was chosen. The voltage input supports up to <code class="amber">15V</code> which satisfies our 10V constraint. This regulator uses the SOT-223 package with a tiny 15 °C/W thermal resistance. This is plenty for our design and will never face temperature issues. The main drawback of this package is the large footprint size.</p>
-                <p>For our design, we chose to put easily hand solderable components onto the backside of the board since we will only use the reflow oven and a stencil for the top layer. This results in our design having a lot of extra space on the back for hand solderable components. This larger SOT-223 package is actually an advantage in our case as the larger package is easier to hand solder.</p>
+                <p>This wattage is manageably low and many different packages would work to support this power
+                    dissipation. An SOT-89 package or larger will be sufficient in our case.</p>
+                <p>For our design, the <strong class="emphasis">AZ1117CH-3.3TRG1</strong> was chosen. The voltage input
+                    supports up to <code class="amber">15V</code> which satisfies our 10V constraint. This regulator
+                    uses the SOT-223 package with a tiny 15 °C/W thermal resistance. This is plenty for our design and
+                    will never face temperature issues. The main drawback of this package is the large footprint size.
+                </p>
+                <p>For our design, we chose to put easily hand solderable components onto the backside of the board
+                    since we will only use the reflow oven and a stencil for the top layer. This results in our design
+                    having a lot of extra space on the back for hand solderable components. This larger SOT-223 package
+                    is actually an advantage in our case as the larger package is easier to hand solder.</p>
 
                 <h3 id="transient-suppression">Transient suppression</h3>
-                <p>In order to protect our components, we need to minimize transient voltage spikes. Our transient suppression solution is composed of two parts, a transient voltage suppression (TVS) diode, and input filtering capacitors.</p>
+                <p>In order to protect our components, we need to minimize transient voltage spikes. Our transient
+                    suppression solution is composed of two parts, a transient voltage suppression (TVS) diode, and
+                    input filtering capacitors.</p>
 
                 <h4 id="tvs-diode">TVS diode</h4>
-                <p>The TVS diode will be able to clamp the high voltage spikes caused by back emf from our motors. <span class="light-red">The clamp voltage must be less than the maximum voltage rating of all of our components.</span></p>
+                <p>The TVS diode will be able to clamp the high voltage spikes caused by back emf from our motors. <span
+                        class="light-red">The clamp voltage must be less than the maximum voltage rating of all of our
+                        components.</span></p>
                 <figure>
                     <img src="../../HardwareImages/ESC/figure6.png" alt="Figure 6: TVS diode performing clamping">
                     <figcaption>Figure 6: TVS diode performing clamping</figcaption>
                 </figure>
-                <p>There are two components on the ESC board that need to be considered. The first are the MOSFETS. From the datasheet, the STL165N4F8AG we designed for are rated for a maximum drain to source voltage of <code class="amber">40V</code>. The second component is the gate driver voltage regulator. From the datasheet, the AP63201WU-7 voltage regulator is rated for <code class="amber">35V</code> on the VEN which is tied to the battery.</p>
+                <p>There are two components on the ESC board that need to be considered. The first are the MOSFETS. From
+                    the datasheet, the STL165N4F8AG we designed for are rated for a maximum drain to source voltage of
+                    <code class="amber">40V</code>. The second component is the gate driver voltage regulator. From the
+                    datasheet, the AP63201WU-7 voltage regulator is rated for <code class="amber">35V</code> on the VEN
+                    which is tied to the battery.</p>
                 <figure>
                     <img src="../../HardwareImages/ESC/figure7.png" alt="Figure 7: Voltage ratings for AP63201WU-7">
                     <figcaption>Figure 7: Voltage ratings for AP63201WU-7</figcaption>
                 </figure>
-                <p>From these voltage limits we should choose a TVS diode with a clamping voltage less than <code class="amber">35V</code>. This clamping voltage represents the maximum voltage before the diode starts fully conducting.</p>
+                <p>From these voltage limits we should choose a TVS diode with a clamping voltage less than <code
+                        class="amber">35V</code>. This clamping voltage represents the maximum voltage before the diode
+                    starts fully conducting.</p>
 
                 <h4 id="input-capacitors">Input capacitors</h4>
-                <p>The input capacitors offer two main functions, to smooth out the voltage from starting and stopping the motors quickly and to provide voltage the instant that the MOSFETs are switched. This is done in two phases, a bulk electrolytic capacitor and many small ceramic capacitors respectively.</p>
-                <p>First, the bulk electrolytic capacitor will act as a tank that will fill and drain as the motors are rapidly ramped up and down. This acts to smooth out any large voltage spikes from the motors. A through-hole, <code class="amber">470µF-1000µF</code>, low-ESR electrolytic capacitor should be soldered onto the battery pads.</p>
-                <p>Second, low-ESR ceramic capacitors should be used at each high MOSFET drain connection. These capacitors will supply voltage to the MOSFETs in the short period of time right after the MOSFET is switched on to prevent the voltage from sagging at the drain. <span class="light-red">Importantly, ceramic capacitors will lose a large percentage of their capacitance when subjected to a DC voltage called DC bias derating.</span> To minimize this effect, a <code class="amber">35V-50V</code> rated capacitor of X5R or X7R specification should be used. Even with these higher voltage ratings, expecting only 40% of the rated capacitance is a solid safety margin. For this design, two parallel 22µF capacitors were used at the drain pins of each high MOSFET. Using parallel capacitors mathematically halves the equivalent series inductance (ESL), preventing the self-resonant frequency (SRF) from falling too low which is something larger capacitors can struggle with.</p>
+                <p>The input capacitors offer two main functions, to smooth out the voltage from starting and stopping
+                    the motors quickly and to provide voltage the instant that the MOSFETs are switched. This is done in
+                    two phases, a bulk electrolytic capacitor and many small ceramic capacitors respectively.</p>
+                <p>First, the bulk electrolytic capacitor will act as a tank that will fill and drain as the motors are
+                    rapidly ramped up and down. This acts to smooth out any large voltage spikes from the motors. A
+                    through-hole, <code class="amber">470µF-1000µF</code>, low-ESR electrolytic capacitor should be
+                    soldered onto the battery pads.</p>
+                <p>Second, low-ESR ceramic capacitors should be used at each high MOSFET drain connection. These
+                    capacitors will supply voltage to the MOSFETs in the short period of time right after the MOSFET is
+                    switched on to prevent the voltage from sagging at the drain. <span class="light-red">Importantly,
+                        ceramic capacitors will lose a large percentage of their capacitance when subjected to a DC
+                        voltage called DC bias derating.</span> To minimize this effect, a <code
+                        class="amber">35V-50V</code> rated capacitor of X5R or X7R specification should be used. Even
+                    with these higher voltage ratings, expecting only 40% of the rated capacitance is a solid safety
+                    margin. For this design, two parallel 22µF capacitors were used at the drain pins of each high
+                    MOSFET. Using parallel capacitors mathematically halves the equivalent series inductance (ESL),
+                    preventing the self-resonant frequency (SRF) from falling too low which is something larger
+                    capacitors can struggle with.</p>
 
                 <h3 id="sensing-feedback">Sensing &amp; Feedback</h3>
-                <p>In order to properly spin each motor in phase, each electronic speed controller circuit will need some form of back-emf detection. Additionally, other sensing can be added to the board for relaying useful information about the drone such as current usage and battery voltage.</p>
+                <p>In order to properly spin each motor in phase, each electronic speed controller circuit will need
+                    some form of back-emf detection. Additionally, other sensing can be added to the board for relaying
+                    useful information about the drone such as current usage and battery voltage.</p>
 
                 <h4 id="back-emf-detection">Back-EMF detection</h4>
-                <p>In 6-step commutation, only two of the three phases are driven at a time and the third one is left floating. As the permanent magnets of the rotor spin past the stator wires, a voltage is generated according to Faraday's law. This voltage is called the back electromotive force or back-emf. As the magnet passes the coil of wire the back-emf voltage will swing from positive to negative. The point where this happens is called the <strong class="emphasis">zero-crossing point (ZCP)</strong>. At the ZCP, the microcontroller knows exactly where the motor is in its rotation and can align the motor to spin at the desired speed.</p>
-                <p>To read this ZCP, we will compare the phase (A, B, or C) with a common/neutral node, analogous to a star configured 3-phase AC design. In our design, we chose to use the comparator functionality on the STM32G07 microcontroller as these pins worked well for our layout and simplified calculations. An alternative to using comparators is to use analog to digital converter (ADC) pins and find the difference in software. <span class="light-red">Critically, the voltage measured at the floating phase can swing up to battery voltage (16.8V or more with transient spikes) which would fry the microcontroller input/output (IO).</span> To remedy this, a resistor voltage divider network is set up for each phase. Figure 8 shows the schematic of the back-emf detection circuit.</p>
+                <p>In 6-step commutation, only two of the three phases are driven at a time and the third one is left
+                    floating. As the permanent magnets of the rotor spin past the stator wires, a voltage is generated
+                    according to Faraday's law. This voltage is called the back electromotive force or back-emf. As the
+                    magnet passes the coil of wire the back-emf voltage will swing from positive to negative. The point
+                    where this happens is called the <strong class="emphasis">zero-crossing point (ZCP)</strong>. At the
+                    ZCP, the microcontroller knows exactly where the motor is in its rotation and can align the motor to
+                    spin at the desired speed.</p>
+                <p>To read this ZCP, we will compare the phase (A, B, or C) with a common/neutral node, analogous to a
+                    star configured 3-phase AC design. In our design, we chose to use the comparator functionality on
+                    the STM32G07 microcontroller as these pins worked well for our layout and simplified calculations.
+                    An alternative to using comparators is to use analog to digital converter (ADC) pins and find the
+                    difference in software. <span class="light-red">Critically, the voltage measured at the floating
+                        phase can swing up to battery voltage (16.8V or more with transient spikes) which would fry the
+                        microcontroller input/output (IO).</span> To remedy this, a resistor voltage divider network is
+                    set up for each phase. Figure 8 shows the schematic of the back-emf detection circuit.</p>
                 <figure>
-                    <img src="../../HardwareImages/ESC/figure8.png" alt="Figure 8: Back-emf circuit for OSCAR ESC Rev 1.0">
+                    <img src="../../HardwareImages/ESC/figure8.png"
+                        alt="Figure 8: Back-emf circuit for OSCAR ESC Rev 1.0">
                     <figcaption>Figure 8: Back-emf circuit for OSCAR ESC Rev 1.0</figcaption>
                 </figure>
 
                 <h4 id="current-sensing">Current sensing</h4>
-                <p>A useful sensing option is knowing what the current draw of the motors are at any given time. This can be useful for estimating things such as battery life. Specifically on this board, we designed around per motor current sensing so that the current draw could be sensed on each motor separately. This has the potential advantage of being able to tell if one motor is drawing more current than the others for some reason. This could help detect if a motor is failing and if all currents are combined it provides the same functionality as a full board current sensor. For our design, there are two important components to choose, the current sensing IC and the shunt resistor.</p>
-                <p>First is the shunt resistor. The maximum current per motor that is being designed around is <code class="amber">50A</code>. <span class="light-red">The shunt resistor needs to be able to handle this current without burning.</span> From the equation, <code class="light-blue">P = I²R</code> it can be found that 2500 times the resistance is the desired power rating. With a 1m&#x2126; shunt resistor the maximum power dissipation required is 2.5W. For our design, we went with a <strong class="emphasis">1m&#x2126; 3W</strong> resistor.</p>
-                <p>The second is the current sensing IC itself. The existing ESC firmware AM32 which this board is designed to be compatible with has existing code to read current data from an ADC input. There exist current sensing ICs that communicate over I2C which could be used but won't necessarily be supported by AM32. For this reason we have chosen a current sensing IC that outputs an analog voltage. This analog voltage output needs to be between <code class="amber">0-3.3V</code> for the ADC pin on the STM32G07. Since the shunt resistor chosen is 1m&#x2126; and the current ranges from 0-50A, the maximum voltage drop across the resistor is 50mV. Therefore, the gain of our current sensor should not be more than 66. The <strong class="emphasis">INA180A2IDBVR</strong> by Texas Instruments offers a gain of 50 V/V, generating an output voltage in the range of 0-2.5V which works well with our design. It supports an input common mode voltage up to <code class="amber">+26V</code> which works for our battery voltage, and works with our 3.3V logic voltage.</p>
+                <p>A useful sensing option is knowing what the current draw of the motors are at any given time. This
+                    can be useful for estimating things such as battery life. Specifically on this board, we designed
+                    around per motor current sensing so that the current draw could be sensed on each motor separately.
+                    This has the potential advantage of being able to tell if one motor is drawing more current than the
+                    others for some reason. This could help detect if a motor is failing and if all currents are
+                    combined it provides the same functionality as a full board current sensor. For our design, there
+                    are two important components to choose, the current sensing IC and the shunt resistor.</p>
+                <p>First is the shunt resistor. The maximum current per motor that is being designed around is <code
+                        class="amber">50A</code>. <span class="light-red">The shunt resistor needs to be able to handle
+                        this current without burning.</span> From the equation, <code class="light-blue">P = I²R</code>
+                    it can be found that 2500 times the resistance is the desired power rating. With a 1m&#x2126; shunt
+                    resistor the maximum power dissipation required is 2.5W. For our design, we went with a <strong
+                        class="emphasis">1m&#x2126; 3W</strong> resistor.</p>
+                <p>The second is the current sensing IC itself. The existing ESC firmware AM32 which this board is
+                    designed to be compatible with has existing code to read current data from an ADC input. There exist
+                    current sensing ICs that communicate over I2C which could be used but won't necessarily be supported
+                    by AM32. For this reason we have chosen a current sensing IC that outputs an analog voltage. This
+                    analog voltage output needs to be between <code class="amber">0-3.3V</code> for the ADC pin on the
+                    STM32G07. Since the shunt resistor chosen is 1m&#x2126; and the current ranges from 0-50A, the
+                    maximum voltage drop across the resistor is 50mV. Therefore, the gain of our current sensor should
+                    not be more than 66. The <strong class="emphasis">INA180A2IDBVR</strong> by Texas Instruments offers
+                    a gain of 50 V/V, generating an output voltage in the range of 0-2.5V which works well with our
+                    design. It supports an input common mode voltage up to <code class="amber">+26V</code> which works
+                    for our battery voltage, and works with our 3.3V logic voltage.</p>
                 <figure>
                     <img src="../../HardwareImages/ESC/figure9.png" alt="Figure 9: INA180A2IDBVR design from TI">
                     <figcaption>Figure 9: INA180A2IDBVR design from TI</figcaption>
                 </figure>
 
                 <figure>
-                    <img src="../../HardwareImages/ESC/figure10.png" alt="Figure 10: OSCAR ESC Rev 1.0 current sense circuit">
+                    <img src="../../HardwareImages/ESC/figure10.png"
+                        alt="Figure 10: OSCAR ESC Rev 1.0 current sense circuit">
                     <figcaption>Figure 10: OSCAR ESC Rev 1.0 current sense circuit</figcaption>
                 </figure>
 
                 <h4 id="voltage-sensing">Voltage sensing</h4>
-                <p>The voltage sensing solution is very simple. Connecting an ADC pin on the STM32G07 to a voltage divider and multiplying the value by the inverse of the voltage divider ratio. This is done because the microcontroller cannot support voltages like the ones our battery supply is at. A simple 1/11 voltage divider reduces our 16.8V battery voltage to 1.52V, well beneath the <code class="amber">3.3V</code> rating of the microcontroller IO pins.</p>
+                <p>The voltage sensing solution is very simple. Connecting an ADC pin on the STM32G07 to a voltage
+                    divider and multiplying the value by the inverse of the voltage divider ratio. This is done because
+                    the microcontroller cannot support voltages like the ones our battery supply is at. A simple 1/11
+                    voltage divider reduces our 16.8V battery voltage to 1.52V, well beneath the <code
+                        class="amber">3.3V</code> rating of the microcontroller IO pins.</p>
                 <figure>
-                    <img src="../../HardwareImages/ESC/figure11.png" alt="Figure 11: Voltage sensing circuit for OSCAR ESC Rev 1.0">
+                    <img src="../../HardwareImages/ESC/figure11.png"
+                        alt="Figure 11: Voltage sensing circuit for OSCAR ESC Rev 1.0">
                     <figcaption>Figure 11: Voltage sensing circuit for OSCAR ESC Rev 1.0</figcaption>
                 </figure>
 
                 <h3 id="pcb-layout-thermal-management">PCB Layout &amp; Thermal Management</h3>
-                <p>The layout of the PCB is as important as the schematic designs themselves. An ESC layout is different from a standard PCB because of the high currents and power dissipation of the board. Many design choices were made to minimize the effects of high current and heat generation. This section will detail the considerations made during board layout.</p>
+                <p>The layout of the PCB is as important as the schematic designs themselves. An ESC layout is different
+                    from a standard PCB because of the high currents and power dissipation of the board. Many design
+                    choices were made to minimize the effects of high current and heat generation. This section will
+                    detail the considerations made during board layout.</p>
 
                 <h4 id="2oz-copper-thickness">2oz copper thickness</h4>
-                <p>The electrical resistance of a PCB trace is inversely proportional to its cross sectional area. The standard copper weight is 1oz (roughly 35 µm thick). By increasing the weight of the copper to <strong class="emphasis">2oz</strong>, we effectively half the resistance. Since <code class="light-blue">P = I²R</code>, this halving in resistance also halves the power lost to heat by the traces. For our design, 2oz copper was used for the internal and external layers of our 4-layer board design. An added benefit of the thicker copper layer is the increased thermal conductivity which is also related to the cross sectional area of the copper. Increased thermal conductivity acts to spread out the heat generated to cooler areas of the board and where it can be transferred into the environment through conduction.</p>
+                <p>The electrical resistance of a PCB trace is inversely proportional to its cross sectional area. The
+                    standard copper weight is 1oz (roughly 35 µm thick). By increasing the weight of the copper to
+                    <strong class="emphasis">2oz</strong>, we effectively half the resistance. Since <code
+                        class="light-blue">P = I²R</code>, this halving in resistance also halves the power lost to heat
+                    by the traces. For our design, 2oz copper was used for the internal and external layers of our
+                    4-layer board design. An added benefit of the thicker copper layer is the increased thermal
+                    conductivity which is also related to the cross sectional area of the copper. Increased thermal
+                    conductivity acts to spread out the heat generated to cooler areas of the board and where it can be
+                    transferred into the environment through conduction.</p>
 
                 <h4 id="large-copper-pours-thermal-via-stitching">Large copper pours &amp; thermal via stitching</h4>
                 <p>This section is currently in development</p>
