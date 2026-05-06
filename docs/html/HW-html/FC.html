@@ -14,9 +14,9 @@
     <nav>
         <ul class="nav-links">
             <li><a href="../../index.html"><span class="nav-dot"></span>Home</a></li>
-            <li><a href="../../hardware.html" class="active"><span class="nav-dot"></span>Hardware</a></li>
-            <li><a href="../../firmware.html"><span class="nav-dot"></span>Firmware</a></li>
-            <li><a href="../../software.html"><span class="nav-dot"></span>Software</a></li>
+            <li><a href="../../html/hardware.html" class="active"><span class="nav-dot"></span>Hardware</a></li>
+            <li><a href="../../html/firmware.html"><span class="nav-dot"></span>Firmware</a></li>
+            <li><a href="../../html/software.html"><span class="nav-dot"></span>Software</a></li>
         </ul>
     </nav>
 
@@ -876,57 +876,75 @@
                     and C2 return to the same GND pour as the input cap, finally the feedback trace (red dashed) is
                     routed away from the SW node to keep switching noise out of the Feedback path. </p>
 
-                <!-- LEFT OFF HERE -->
                 <h4 id="ldo-1v8">Linear Regulator to 1.8&nbsp;V</h4>
                 <p>
                     The ENS220 barometer requires a dedicated 1.8&nbsp;V supply. The Microchip
                     <strong>MIC5317-1.8YM5</strong> (SOT23-5) is a fixed 1.8&nbsp;V, 150&nbsp;mA LDO with a 2.5&nbsp;V
-                    to 6&nbsp;V input range. Feeding 3.3&nbsp;V from the AP63203 directly into VIN is within spec. EN
-                    is tied to V<sub>IN</sub>, so the regulator turns on whenever the 3.3&nbsp;V rail is present.
+                    to 6&nbsp;V input range (MIC5317 datasheet, Section 1.0, Operating Ratings). Feeding 3.3&nbsp;V from
+                    the AP63203 directly into V<sub>IN</sub> is within spec. EN is tied to V<sub>IN</sub>, so the
+                    regulator turns on whenever the 3.3&nbsp;V rail is present; the 1.2V logic-high threshold
+                    (V<sub>EN</sub> row, Section 1.0, Electrical Characteristics) is met by the 3.3V rail with margin.
                 </p>
+                <figure>
+                    <img src="../../HardwareImages/FC/figure4.png" alt="MIC5317 LDO"
+                        style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" />
+                    <figcaption>Figure 4: MIC5317 LDO</figcaption>
+                </figure>
                 <p>
                     <strong>Dropout check.</strong> Maximum dropout at 150&nbsp;mA is 380&nbsp;mV, so the minimum
-                    V<sub>IN</sub> needed is 1.8&nbsp;V&nbsp;+&nbsp;0.38&nbsp;V&nbsp;=&nbsp;2.18&nbsp;V. The 3.3&nbsp;V
-                    supply gives 1.12&nbsp;V of headroom, so dropout is not a concern.
+                    V<sub>IN</sub> needed is 1.8&nbsp;V&nbsp;+&nbsp;0.38&nbsp;V&nbsp;=&nbsp;2.18&nbsp;V. The
+                    3.3&nbsp;V supply gives 1.12&nbsp;V of headroom, so dropout is not a concern.
                 </p>
+                <p><strong>Capacitor selection.</strong> The MIC5317 requires a minimum 1 µF ceramic input and 1 µF
+                    ceramic output capacitor for stability (Section 4.1, 4.2). The board places 1 µF X7R on each,
+                    meeting the requirement.</p>
                 <p>
-                    <strong>Thermal check.</strong> The ENS220 is the only load on this rail, consuming 75&nbsp;&mu;A
+                    <strong>Thermal check.</strong> The ENS220 is the only load on this rail, consuming
+                    75&nbsp;&mu;A
                     typical. Using 100&nbsp;&mu;A as a conservative bound:
                 </p>
-                <p style="font-family: monospace; padding-left: 1.5rem;">
-                    P<sub>D</sub> = (3.3&nbsp;V &minus; 1.8&nbsp;V) &times; 0.0001&nbsp;A = 0.15&nbsp;mW<br>
-                    T<sub>J</sub> = 85&deg;C + 0.15&nbsp;mW &times; 253&deg;C/W = 85.04&deg;C
-                </p>
+                <img src="../../HardwareImages/FC/thermalCheckEqs.png" alt="LDO Thermal Calculation"
+                    style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" />
                 <p>
                     Junction temperature is essentially equal to ambient at this load level, so thermal performance is
-                    not a binding constraint. JP1 sits between the LDO output and the ENS220 supply pin; it is left
-                    open during initial bring-up so the 1.8&nbsp;V rail can be measured without risk to the barometer,
-                    then bridged with solder for normal operation.
+                    not a binding constraint. Finally JP1 sits between the LDO output and the ENS220 supply pin. It is
+                    left open during initial bring-up so the 1.8V rail can be measured without risk to the barometer;
+                    once the rail is verified, the jumper is bridged with solder for normal operation.
                 </p>
 
                 <h3 id="mcu">MicroController Unit</h3>
-
+                <p>The MCU is the central digital element of the flight controller, it takes in sensor data, closes the
+                    inner control loop, drives the motor outputs, and handles all communication with the host and
+                    external boards. Subsections 4.2.1 through 4.2.5 cover part selection, clock source, boot and reset,
+                    the SWD debug interface, and the indicator LED's.
+                </p>
                 <h4 id="mcu-selection">MCU Selection Justification (STM32H753 vs. F4/F7/G4)</h4>
-                <p>
-                    Flight controller MCU selection is constrained by three dominant pressures: the control loop must
-                    close at a rate high enough that gyro samples do not age between iterations, the chip must expose
-                    enough timers, DMA streams, and serial peripherals to drive every motor and sensor without pin
-                    conflicts, and the firmware target should align with a maintained Betaflight build.
+                <p>Flight controller MCU selection is constrained by three dominant pressures. First the control loop
+                    must close at a rate high enough that gyro samples do not age between iterations, the chip must
+                    expose enough timers, DMA streams, and serial peripherals to drive every motor and sensor without
+                    pin conflicts, and the firmware target should align with a maintained Betaflight build to keep the
+                    bring-up path open. The STM32H753VIT6 was selected because it satisfies all three,the board is
+                    intended to support both the baseline Betaflight target and downstream research workloads where a
+                    user adds custom estimators, observers, or outer-loop control above the inner loop without
+                    re-spinning the hardware.
+                </p>
+                <p>Part Selection - STM32H753VIT6. Single core Cortex-M7 at 480MHz with a double precision FPU, 16kB
+                    cache, 2MB dual bank flash, 1 MB RAM, and an LQFP100 package. The 480MHz core delivers roughly 3
+                    times the cycles per control period of the F4 at 168MHz, and roughly 2 times an F7 at 216MHz. Which
+                    is the headroom that lets the inner loop run at high rates while leaving the rest of the time budget
+                    for added user code. The double precision FPU specifically matters for research add ons; outer loop
+                    estimators that operate on accumulated stat are sensitive to single precision drift in ways an inner
+                    loop PIUD is not.
                 </p>
                 <p>
-                    <strong>Part selection — STM32H753VIT6.</strong> Single-core Cortex-M7 at 480&nbsp;MHz with a
-                    double-precision FPU, 16&nbsp;kB cache, 2&nbsp;MB dual-bank flash, 1&nbsp;MB RAM, and an LQFP100
-                    package. The 480&nbsp;MHz core delivers roughly 3&times; the cycles per control period of the F4 at
-                    168&nbsp;MHz, and roughly 2&times; an F7 at 216&nbsp;MHz. The double-precision FPU matters for
-                    research add-ons where outer-loop estimators operating on accumulated state are sensitive to
-                    single-precision drift.
-                </p>
-                <p>
-                    The DMAMUX subsystem is the second decisive feature. On F4-class parts each peripheral is
-                    hard-wired to a specific DMA stream, which forces the well-known Betaflight pin-conflict tables. On
-                    the H7, DMAMUX1 and DMAMUX2 route any peripheral request to any DMA stream, so the four DSHOT
-                    outputs, the SPI buses to both IMUs, the I²C bus to the barometer, and every UART coexist without
-                    that combinatorial constraint.
+                    The DMA subsystem is the second decisive feature. The H7 routes any peripheral request to any DMA
+                    stream through DMAMUX1 and DMAMUX2 (STM32H753 reference manual, DMAMUX request line multiplexer
+                    chapter). On F4-class parts each peripheral is hard-wired to a specific stream, which is what forces
+                    the well-known Betaflight pin-conflict tables — selecting a UART for telemetry can lock out a timer
+                    channel needed for DSHOT on the same DMA controller. With DMAMUX, the four DSHOT outputs, the SPI
+                    buses to the two IMUs, the I²C bus to the barometer, and every UART coexist without that
+                    combinatorial constraint, and reassigning a function in firmware does not require re-spinning the
+                    board.
                 </p>
                 <table>
                     <thead>
@@ -977,53 +995,111 @@
                             <td>OTG FS and OTG HS</td>
                             <td>Device FS</td>
                         </tr>
+                        <tr>
+                            <td>DMA</td>
+                        </tr>
                     </tbody>
                 </table>
-                <p>
-                    <strong>Tradeoff.</strong> The H753VIT6 is a 100-pin LQFP with 0.5&nbsp;mm pitch and draws
-                    meaningfully more current than the F4 at idle (up to 200&nbsp;mA vs. 10–20&nbsp;mA), and is
-                    approximately 3&times; more expensive. It also occupies more board area. These tradeoffs were
-                    accepted in exchange for the performance headroom and flexible DMA routing.
+                <p>The peripheral count is deliberately oversized relative to the baseline four motor build. Spare UARTs
+                    and SPI/I2C buses are available in this design, keeping this a modular design for researchers.
                 </p>
+                <p>Toolchain and firmware target. STM32CubeIDE and the STM32 HAL are standard development environment
+                    for the ST parts and are widely used in both industry and academia, having an available and free
+                    software to utilize for firmware is deliberate in this design. The 1MB RAM budget makes the HAL
+                    viable as the driver layer rather than forcing hand rolled register level code, which would
+                    otherwise be necessary on smaller flash parts to preserve room for application logic on top. The H7
+                    is a supported “first class” target with active mainline support, so the bring up sequence is
+                    straight forward.
+                </p>
+                <p>Tradeoff. The H753VIT6 is a 100 pin LQFP with 0.5mm pitch and draws meaningfully more current than
+                    the F4 at idle, the H7 can consume up to 200mA during operating while the F4 can consume in the
+                    10-20mA range. In addition the H7 is 3 times more expensive than an MCU than the F4 as well as it
+                    takes up a larger surface area of the flight controller.
+                </p>
+                <figure>
+                    <img src="../../HardwareImages/FC/figure5.png" alt="STM32H753VIT6 MCU"
+                        style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" />
+                    <figcaption>Figure 5: STM32H753VIT6 MCU</figcaption>
+                </figure>
 
                 <h4 id="clock-source">Clock Source</h4>
-                <p>
-                    The design uses the internal 64&nbsp;MHz HSI as the PLL input and leaves the HSE pins unpopulated.
-                    The OSC_IN and OSC_OUT footprints were removed from this revision — the crystal, load capacitors,
-                    and feedback resistor are not on the board.
+                <p>The MCU's system clock determines control loop timing, peripheral baud rate, and more. The STM32H753
+                    supports four clock sources into its PLL tree: the 64 MHz internal HSI, the 4 MHz internal CSI, an
+                    external HSE crystal, and the 48 MHz internal HSI48 reserved for USB and RNG. The design uses HSI as
+                    the PLL input and leaves the HSE pins unpopulated. The OSC_IN and OSC_OUT footprints were removed
+                    from this revision rather than left as DNP — the crystal, load capacitors, and feedback resistor are
+                    not on the board.
                 </p>
-                <p>
-                    HSI is sufficient because this board uses neither USB High-Speed (480&nbsp;Mbps) nor Ethernet MAC,
-                    the two cases that normally force an external HSE. Full-Speed USB (12&nbsp;Mbps) tolerates the HSI
-                    because the H7's Clock Recovery System (CRS) trims HSI48 against USB SOF packets in hardware,
-                    pulling the 48&nbsp;MHz USB clock inside the &plusmn;0.25% Full-Speed spec without any external
-                    reference. DSHOT, UART, SPI, and I²C all derive their bit timing from the same SYSCLK and tolerate
-                    the HSI's &plusmn;1% factory trim without issue.
+                <figure>
+                    <img src="../../HardwareImages/FC/figure6.png" alt="Clock Sources"
+                        style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" />
+                    <figcaption>Figure 6: STM32H753VIT6 Peripheral Assignment Map</figcaption>
+                </figure>
+                <p><strong>Why HSI is sufficient.</strong> The two cases that normally force an HSE on an H7 are USB
+                    High-Speed (480 Mbps), which requires a tighter reference than the HSI's factory trim can guarantee,
+                    and the Ethernet MAC, which needs a precise 25 MHz or 50 MHz RMII reference. This board uses
+                    neither; USB is Full-Speed only (12 Mbps, see Section 4.3.1) on the design. Full-Speed USB tolerates
+                    the HSI because the H7's Clock Recovery System (CRS) trims HSI48 against USB SOF packets in
+                    hardware, pulling the 48 MHz USB clock inside the ±0.25% Full-Speed spec without any external
+                    reference (STM32H753 reference manual, CRS chapter). DSHOT, UART, SPI, and I²C all derive their bit
+                    timing from the same SYSCLK and tolerate the HSI's ±1% factory trim without issue — a 1% deviation
+                    on a 600 kHz DSHOT300 bit produces well under one-tenth of a bit period of skew over a frame, far
+                    inside the receiver's tolerance window.
                 </p>
 
                 <h4 id="boot-reset">Boot and Reset Circuitry</h4>
-                <p>
-                    <strong>Boot select — SPDT switch on BOOT0.</strong> A Single Pole Double Throw (SPDT) switch ties
-                    BOOT0 either to 3.3&nbsp;V (system bootloader / DFU mode) or to GND (user flash / normal
-                    operation). R12 sits in series between the switch wiper and BOOT0 to bound fault current if the pin
-                    is externally driven while the switch holds the opposite rail, turning a potential hard short into a
-                    sub-mA event.
+                <p>Two pins drive the H7's startup behavior: BOOT0 selects whether the part executes from user flash or
+                    from the on-chip system bootloader, and NRST is the bidirectional reset input. Both need a defined
+                    state at power-on and a way for the user to override that state during bring-up and recovery.
                 </p>
-                <p>
-                    <strong>Reset — NRST with debounce cap and pushbutton.</strong> NRST is tied directly to a
-                    0.1&nbsp;&mu;F capacitor to GND with SW2 providing an optional external reset path to ground. NRST
-                    has a permanent internal pull-up (~40&nbsp;k&Omega; typical), so no external pull-up is needed. The
-                    RC time constant is:
+                <p><strong>Boot select - SPDT switch on BOOT0.</strong></p>
+                <p>A Single Pull Double Throw (SPDT) ties BOOT0 either to 3.3V (system bootloader) or to GND (user
+                    flash). The boot memory space is selected by the BOOT pin and BOOT_ADDx option bytes at startup, and
+                    the system bootloader supports DFU-over-USB reprogramming (STM32H753 datasheet, Section 3.4, Boot
+                    modes, with full bootloader protocol details in AN2606). The switch position only needs to be valid
+                    at reset — flipping it mid-flight has no effect.
                 </p>
-                <p style="font-family: monospace; padding-left: 1.5rem;">
-                    &tau; = 40&nbsp;k&Omega; &times; 0.1&nbsp;&mu;F = 4&nbsp;ms
+                <p>On the physical hardware, we see in the figure down below that R12 sits in series between the switch
+                    wiper and the BOOT0 pin. BOOT0 has its own input characteristics distinct from the standard I/O’s
+                    (datasheet, Section 6.3.13, Table 51, “BOOT0 I/O input low/high level voltage” rows),which tolerates
+                    input voltage from VSS up to 9.0 V (Section 6.3.1, Table 16, "Input voltage on BOOT0 pin"), so the
+                    10 kΩ series element is comfortably within spec at either switch position. Its purpose is to bound
+                    fault current if BOOT0 is externally driven (for example by a probe) while the switch holds the
+                    opposite rail, the resistor turns a hard short into a sub-mA event.
                 </p>
-                <p>This is well above any contact bounce duration and above the H7's reset recognition thresholds.</p>
+                <figure>
+                    <img src="../../HardwareImages/FC/figure7.png" alt="Boot and Reset Circuitry"
+                        style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" />
+                    <figcaption>Figure 7: Boot SPDT Switch</figcaption>
+                </figure>
+                <p><strong>Reset - NRST with debounce cap and pushbutton.</strong></p>
+                <p>The schematic implements the reference circuit shown in Figure 22, "Recommended NRST pin protection,"
+                    of the datasheet (Section 6.3.16): NRST tied directly to a 0.1 µF capacitor to GND, with the
+                    optional external reset path provided by SW2 to ground.
+                </p>
+                <p>NRST has a permanent internal pull-up, specified at 30kΩ, 40kΩ, and 50kΩ in datasheet Table 54
+                    (Section 6.3.16). No external pull-up is needed. Using the typical value, the RC time constant with
+                    C30 is
+                </p>
+                <img src="../../HardwareImages/FC/resetEqs.png" alt="Reset RC Time Constant Calculation"
+                    style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" />
+                <p>Which is well above any contact bounce duration of the pushbutton and well above the H7's reset
+                    recognition thresholds. From table 54: pulses shorter than </p>
+                <figure>
+                    <img src="../../HardwareImages/FC/figure8.png" alt="Reset Timing"
+                        style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" />
+                    <figcaption>Figure 8: Reset Button</figcaption>
+                </figure>
+                <p>The 0.1 µF value is the value ST specified in Figure 22, so it was used directly without independent
+                    rederivation.
+                </p>
 
+                <!-- LEFT OFF HERE-->
                 <h4 id="swd-debug">SWD Debug Interface</h4>
                 <p>
                     The SWD port provides flash programming, breakpoint debugging, and register inspection. SWD was
-                    chosen over JTAG because it uses only two signal pins instead of five, freeing PB3, PB4, and PA15
+                    chosen over JTAG because it uses only two signal pins instead of five, freeing PB3, PB4, and
+                    PA15
                     for other functions.
                 </p>
                 <table>
@@ -1058,9 +1134,12 @@
                     </tbody>
                 </table>
                 <p>
-                    PA13 and PA14 are dedicated SWD pins that come up in their debug alternate function automatically
-                    out of reset, so no firmware configuration is required to attach a debugger to a freshly programmed
-                    or bricked part. No external pull-up resistors are needed — the H753 enables the correct internal
+                    PA13 and PA14 are dedicated SWD pins that come up in their debug alternate function
+                    automatically
+                    out of reset, so no firmware configuration is required to attach a debugger to a freshly
+                    programmed
+                    or bricked part. No external pull-up resistors are needed — the H753 enables the correct
+                    internal
                     pull-up on PA13 and a pull-down on PA14 while the pins are in their debug alternate function.
                 </p>
 
@@ -1068,10 +1147,12 @@
                 <p>The Debug LEDs serve two purposes:</p>
                 <ul>
                     <li>Allow firmware development testing and indicate if any thread has ended for any reason.</li>
-                    <li>Used for calibration before flight to verify all sensors are well calibrated before flying.</li>
+                    <li>Used for calibration before flight to verify all sensors are well calibrated before flying.
+                    </li>
                 </ul>
                 <p>
-                    The board contains a red, green, and blue LED. The red LED is tied to the output of the 3.3&nbsp;V
+                    The board contains a red, green, and blue LED. The red LED is tied to the output of the
+                    3.3&nbsp;V
                     regulator to indicate if power is on (180&nbsp;&Omega; current-limiting resistor, ~7.5&nbsp;mA).
                     The blue and green LEDs are driven from GPIO outputs for debugging purposes (50&nbsp;&Omega; and
                     60&nbsp;&Omega; respectively, ~10&nbsp;mA each).
@@ -1081,40 +1162,50 @@
 
                 <h4 id="usb-fs">USB 2.0 Full Speed Implementation</h4>
                 <p>
-                    USB 2.0 Full Speed (12&nbsp;Mbps) was selected as the bench interface because it is sufficient for
-                    Betaflight Configurator, firmware flashing via DFU, and blackbox log retrieval, without requiring
-                    the external crystal that USB High-Speed demands. The connector is a 16-pin USB-C receptacle (J1)
+                    USB 2.0 Full Speed (12&nbsp;Mbps) was selected as the bench interface because it is sufficient
+                    for
+                    Betaflight Configurator, firmware flashing via DFU, and blackbox log retrieval, without
+                    requiring
+                    the external crystal that USB High-Speed demands. The connector is a 16-pin USB-C receptacle
+                    (J1)
                     with CC1 and CC2 tied through 5.1&nbsp;k&Omega; resistors to GND, signaling to the host that the
                     device accepts 5&nbsp;V at up to 1.5&nbsp;A (USB-C default current). VBUS is sensed through a
                     resistor divider (R4 5.1&nbsp;k&Omega; / R6 15&nbsp;k&Omega;) that produces ~3.0&nbsp;V at the
                     MCU's VBUS sensing pin. SBU1, SBU2, and the shield pin (S1) are left unconnected.
                 </p>
                 <p>
-                    The D+ and D&minus; traces are routed as a Coplanar Waveguide with Ground (CPWG) differential pair
-                    on F.Cu, targeted at 45&nbsp;&Omega; single-ended (90&nbsp;&Omega; differential). Using the JLCPCB
-                    4-layer stackup with a dielectric height of 0.21&nbsp;mm (&epsilon;<sub>r</sub>&nbsp;=&nbsp;4.34)
+                    The D+ and D&minus; traces are routed as a Coplanar Waveguide with Ground (CPWG) differential
+                    pair
+                    on F.Cu, targeted at 45&nbsp;&Omega; single-ended (90&nbsp;&Omega; differential). Using the
+                    JLCPCB
+                    4-layer stackup with a dielectric height of 0.21&nbsp;mm
+                    (&epsilon;<sub>r</sub>&nbsp;=&nbsp;4.34)
                     and a 0.2&nbsp;mm gap to the coplanar ground, a trace width of 0.2286&nbsp;mm yields
-                    Z<sub>0</sub>&nbsp;&asymp;&nbsp;45.3&nbsp;&Omega;. Both traces are length-matched to 11.0&nbsp;mm.
+                    Z<sub>0</sub>&nbsp;&asymp;&nbsp;45.3&nbsp;&Omega;. Both traces are length-matched to
+                    11.0&nbsp;mm.
                 </p>
 
                 <h4 id="dshot-outputs">DSHOT Motor Outputs</h4>
                 <p>
                     Four DSHOT300 motor command lines are driven from STM32H7 timer channels (TIM1/TIM8) using DMA,
                     enabling the digital protocol without CPU intervention during each frame. Bidirectional DSHOT is
-                    supported in hardware. The specific timer-to-pin mapping will be finalized during firmware bring-up
+                    supported in hardware. The specific timer-to-pin mapping will be finalized during firmware
+                    bring-up
                     and documented in a companion target definition file.
                 </p>
 
                 <h3 id="sensors">Sensors</h3>
                 <p>The FC integrates sensors sufficient for both manual and autonomous flight modes. Manual flight
-                    requires an IMU and magnetometer for attitude estimation. Autonomous flight additionally requires a
+                    requires an IMU and magnetometer for attitude estimation. Autonomous flight additionally
+                    requires a
                     barometer for altitude hold and GNSS for position.</p>
 
                 <h4 id="primary-imu">Primary IMU — ICM-40609-D</h4>
                 <p>The ICM-40609-D was selected as the primary inertial measurement unit. Key characteristics:</p>
                 <ul>
                     <li><strong>Power consumption:</strong> 3.3&nbsp;V &times; 0.77&nbsp;mA = 2.5&nbsp;mW</li>
-                    <li><strong>Output data rate:</strong> Up to 32&nbsp;kHz for both accelerometer and gyroscope</li>
+                    <li><strong>Output data rate:</strong> Up to 32&nbsp;kHz for both accelerometer and gyroscope
+                    </li>
                     <li><strong>Gyroscope range:</strong> Up to &plusmn;2000&nbsp;&deg;/s (handles fast flight
                         maneuvers)</li>
                     <li><strong>Accelerometer range:</strong> Up to &plusmn;32&nbsp;g</li>
@@ -1132,18 +1223,21 @@
                 </p>
 
                 <h4 id="barometer">Barometer — ENS220</h4>
-                <p>The ENS220 was selected to provide altitude and temperature measurements. Key characteristics:</p>
+                <p>The ENS220 was selected to provide altitude and temperature measurements. Key characteristics:
+                </p>
                 <ul>
                     <li><strong>Power consumption:</strong> 1.8&nbsp;V &times; 75&nbsp;&mu;A = 1.35&nbsp;&mu;W</li>
                     <li><strong>Output data rate:</strong> Up to 1&nbsp;kHz</li>
                     <li><strong>Relative altitude accuracy:</strong> &plusmn;20&nbsp;cm in air</li>
                 </ul>
-                <p>The ENS220 is powered from the dedicated 1.8&nbsp;V LDO described in Section 4.1.4 and communicates
+                <p>The ENS220 is powered from the dedicated 1.8&nbsp;V LDO described in Section 4.1.4 and
+                    communicates
                     over I2C with 2.7&nbsp;k&Omega; pull-up resistors.</p>
 
                 <h4 id="eeprom">EEPROM — ST M24512-RMN6TP</h4>
                 <p>
-                    A 512-Kbit serial I2C bus EEPROM included for both flight data logging and USB communication in the
+                    A 512-Kbit serial I2C bus EEPROM included for both flight data logging and USB communication in
+                    the
                     future. Address pins E0-E2 are tied to GND, setting the I2C address to 0x50 as expected by the
                     STM32 HAL. WC# is tied high to enable write operations during normal use. Supply range is
                     2.4-5.5&nbsp;V; the 3.3&nbsp;V rail is well within spec.
@@ -1159,23 +1253,29 @@
                     <li><strong>Heading accuracy:</strong> &plusmn;0.5&deg;</li>
                 </ul>
                 <p>
-                    The magnetometer was placed on a separate board further from the FC to avoid EMI interference from
+                    The magnetometer was placed on a separate board further from the FC to avoid EMI interference
+                    from
                     the motors, which could otherwise corrupt heading measurements.
                 </p>
                 <p>
                     <strong>GNSS — TESEO-LIV3R.</strong> Selected for X/Y position estimation.
                 </p>
                 <ul>
-                    <li><strong>Power consumption (tracking):</strong> 3.3&nbsp;V &times; 21&nbsp;mA = 70&nbsp;mW</li>
+                    <li><strong>Power consumption (tracking):</strong> 3.3&nbsp;V &times; 21&nbsp;mA = 70&nbsp;mW
+                    </li>
                     <li><strong>Constellations:</strong> GPS, GLONASS, BeiDou</li>
                     <li><strong>Output data rate:</strong> Up to 10&nbsp;Hz</li>
                     <li><strong>Position accuracy:</strong> &lt;1.8&nbsp;m CEP (50%)</li>
                 </ul>
                 <p>
-                    The GNSS module was also placed on a separate board for RF reasons: a patch antenna requires a long,
-                    uninterrupted ground plane and no boundary conditions that would attenuate the weak GPS L1 signal.
-                    Both the magnetometer and the GNSS/receiver boards are contained on the same daughter board mounted
-                    directly above the flight controller. Full design justification for the GNSS front-end is provided
+                    The GNSS module was also placed on a separate board for RF reasons: a patch antenna requires a
+                    long,
+                    uninterrupted ground plane and no boundary conditions that would attenuate the weak GPS L1
+                    signal.
+                    Both the magnetometer and the GNSS/receiver boards are contained on the same daughter board
+                    mounted
+                    directly above the flight controller. Full design justification for the GNSS front-end is
+                    provided
                     in the companion GNSS Design Justification document.
                 </p>
 
