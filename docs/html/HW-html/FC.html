@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="../../styles/main.css">
     <link rel="stylesheet" href="../../styles/tableOfContents.css">
     <link rel="stylesheet" href="../../styles/chloeWorking.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.18.5/dist/katex.min.css">
 </head>
 
 <body>
@@ -836,8 +837,24 @@
                 </p>
                 <p>Looking at the worst case ripple is highest VIN.
                     Using VIN = 8.4V, VOUT = 3.3V, fSW = 1.1MHz, and recommend L = 3.9H.</p>
-                <img src="../../HardwareImages/FC/componentValueEquations.png" alt="Component Value Calculations"
-                    style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" />
+                <p class="math-display" style="color: white;">\[\text{Inductor (Eq. 7):}\]</p>
+                <p class="math-display" style="color: white;">\[
+                    \Delta I_L = \frac{V_{OUT}\left(V_{IN} - V_{OUT}\right)}{V_{IN}\cdot L\cdot f_{SW}}
+                    \]</p>
+                <p class="math-display" style="color: white;">\[
+                    \Delta I_L =
+                    \frac{3.3\cdot\left((8.4)-(3.3)\right)}
+                    {(8.4)\cdot(3.9\,\mu H)\cdot(1.1\cdot10^6)}
+                    = 467\,mA
+                    \]</p>
+                <p class="math-display" style="color: white;">\[\text{Ripple Ratio:}\]</p>
+                <p class="math-display" style="color: white;">\[
+                    \frac{\Delta I_L}{I_{OUT}}
+                    =
+                    \frac{515\,mA}{2\,A}
+                    =
+                    23.4\%
+                    \]</p>
                 <p>The datasheet targets a ripple ratio between 30% and 50% for optimal inductor sizing. At 23.4% our
                     inductor sits below the rated range which means the recommended inductor is slightly oversized
                     relative to where the datasheet would place the optimum. Having a smaller &delta;I<sub>L</sub> means
@@ -845,21 +862,40 @@
                     is a benefit for this design. </p>
                 <p>The minimum output capacitance to hold a 100mV overshoot during a full 2A load step <em>(AP63203 Eq.
                         10)</em>:</p>
-                <img src="../../HardwareImages/FC/outputCapacitanceEquations.png" alt="Output Capacitance Calculation"
-                    style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" />
+                <p class="math-display" style="color: white;">\[
+                    C_{OUT} \;>\; \frac{L\cdot\left(I_{OUT} + \dfrac{\Delta I_L}{2}\right)^{2}}
+                    {\left(\Delta V + V_{OUT}\right)^{2} - V_{OUT}^{2}}
+                    \]</p>
+                <p class="math-display" style="color: white;">\[\text{Allowing a } \Delta V = 100\,mV \text{ overshoot
+                    at a full 2A load:}\]</p>
+                <p class="math-display" style="color: white;">\[
+                    C_{OUT} \;>\; \frac{(3.9\,\mu H)\cdot\left(2 + \dfrac{0.515}{2}\right)^{2}}
+                    {(0.1 + 3.3)^{2} - 3.3^{2}}
+                    \]</p>
+                <p class="math-display" style="color: white;">\[
+                    C_{OUT} \;>\; 29\,\mu F
+                    \]</p>
+                <!-- <img src="../../HardwareImages/FC/outputCapacitanceEquations.png" alt="Output Capacitance Calculation"
+                    style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" /> -->
                 <p>The design places 2x 22uF X5R ceramic capacitors on the output for 44uF total, which is above the
                     minimum. Additional decoupling capacitors distributed along the 3.3V plane increase the effective
                     output capacitance further.</p>
                 <p>Output voltage ripple from ESR <em>(AP63203 Eq. 9)</em>:</p>
-                <img src="../../HardwareImages/FC/vRipple.png" alt="ESR Ripple Calculation"
-                    style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" />
+                <p class="math-display" style="color: white;">\[
+                    V_{ripple} \;=\; \Delta I_L \cdot ESR
+                    \]</p>
+                <!-- <img src="../../HardwareImages/FC/vRipple.png" alt="ESR Ripple Calculation"
+                    style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" /> -->
                 <p>We have already calculated &delta;I<sub>L</sub> from before in Eq. 7. However the capacitors I had
                     specified for our design did not mention the ESR. However we can estimate, based on utilizing a
                     ceramic capacitor rated at X5R, we can expect an ESR &lt; 0.015 from <a
                         href="https://web.archive.org/web/20221015065249/http://my.execpc.com/~endlr/esr.html">here</a>.
                     Making these assumptions, two in parallel of our worst case would assume 7.5mΩ.</p>
-                <img src="../../HardwareImages/FC/vRipple2.png" alt="ESR Ripple Calculation"
-                    style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" />
+                <p class="math-display" style="color: white;">\[
+                    V_{ripple} \;=\; 0.467\,A \cdot 0.0075\,\Omega \;=\; 3.5\,mV \text{ ripple.}
+                    \]</p>
+                <!-- <img src="../../HardwareImages/FC/vRipple2.png" alt="ESR Ripple Calculation"
+                    style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" /> -->
                 <p>This is approximately 0.1% of V<sub>OUT</sub> which is well inside the supply tolerance for the MCU
                     and other peripherals. The ICM-40609-D is the most ripple-sensitive load on this rail and its
                     datasheet allows up to 50 mV peak-to-peak on its supply, so the 3.5 mV figure clears that
@@ -903,8 +939,15 @@
                     75&nbsp;&mu;A
                     typical. Using 100&nbsp;&mu;A as a conservative bound:
                 </p>
-                <img src="../../HardwareImages/FC/thermalCheckEqs.png" alt="LDO Thermal Calculation"
-                    style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" />
+                <p class="math-display" style="color: white;">\[
+                    P_D \;=\; (3.3V - 1.8V)\cdot 0.0001 \;=\; 0.15\,mW
+                    \]</p>
+                <p class="math-display" style="color: white;">\[
+                    T_J \;=\; T_A + P_D\cdot\theta_{JA} \;=\; 85^{\circ}C +
+                    (0.15\,mW)\cdot\left(253\,\frac{^{\circ}C}{W}\right) \;=\; 85.04^{\circ}C
+                    \]</p>
+                <!-- <img src="../../HardwareImages/FC/thermalCheckEqs.png" alt="LDO Thermal Calculation"
+                    style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" /> -->
                 <p>
                     Junction temperature is essentially equal to ambient at this load level, so thermal performance is
                     not a binding constraint. Finally JP1 sits between the LDO output and the ENS220 supply pin. It is
@@ -1081,8 +1124,11 @@
                     (Section 6.3.16). No external pull-up is needed. Using the typical value, the RC time constant with
                     C30 is
                 </p>
-                <img src="../../HardwareImages/FC/resetEqs.png" alt="Reset RC Time Constant Calculation"
-                    style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" />
+                <p class="math-display" style="color: white;">\[
+                    \tau \;=\; R_{Pullup}\cdot C \;=\; 40\,k\Omega \cdot 0.1\,\mu F \;=\; 4\,ms
+                    \]</p>
+                <!-- <img src="../../HardwareImages/FC/resetEqs.png" alt="Reset RC Time Constant Calculation"
+                    style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" /> -->
                 <p>Which is well above any contact bounce duration of the pushbutton and well above the H7's reset
                     recognition thresholds. From table 54: pulses shorter than </p>
                 <figure>
@@ -1101,6 +1147,11 @@
                     flash programming, breakpoint debugging, and register inspection. SWD was chosen over the older JTAG
                     mode because it uses only two signal pins instead of five, freeing PB3, PB4, and PA15 for other
                     functions.
+                </p>
+                <p>
+                    <strong>Pin Assignment.</strong>The H7 routes SWD to dedicated pins that come up in their debug
+                    alternate function automatically out of reset, so no firmware configuration is required to attach a
+                    debugger to a freshly programmed or bricked part:
                 </p>
                 <table>
                     <thead>
@@ -1163,126 +1214,6 @@
 
                 <h3 id="communication-io">Communication &amp; I/O</h3>
                 <p><strong>The rest of this documentation is in progress.</strong></p>
-
-                <!-- <h4 id="usb-fs">USB 2.0 Full Speed Implementation</h4>
-                <p>
-                    USB 2.0 Full Speed (12&nbsp;Mbps) was selected as the bench interface because it is sufficient
-                    for
-                    Betaflight Configurator, firmware flashing via DFU, and blackbox log retrieval, without
-                    requiring
-                    the external crystal that USB High-Speed demands. The connector is a 16-pin USB-C receptacle
-                    (J1)
-                    with CC1 and CC2 tied through 5.1&nbsp;k&Omega; resistors to GND, signaling to the host that the
-                    device accepts 5&nbsp;V at up to 1.5&nbsp;A (USB-C default current). VBUS is sensed through a
-                    resistor divider (R4 5.1&nbsp;k&Omega; / R6 15&nbsp;k&Omega;) that produces ~3.0&nbsp;V at the
-                    MCU's VBUS sensing pin. SBU1, SBU2, and the shield pin (S1) are left unconnected.
-                </p>
-                <p>
-                    The D+ and D&minus; traces are routed as a Coplanar Waveguide with Ground (CPWG) differential
-                    pair
-                    on F.Cu, targeted at 45&nbsp;&Omega; single-ended (90&nbsp;&Omega; differential). Using the
-                    JLCPCB
-                    4-layer stackup with a dielectric height of 0.21&nbsp;mm
-                    (&epsilon;<sub>r</sub>&nbsp;=&nbsp;4.34)
-                    and a 0.2&nbsp;mm gap to the coplanar ground, a trace width of 0.2286&nbsp;mm yields
-                    Z<sub>0</sub>&nbsp;&asymp;&nbsp;45.3&nbsp;&Omega;. Both traces are length-matched to
-                    11.0&nbsp;mm.
-                </p>
-
-                <h4 id="dshot-outputs">DSHOT Motor Outputs</h4>
-                <p>
-                    Four DSHOT300 motor command lines are driven from STM32H7 timer channels (TIM1/TIM8) using DMA,
-                    enabling the digital protocol without CPU intervention during each frame. Bidirectional DSHOT is
-                    supported in hardware. The specific timer-to-pin mapping will be finalized during firmware
-                    bring-up
-                    and documented in a companion target definition file.
-                </p>
-
-                <h3 id="sensors">Sensors</h3>
-                <p>The FC integrates sensors sufficient for both manual and autonomous flight modes. Manual flight
-                    requires an IMU and magnetometer for attitude estimation. Autonomous flight additionally
-                    requires a
-                    barometer for altitude hold and GNSS for position.</p>
-
-                <h4 id="primary-imu">Primary IMU — ICM-40609-D</h4>
-                <p>The ICM-40609-D was selected as the primary inertial measurement unit. Key characteristics:</p>
-                <ul>
-                    <li><strong>Power consumption:</strong> 3.3&nbsp;V &times; 0.77&nbsp;mA = 2.5&nbsp;mW</li>
-                    <li><strong>Output data rate:</strong> Up to 32&nbsp;kHz for both accelerometer and gyroscope
-                    </li>
-                    <li><strong>Gyroscope range:</strong> Up to &plusmn;2000&nbsp;&deg;/s (handles fast flight
-                        maneuvers)</li>
-                    <li><strong>Accelerometer range:</strong> Up to &plusmn;32&nbsp;g</li>
-                    <li><strong>Sensitivity error:</strong> &plusmn;0.5% for both accel and gyro</li>
-                </ul>
-                <p>The IMU connects to the MCU over SPI. Local decoupling consists of a 100&nbsp;nF and a
-                    2.2&nbsp;&mu;F capacitor on the VDD supply pin.</p>
-
-                <h4 id="secondary-imu">Secondary IMU — BNO055</h4>
-                <p>
-                    The BNO055 was included as a failsafe / backup IMU because team members had prior programming
-                    experience with it, making it easier to bring up quickly. However, it offers a lower output data
-                    rate and no significant advantage in noise or error performance over the ICM-40609-D. It was not
-                    utilized in this revision and <strong>will be removed in the next revision</strong>.
-                </p>
-
-                <h4 id="barometer">Barometer — ENS220</h4>
-                <p>The ENS220 was selected to provide altitude and temperature measurements. Key characteristics:
-                </p>
-                <ul>
-                    <li><strong>Power consumption:</strong> 1.8&nbsp;V &times; 75&nbsp;&mu;A = 1.35&nbsp;&mu;W</li>
-                    <li><strong>Output data rate:</strong> Up to 1&nbsp;kHz</li>
-                    <li><strong>Relative altitude accuracy:</strong> &plusmn;20&nbsp;cm in air</li>
-                </ul>
-                <p>The ENS220 is powered from the dedicated 1.8&nbsp;V LDO described in Section 4.1.4 and
-                    communicates
-                    over I2C with 2.7&nbsp;k&Omega; pull-up resistors.</p>
-
-                <h4 id="eeprom">EEPROM — ST M24512-RMN6TP</h4>
-                <p>
-                    A 512-Kbit serial I2C bus EEPROM included for both flight data logging and USB communication in
-                    the
-                    future. Address pins E0-E2 are tied to GND, setting the I2C address to 0x50 as expected by the
-                    STM32 HAL. WC# is tied high to enable write operations during normal use. Supply range is
-                    2.4-5.5&nbsp;V; the 3.3&nbsp;V rail is well within spec.
-                </p>
-
-                <h4 id="off-board-sensors">Off-Board Sensors (GNSS, Magnetometer)</h4>
-                <p>
-                    <strong>Magnetometer — MMC5983MA.</strong> Selected for orientation measurement.
-                </p>
-                <ul>
-                    <li><strong>Power consumption:</strong> 3.3&nbsp;V &times; 1&nbsp;&mu;A = 3.3&nbsp;&mu;W</li>
-                    <li><strong>Output data rate:</strong> Up to 1&nbsp;kHz</li>
-                    <li><strong>Heading accuracy:</strong> &plusmn;0.5&deg;</li>
-                </ul>
-                <p>
-                    The magnetometer was placed on a separate board further from the FC to avoid EMI interference
-                    from
-                    the motors, which could otherwise corrupt heading measurements.
-                </p>
-                <p>
-                    <strong>GNSS — TESEO-LIV3R.</strong> Selected for X/Y position estimation.
-                </p>
-                <ul>
-                    <li><strong>Power consumption (tracking):</strong> 3.3&nbsp;V &times; 21&nbsp;mA = 70&nbsp;mW
-                    </li>
-                    <li><strong>Constellations:</strong> GPS, GLONASS, BeiDou</li>
-                    <li><strong>Output data rate:</strong> Up to 10&nbsp;Hz</li>
-                    <li><strong>Position accuracy:</strong> &lt;1.8&nbsp;m CEP (50%)</li>
-                </ul>
-                <p>
-                    The GNSS module was also placed on a separate board for RF reasons: a patch antenna requires a
-                    long,
-                    uninterrupted ground plane and no boundary conditions that would attenuate the weak GPS L1
-                    signal.
-                    Both the magnetometer and the GNSS/receiver boards are contained on the same daughter board
-                    mounted
-                    directly above the flight controller. Full design justification for the GNSS front-end is
-                    provided
-                    in the companion GNSS Design Justification document.
-                </p> -->
-
             </section>
 
             <section>
@@ -1303,6 +1234,9 @@
     </footer>
 
     <script src="../../components/main.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.18.5/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.18.5/dist/contrib/auto-render.min.js"
+        onload="renderMathInElement(document.body, { delimiters: [{left: '\\[', right: '\\]', display: true}, {left: '\\\\(', right: '\\\\)', display: false}] });"></script>
 
 </body>
 
