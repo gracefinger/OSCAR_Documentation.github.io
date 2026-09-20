@@ -7,7 +7,7 @@
     <title>ESC Design Justification</title>
     <link rel="stylesheet" href="../../styles/main.css">
     <link rel="stylesheet" href="../../styles/tableOfContents.css">
-    <link rel="stylesheet" href="../../styles/chloeWorking.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.18.5/dist/katex.min.css">
 </head>
 
 <body>
@@ -186,20 +186,26 @@
                         driver supply voltage should be above the Undervoltage Lockout (UVLO)</span> to prevent it from
                     turning itself off. For our design, the UVLO should not be
                     greater than the <code class="amber">8-10V</code> gate driver voltage we choose from our voltage
-                    regulator.</p>
+                    regulator.
+                </p>
 
-                <p>Next is gate driver power dissipation. This can be found from the equation <code
-                        class="light-blue">P<sub>Drive</sub> = 2(Q<sub>G</sub> × V<sub>Drive</sub> × f<sub>PWM</sub>)</code>.
-                    The 2x comes from having to switch two MOSFETs. Our gate charge is about 25nC from <a
+                <p>Next is gate driver power dissipation. This can be found from the equation</p>
+                <p class="math-display light-blue">\[
+                    P_{\text{Drive}} = 2\left(Q_G \times V_{\text{Drive}} \times f_{\text{PWM}}\right)\]</p>
+                <p>The 2x comes from having to switch two MOSFETs. Our gate charge is about 25nC from <a
                         href="#mosfets">MOSFETs</a> and our V<sub>Drive</sub> is <code class="amber">8-10V</code> and
                     our PWM speed is <code class="amber">24-48kHz</code>. So the max power dissipation for our design
                     is:</p>
-                <p><code class="light-blue">P<sub>Drive</sub> = 2(25nC × 10V × 48,000Hz) = 0.026W</code>.</p>
+                <p class="math-display light-blue">\[
+                    P_{\text{Drive}} = 2(25\text{nC} \times 10\text{V} \times 48{,}000\text{Hz}) = 0.026\text{W}
+                    \]</p>
                 <p>This is very small and most gate drivers will be able to handle this.</p>
                 <p>In order to reduce switching losses, the switching time should be <code
-                        class="amber">less than 100ns</code>. If we aim for 50ns then <code
-                        class="light-blue">I<sub>peak</sub> = 28nC / 50ns = 0.56A</code>. The peak current source
-                    capabilities of the gate driver we choose should be able to satisfy this 560mA.</p>
+                        class="amber">less than 100ns</code>. If we aim for 50ns then
+                <p class="math-display light-blue">\[
+                    I_{\text{peak}} = \frac{28\text{nC}}{50\text{ns}} = 0.56\text{A}\]</p>
+                <p>The peak current source capabilities of the gate driver we choose should be able to satisfy this
+                    560mA.</p>
                 <p>The bootstrap circuitry will require a bootstrap diode to allow the bootstrap capacitor to charge up
                     when the low side MOSFET is conducting. Some gate drivers have this built into them. It is better
                     for our case if the bootstrap diode is built in since this will reduce manufacturing complexity, BOM
@@ -221,10 +227,13 @@
                 <h4 id="bootstrap-capacitor">Bootstrap capacitor</h4>
                 <p>We need to calculate the bootstrap capacitor needed for our MOSFETs from the formula given in our
                     gate driver datasheet.</p>
-                <p><code class="light-blue">C<sub>BST_MIN</sub> = Q<sub>TOT</sub> / &#x394;V<sub>BSTX</sub></code></p>
+                <p class="math-display light-blue">\[
+                    C_{\text{BST\_MIN}} = \frac{Q_{\text{TOT}}}{\Delta V_{\text{BSTX}}} \]
+                </p>
                 <p>The following formula will help us solve for this.</p>
-                <p><code
-                        class="light-blue">Q<sub>TOT</sub> = Q<sub>G</sub> + ( I<sub>LBS_TRAN</sub> / f<sub>SW</sub>) = 25nC + ( 220&micro;A / 48kHz ) = 25nC + 4.58nC = 29.58nC</code>
+                <p class="math-display light-blue">\[
+                    Q_{TOT} = Q_G + \left( \dfrac{I_{LBS,TRAN}}{f_{SW}} \right) = 25\text{nC} + \left( \dfrac{220\mu
+                    A}{48\text{kHz}} \right) = 25\text{nC} + 4.58\text{nC} = 29.58\text{nC} \]
                 </p>
                 <p>where:</p>
                 <ul>
@@ -234,11 +243,11 @@
                 </ul>
                 <p>Also from the datasheet, "any of commercial, industrial, and automotive applications use ripple value
                     between 0.5 V to 1 V" and should be minimized as much as possible.</p>
-                <p>If we assume a &#x394;V<sub>BSTX</sub> of 0.5V we get <code
-                        class="light-blue">C<sub>BST_MIN</sub> = 29.58nC / 0.5V ≈ 60nF</code>. For our case we should
-                    use 100nF as
-                    60nF is the minimum C<sub>BST</sub>. Lastly, the G<sub>CDD</sub> capacitor needs to be at least 10
-                    times larger than C<sub>BST</sub>. For this we should choose a 1uF
+                <p>If we assume a &#x394;V<sub>BSTX</sub> of 0.5V we get </p>
+                <p class="math-display light-blue">\[
+                    C_{BST,MIN} = \dfrac{29.58\text{nC}}{0.5\text{V}} \approx 60\text{nF} \]</p>
+                <p>For our case we should use 100nF as 60nF is the minimum C<sub>BST</sub>. Lastly, the G<sub>CDD</sub>
+                    capacitor needs to be at least 10 times larger than C<sub>BST</sub>. For this we should choose a 1uF
                     C<sub>GVDD</sub> capacitor. <span class="light-red">Both of these capacitors should be rated for at
                         least twice the voltage they are exposed to</span>, as much of the
                     capacitance is lost due to capacitor DC voltage derating.</p>
@@ -248,21 +257,26 @@
                     circuit which has the potential for
                     ringing. We can add a series resistor before the gate input to reduce this ringing. It also serves
                     to reduce the current output of the gate driver so
-                    it isn't outputting at its maximum. Current can be found by Ohm's law <code
-                        class="light-blue">V = IR</code> or:</p>
-                <p><code
-                        class="light-blue">I = V<sub>Drive</sub> / (R<sub>DRV</sub> + R<sub>G</sub> + R<sub>EXT</sub>)</code>
-                </p>
+                    it isn't outputting at its maximum. Current can be found by Ohm's law</p>
+                <p class="math-display light-blue">\[V = IR\]</p>
+                <p>or:</p>
+                <p class="math-display light-blue">\[
+                    I = \frac{V_{\text{Drive}}}{R_{\text{DRV}} + R_G + R_{\text{EXT}}}
+                    \]</p>
                 <p>With:</p>
                 <ul>
                     <li>R<sub>DRV</sub> = Gate driver internal resistance = 10&#x2126;</li>
                     <li>R<sub>G</sub> = MOSFET internal resistance ≈ 5&#x2126;</li>
                     <li>R<sub>EXT</sub> = External series resistor. For now we choose 10&#x2126;</li>
                 </ul>
-                <p><code class="light-blue">I = 8 to 10V / (10 + 5 + 10) = 0.32A to 0.40A</code></p>
+                <p class="math-display light-blue">\[
+                    I = \frac{8\text{ to }10\text{V}}{10 + 5 + 10} = 0.32\text{A to }0.40\text{A}
+                    \]</p>
                 <p>This current is safely below the <code class="amber">0.75A peak current</code> but will change our
                     switching time slightly so lets calculate that again.</p>
-                <p><code class="light-blue">t<sub>switch</sub> = 28nC / 0.4A = 70ns</code></p>
+                <p class="math-display light-blue">\[
+                    t_{\text{switch}} = \frac{28\text{nC}}{0.4\text{A}} = 70\text{ns}
+                    \]</p>
                 <p>This is still less than the desired <code class="amber">100ns</code> switching speed.</p>
 
                 <h4 id="mosfet-pull-down-resistor">MOSFET pull down resistor</h4>
@@ -294,7 +308,8 @@
                     voltage supply of at least <code class="amber">8V</code> to avoid UVLO. To prevent blackouts, we
                     should choose a 10V supply to provide a decent safety margin. This voltage is also well below the
                     <code class="amber">20V maximum</code> voltage the gate driver can take and the worst case battery
-                    voltage of 12V.</p>
+                    voltage of 12V.
+                </p>
                 <p>For compatibility with a future video transmitter (VTX), we would like to reuse the output voltage we
                     generate for the gate driver IC. This means a high output current (greater than 1A) is desirable.
                     The input voltage must be able to handle <code class="amber">12 - 17V</code> from the battery. Given
@@ -307,10 +322,12 @@
                 <h4 id="external-component-network">External component network</h4>
                 <p>In order to get the voltage regulator to function correctly, specific requirements need to be met
                     from the external component network. The first choice is the inductor value and rating. The
-                    datasheet gives the equation, <code
-                        class="light-blue">L =( V<sub>out</sub>(V<sub>IN</sub> - V<sub>OUT</sub>) )/ (V<sub>IN</sub> × &#x394;I<sub>L</sub> × f<sub>sw</sub>)</code>.
-                    When plugging in these values, the inductor value should be around <code
-                        class="amber">7-10µH</code>, higher value being more efficient at low loads. A 10µH inductor was
+                    datasheet gives the equation, </p>
+                <p class="math-display light-blue">\[
+                    L = \frac{V_{\text{out}}\left(V_{\text{IN}} - V_{\text{OUT}}\right)}{V_{\text{IN}} \times \Delta
+                    I_L \times f_{\text{sw}}}\]</p>
+                <p>When plugging in these values, the inductor value should be around <code class="amber">7-10µH</code>,
+                    higher value being more efficient at low loads. A 10µH inductor was
                     chosen for these reasons. Another consideration for the inductor is the max current rating. From the
                     datasheet, the max current rating of the inductor should be at least 35% higher than the maximum
                     load current of 2A. Lastly, the DC resistance should be <code
@@ -321,10 +338,12 @@
                     be either <code class="amber">35V or 50V</code>. The capacitor should be a low ESR ceramic capacitor
                     of at least 10µF as per the datasheet.</p>
                 <p>Next, to set the output voltage to 10V, the resistor divider network needs to be set according to
-                    this formula <code class="light-blue">R1 = R2(V<sub>out</sub> / 0.8V - 1)</code>. We chose
-                    10k&#x2126; and 115k&#x2126; for these resistor values. Finally, the remaining components were taken
-                    from the recommended component tables found in the datasheet. The board layout for these components
-                    was done using Figure 5 as a reference.</p>
+                    this formula </p>
+                <p class="math-display light-blue">\[
+                    R_1 = R_2\left(\frac{V_{\text{out}}}{0.8\text{V}} - 1\right)\]</p>
+                <p>We chose 10k&#x2126; and 115k&#x2126; for these resistor values. Finally, the remaining components
+                    were taken from the recommended component tables found in the datasheet. The board layout for these
+                    components was done using Figure 5 as a reference.</p>
                 <figure>
                     <img src="../../HardwareImages/ESC/figure5.png" alt="Figure 5: AP63201 recommended layout">
                     <figcaption>Figure 5: AP63201 recommended layout</figcaption>
@@ -339,17 +358,21 @@
                 <p>The important design considerations for the 3.3V regulator are the input voltage and the power
                     handling. The input voltage should be able to support the <code class="amber">10V</code> from the
                     previous voltage regulator. Since the design uses a linear regulator, the efficiency is dependent on
-                    the difference in supply voltage and output voltage. The power lost follows the formula <code
-                        class="light-blue">P = (V<sub>in</sub> - V<sub>out</sub>) × I<sub>out</sub></code>.</p>
+                    the difference in supply voltage and output voltage. The power lost follows the formula</p>
+                <p class="math-display light-blue">\[
+                    P = (V_{\text{in}} - V_{\text{out}}) \times I_{\text{out}}\]</p>
                 <p>The majority of current will be drawn from the STM32G071KBU6 microcontrollers. Any other sensors used
                     will need to be accounted for as well.</p>
                 <p>The STM32G071KBU6 datasheet lets us know that the total injected current (sum of all I/Os and control
                     pins) is 25 mA. We have two of these microcontrollers on one board which totals 50 mA. Adding a
                     layer of safety, the 3.3V regulator should be able to source about <code class="amber">100 mA</code>
-                    (this will also account for all miscellaneous components). From the equation, <code
-                        class="light-blue">P = (V<sub>in</sub> - V<sub>out</sub>) × I<sub>out</sub></code> we can find
-                    the power requirement to be:</p>
-                <p><code class="light-blue">P = (10V - 3.3V) × 0.1A = 0.63W</code></p>
+                    (this will also account for all miscellaneous components). From the equation,</p>
+                <p class="math-display light-blue">\[
+                    P = (V_{\text{in}} - V_{\text{out}}) \times I_{\text{out}}\]</p>
+                <p>we can find the power requirement to be:</p>
+                <p class="math-display light-blue">\[
+                    P = (10\text{V} - 3.3\text{V}) \times 0.1\text{A} = 0.63\text{W}
+                    \]</p>
                 <p>This wattage is manageably low and many different packages would work to support this power
                     dissipation. An SOT-89 package or larger will be sufficient in our case.</p>
                 <p>For our design, the <strong class="emphasis">AZ1117CH-3.3TRG1</strong> was chosen. The voltage input
@@ -379,7 +402,8 @@
                     the datasheet, the STL165N4F8AG we designed for are rated for a maximum drain to source voltage of
                     <code class="amber">40V</code>. The second component is the gate driver voltage regulator. From the
                     datasheet, the AP63201WU-7 voltage regulator is rated for <code class="amber">35V</code> on the VEN
-                    which is tied to the battery.</p>
+                    which is tied to the battery.
+                </p>
                 <figure>
                     <img src="../../HardwareImages/ESC/figure7.png" alt="Figure 7: Voltage ratings for AP63201WU-7">
                     <figcaption>Figure 7: Voltage ratings for AP63201WU-7</figcaption>
@@ -445,10 +469,14 @@
                     are two important components to choose, the current sensing IC and the shunt resistor.</p>
                 <p>First is the shunt resistor. The maximum current per motor that is being designed around is <code
                         class="amber">50A</code>. <span class="light-red">The shunt resistor needs to be able to handle
-                        this current without burning.</span> From the equation, <code class="light-blue">P = I²R</code>
-                    it can be found that 2500 times the resistance is the desired power rating. With a 1m&#x2126; shunt
-                    resistor the maximum power dissipation required is 2.5W. For our design, we went with a <strong
-                        class="emphasis">1m&#x2126; 3W</strong> resistor.</p>
+                        this current without burning.</span> From the equation,</p>
+                <p class="math-display light-blue">\[
+                    P = I^2R\]</p>
+                <p>it can be found that 2500 times the resistance is the desired power rating. With a
+                    1m&#x2126; shunt resistor the maximum power dissipation required is 2.5W. For our design, we went
+                    with a
+                    <strong class="emphasis">1m&#x2126; 3W</strong> resistor.
+                </p>
                 <p>The second is the current sensing IC itself. The existing ESC firmware AM32 which this board is
                     designed to be compatible with has existing code to read current data from an ADC input. There exist
                     current sensing ICs that communicate over I2C which could be used but won't necessarily be supported
@@ -492,13 +520,19 @@
                 <h4 id="2oz-copper-thickness">2oz copper thickness</h4>
                 <p>The electrical resistance of a PCB trace is inversely proportional to its cross sectional area. The
                     standard copper weight is 1oz (roughly 35 µm thick). By increasing the weight of the copper to
-                    <strong class="emphasis">2oz</strong>, we effectively half the resistance. Since <code
-                        class="light-blue">P = I²R</code>, this halving in resistance also halves the power lost to heat
-                    by the traces. For our design, 2oz copper was used for the internal and external layers of our
-                    4-layer board design. An added benefit of the thicker copper layer is the increased thermal
-                    conductivity which is also related to the cross sectional area of the copper. Increased thermal
-                    conductivity acts to spread out the heat generated to cooler areas of the board and where it can be
-                    transferred into the environment through conduction.</p>
+                    <strong class="emphasis">2oz</strong>, we effectively half the resistance. Since
+                </p>
+                <p class="math-display light-blue">\[
+                    P = I^2R\]</p>
+                <p>this halving in resistance also halves the power lost to heat by the traces. For our
+                    design, 2oz copper was used for the internal and external layers of our 4-layer board design. An
+                    added benefit of the thicker copper layer is the increased thermal conductivity which is also
+                    related
+                    to the cross sectional area of the copper. Increased thermal conductivity acts to spread out the
+                    heat
+                    generated to cooler areas of the board and where it can be transferred into the environment through
+                    conduction.
+                </p>
 
                 <h4 id="large-copper-pours-thermal-via-stitching">Large copper pours &amp; thermal via stitching</h4>
                 <p>This section is currently in development</p>
@@ -536,6 +570,9 @@
     </footer>
 
     <script src="../../components/main.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.18.5/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.18.5/dist/contrib/auto-render.min.js"
+        onload="renderMathInElement(document.body, { delimiters: [{left: '\\[', right: '\\]', display: true}, {left: '\\\\(', right: '\\\\)', display: false}] });"></script>
 
 </body>
 

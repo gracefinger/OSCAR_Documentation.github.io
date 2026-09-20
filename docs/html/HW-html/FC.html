@@ -7,11 +7,10 @@
     <title>Flight Controller Design Justification</title>
     <link rel="stylesheet" href="../../styles/main.css">
     <link rel="stylesheet" href="../../styles/tableOfContents.css">
-    <link rel="stylesheet" href="../../styles/chloeWorking.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.18.5/dist/katex.min.css">
 </head>
 
-<body>
+<body class="fc-doc">
     <nav>
         <ul class="nav-links">
             <li><a href="../../index.html"><span class="nav-dot"></span>Home</a></li>
@@ -42,8 +41,9 @@
                     The OSCAR quadcopter is a senior design project developing a custom flight stack from the board
                     level up. This document covers the flight controller (FC), one of three custom PCBs in the stack
                     alongside the Electronic Speed Controller (ESC) and the GNSS/Receiver board. The FC is a 4-layer
-                    board built around the <strong>STM32H753VIT6</strong> microcontroller, sized to mount on a 5&quot;
-                    frame with a 50&times;50&nbsp;mm M2 hole pattern.
+                    board built around the <strong>STM32H753VIT6</strong> microcontroller, sized to mount on a <code
+                        class="amber">5&quot;</code> frame with a <code class="amber">50&times;50&nbsp;mm</code> M2 hole
+                    pattern.
                 </p>
                 <p>
                     The FC's role is to close the inner attitude control loop: read the IMU and barometer, fuse them
@@ -66,13 +66,15 @@
                     requirement.</p>
                 <p><strong>In scope:</strong></p>
                 <ul>
-                    <li>Power tree (input protection, source OR-ing, 3.3&nbsp;V buck, 1.8&nbsp;V LDO)</li>
+                    <li>Power tree (input protection, source OR-ing, <code class="amber">3.3&nbsp;V</code> buck, <code
+                            class="amber">1.8&nbsp;V</code> LDO)</li>
                     <li>MCU subsystem (part selection, clocks, boot/reset, SWD, indicator LEDs)</li>
-                    <li>Communication and I/O (USB 2.0 FS, DSHOT outputs)</li>
+                    <li>Communication and I/O (USB <code class="amber">2.0</code> FS, DSHOT outputs)</li>
                     <li>On-board sensors (primary IMU, barometer, EEPROM, secondary IMU placeholder)</li>
                 </ul>
                 <p><strong>Out of scope</strong> and covered in companion documents: the ESC board, the GNSS/Receiver
-                    board (including the L1 patch antenna and TESEO-LIV3R front end), frame mechanical design, and
+                    board (including the <code class="amber">L1</code> patch antenna and TESEO-LIV3R front end), frame
+                    mechanical design, and
                     firmware implementation. Off-board sensor selection (magnetometer, GNSS) is summarized in Section
                     4.4.5 for context but justified in the GNSS Design Justification document.</p>
 
@@ -85,12 +87,17 @@
                     <figcaption>Figure 1: Flight Controller Schematic</figcaption>
                 </figure>
                 <p>
-                    Power enters from one of two sources. USB-C delivers 5&nbsp;V during bench work and configuration;
-                    the ESC delivers 8.8&nbsp;V regulated (derived from a 3S-4S LiPo running 11.1-14.8&nbsp;V nominal)
+                    Power enters from one of two sources. USB-C delivers <code class="amber">5&nbsp;V</code> during
+                    bench
+                    work and configuration; the ESC delivers <code class="amber">8.8&nbsp;V</code> regulated (derived
+                    from a <code class="amber">3S-4S</code> LiPo running <code class="amber">11.1-14.8&nbsp;V</code>
+                    nominal)
                     during flight. Both feed a dual Schottky diode array that selects whichever rail is higher and
                     blocks reverse current into the inactive source. The OR'd output drives the 3.3&nbsp;V switching
                     regulator, which supplies the MCU's VDDIO through bulk decoupling and VDDA through a separate analog
-                    filter network. A 1.8&nbsp;V LDO branches off the 3.3&nbsp;V rail to supply the ENS220 barometer.
+                    filter network. A <code class="amber">1.8&nbsp;V</code> LDO branches off the <code
+                        class="amber">3.3&nbsp;V</code>
+                    rail to supply the ENS220 barometer.
                 </p>
                 <p>
                     The STM32H753 sits at the center. On-board sensors connect locally: the ICM-40609-D IMU over SPI,
@@ -99,9 +106,12 @@
                     in turn drives the four motors. An SWD header exposes SWDIO/SWCLK for the ST-Link programmer.
                 </p>
                 <p>
-                    Two RF paths terminate off-board and are shown for context only. The 1.575&nbsp;GHz GPS L1 signal
+                    Two RF paths terminate off-board and are shown for context only. The <code
+                        class="amber">1.575&nbsp;GHz</code>
+                    GPS L1 signal
                     reaches the TESEO-LIV3R through a patch antenna on the GNSS daughter board, which returns position
-                    to the H7 over UART. The 2.4&nbsp;GHz ExpressLRS link terminates on the receiver module and returns
+                    to the H7 over UART. The <code class="amber">2.4&nbsp;GHz</code> ExpressLRS link terminates on the
+                    receiver module and returns
                     control inputs to the H7 over a second UART.
                 </p>
 
@@ -112,12 +122,15 @@
 
                 <h3 id="size">Size</h3>
                 <p>
-                    The FC mounts to a 5&quot; quadcopter frame using the standard 50&times;50&nbsp;mm M2 hole pattern.
-                    The outer board envelope is 56&times;56&nbsp;mm, set by the frame's mid-plate cutout and the need
+                    The FC mounts to a <code class="amber">5&quot;</code> quadcopter frame using the standard <code
+                        class="amber">50&times;50&nbsp;mm</code> M2 hole pattern. The outer board envelope is <code
+                        class="amber">56&times;56&nbsp;mm</code>, set by the frame's mid-plate cutout and the need
                     to clear the four arm bolts. This footprint is the binding constraint on the MCU package (LQFP100
-                    at 14&times;14&nbsp;mm fits; larger BGA parts do not leave room for the sensor cluster and
-                    connectors), on connector placement, and on routing density. All passives use 0603 to keep
-                    hand-rework feasible during bring-up; the ESD601 TVS diodes are the single 0402 exception, which
+                    at <code class="amber">14&times;14&nbsp;mm</code> fits; larger BGA parts do not leave room for the
+                    sensor cluster and
+                    connectors), on connector placement, and on routing density. All passives use <code
+                        class="amber">0603</code> to keep hand-rework feasible during bring-up; the ESD601 TVS diodes
+                    are the single <code class="amber">0402</code> exception, which
                     are optional if ESD events are not a concern.
                 </p>
 
@@ -127,10 +140,13 @@
                     network described in Section 4.1.2; the higher rail wins and the other is reverse-biased.
                 </p>
                 <p>
-                    <strong>Dual Source support.</strong> USB-C provides 5&nbsp;V at up to 1.5&nbsp;A during bench
-                    work, configuration, and firmware flashing. The ESC-derived rail provides 8.8&nbsp;V (regulated
-                    down from a 3S-4S LiPo running 11.1-14.8&nbsp;V nominal) during flight. The 3.3&nbsp;V buck
-                    (AP63203) accepts 3.8&nbsp;V to 32&nbsp;V, so the headroom above the highest expected ESC rail is
+                    <strong>Dual Source support.</strong> USB-C provides <code class="amber">5&nbsp;V</code> at up to
+                    <code class="amber">1.5&nbsp;A</code> during bench work, configuration, and firmware flashing. The
+                    ESC-derived rail provides <code class="amber">8.8&nbsp;V</code> (regulated down from a <code
+                        class="amber">3S-4S</code> LiPo running <code class="amber">11.1-14.8&nbsp;V</code> nominal)
+                    during flight. The <code class="amber">3.3&nbsp;V</code> buck (AP63203) accepts <code
+                        class="amber">3.8&nbsp;V to 32&nbsp;V</code>, so the headroom above the highest expected ESC
+                    rail is
                     sufficient.
                 </p>
 
@@ -151,54 +167,55 @@
                             <td>F.Cu</td>
                             <td>Copper (1 oz)</td>
                             <td>—</td>
-                            <td>0.035 mm</td>
+                            <td><code class="amber">0.035 mm</code></td>
                             <td>—</td>
                         </tr>
                         <tr>
                             <td>Dielectric 1</td>
                             <td>Prepreg 7628</td>
                             <td>—</td>
-                            <td>0.2104 mm</td>
+                            <td><code class="amber">0.2104 mm</code></td>
                             <td>4.4</td>
                         </tr>
                         <tr>
                             <td>In1.Cu</td>
                             <td>Copper (0.5 oz)</td>
                             <td>—</td>
-                            <td>0.0152 mm</td>
+                            <td><code class="amber">0.0152 mm</code></td>
                             <td>—</td>
                         </tr>
                         <tr>
                             <td>Dielectric 2</td>
                             <td>Core FR-4</td>
                             <td>—</td>
-                            <td>1.065 mm</td>
+                            <td><code class="amber">1.065 mm</code></td>
                             <td>4.6</td>
                         </tr>
                         <tr>
                             <td>In2.Cu</td>
                             <td>Copper (0.5 oz)</td>
                             <td>—</td>
-                            <td>0.0152 mm</td>
+                            <td><code class="amber">0.0152 mm</code></td>
                             <td>—</td>
                         </tr>
                         <tr>
                             <td>Dielectric 3</td>
                             <td>Prepreg 7628</td>
                             <td>—</td>
-                            <td>0.2104 mm</td>
+                            <td><code class="amber">0.2104 mm</code></td>
                             <td>4.4</td>
                         </tr>
                         <tr>
                             <td>B.Cu</td>
                             <td>Copper (1 oz)</td>
                             <td>—</td>
-                            <td>0.035 mm</td>
+                            <td><code class="amber">0.035 mm</code></td>
                             <td>—</td>
                         </tr>
                     </tbody>
                 </table>
-                <p>Total board thickness is 1.606&nbsp;mm, within tolerance of the 1.6&nbsp;mm JLCPCB option. Layer
+                <p>Total board thickness is <code class="amber">1.606&nbsp;mm</code>, within tolerance of the <code
+                        class="amber">1.6&nbsp;mm</code> JLCPCB option. Layer
                     net assignments are:</p>
                 <table>
                     <thead>
@@ -250,31 +267,31 @@
                     <tbody>
                         <tr>
                             <td>Min. trace width / spacing</td>
-                            <td>3.5 mil (0.09 mm) multilayer</td>
+                            <td><code class="amber">3.5 mil (0.09 mm)</code> multilayer</td>
                         </tr>
                         <tr>
                             <td>Min. via hole / diameter</td>
-                            <td>0.2 mm / 0.45 mm (no upcharge)</td>
+                            <td><code class="amber">0.2 mm / 0.45 mm</code> (no upcharge)</td>
                         </tr>
                         <tr>
                             <td>Board thickness</td>
-                            <td>1.6 mm selected</td>
+                            <td><code class="amber">1.6 mm</code> selected</td>
                         </tr>
                         <tr>
                             <td>Outer / inner copper weight</td>
-                            <td>1 oz / 0.5 oz</td>
+                            <td><code class="amber">1 oz / 0.5 oz</code></td>
                         </tr>
                         <tr>
                             <td>Min. annular ring</td>
-                            <td>0.13 mm</td>
+                            <td><code class="amber">0.13 mm</code></td>
                         </tr>
                         <tr>
                             <td>Min. drill-to-copper</td>
-                            <td>0.2 mm</td>
+                            <td><code class="amber">0.2 mm</code></td>
                         </tr>
                         <tr>
                             <td>Min. silkscreen width / height</td>
-                            <td>0.15 mm / 1 mm</td>
+                            <td><code class="amber">0.15 mm / 1 mm</code></td>
                         </tr>
                         <tr>
                             <td>Surface finish</td>
@@ -282,16 +299,21 @@
                         </tr>
                         <tr>
                             <td>Impedance tolerance</td>
-                            <td>&plusmn;10% (controlled impedance)</td>
+                            <td><code class="amber">&plusmn;10%</code> (controlled impedance)</td>
                         </tr>
                     </tbody>
                 </table>
                 <p>
-                    The 1.6&nbsp;mm board with 1&nbsp;oz outer / 0.5&nbsp;oz inner copper produces a dielectric height
-                    of 0.21&nbsp;mm between F.Cu and In1.Cu. This height feeds directly into the CPWG width calculation
-                    for the USB pair in Section 4.3.1, where a 0.2286&nbsp;mm trace width with 0.2&nbsp;mm gap to
-                    ground gives the required 45&nbsp;&Omega; single-ended (90&nbsp;&Omega; differential) impedance.
-                    The 0.2&nbsp;mm via hole / 0.45&nbsp;mm diameter is the smallest size JLCPCB does not surcharge
+                    The <code class="amber">1.6&nbsp;mm</code> board with <code class="amber">1&nbsp;oz</code> outer /
+                    <code class="amber">0.5&nbsp;oz</code> inner copper produces a dielectric height of <code
+                        class="amber">0.21&nbsp;mm</code>
+                    between F.Cu and In1.Cu. This height feeds directly into the CPWG width calculation for the USB
+                    pair in Section 4.3.1, where a <code class="amber">0.2286&nbsp;mm</code> trace width with <code
+                        class="amber">0.2&nbsp;mm</code> gap to ground gives the required <code
+                        class="amber">45&nbsp;&Omega;</code>
+                    single-ended (<code class="amber">90&nbsp;&Omega;</code> differential) impedance. The <code
+                        class="amber">0.2&nbsp;mm</code> via hole / <code class="amber">0.45&nbsp;mm</code> diameter is
+                    the smallest size JLCPCB does not surcharge
                     for; it is also large enough to fit between adjacent pins on the LQFP100 fanout without violating
                     the 0.09&nbsp;mm spacing rule.
                 </p>
@@ -317,7 +339,7 @@
                     <tbody>
                         <tr>
                             <td>Connector</td>
-                            <td>USB-C 2.0 receptacle, 16 pin</td>
+                            <td>USB-C <code class="amber">2.0</code> receptacle, <code class="amber">16</code> pin</td>
                         </tr>
                         <tr>
                             <td>Role</td>
@@ -325,15 +347,16 @@
                         </tr>
                         <tr>
                             <td>Speed</td>
-                            <td>Full Speed, 12 Mbps</td>
+                            <td>Full Speed, <code class="amber">12 Mbps</code></td>
                         </tr>
                         <tr>
                             <td>Power in</td>
-                            <td>5&nbsp;V nominal, up to 1.5&nbsp;A from host</td>
+                            <td><code class="amber">5&nbsp;V</code> nominal, up to <code class="amber">1.5&nbsp;A</code>
+                                from host</td>
                         </tr>
                         <tr>
                             <td>Data lines</td>
-                            <td>D+/D&minus; routed as 90&nbsp;&Omega; differential pair</td>
+                            <td>D+/D&minus; routed as <code class="amber">90&nbsp;&Omega;</code> differential pair</td>
                         </tr>
                         <tr>
                             <td>Cable</td>
@@ -354,7 +377,8 @@
 
                 <h3 id="esc-interface">ESC Interface (power input, DSHOT outputs, telemetry return)</h3>
                 <p>The ESC interface is the in-flight power and control link between the FC and the OSCAR ESC board. It
-                    carries the 8.8&nbsp;V rail up to the FC and four DSHOT motor commands plus one telemetry return
+                    carries the <code class="amber">8.8&nbsp;V</code> rail up to the FC and four DSHOT motor commands
+                    plus one telemetry return
                     down to the ESC.</p>
                 <table>
                     <thead>
@@ -367,49 +391,49 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td>1</td>
+                            <td><code class="amber">1</code></td>
                             <td>8V8</td>
                             <td>ESC &rarr; FC</td>
                             <td>8.8&nbsp;V power input from ESC, feeds diode-OR network</td>
                         </tr>
                         <tr>
-                            <td>2</td>
+                            <td><code class="amber">2</code></td>
                             <td>NC</td>
                             <td>—</td>
                             <td>Reserved</td>
                         </tr>
                         <tr>
-                            <td>3</td>
+                            <td><code class="amber">3</code></td>
                             <td>FC_RX</td>
                             <td>ESC &rarr; FC</td>
                             <td>ESC telemetry return (UART RX into FC)</td>
                         </tr>
                         <tr>
-                            <td>4</td>
+                            <td><code class="amber">4</code></td>
                             <td>Motor 1</td>
                             <td>FC &rarr; ESC</td>
                             <td>DSHOT command to motor 1</td>
                         </tr>
                         <tr>
-                            <td>5</td>
+                            <td><code class="amber">5</code></td>
                             <td>Motor 2</td>
                             <td>FC &rarr; ESC</td>
                             <td>DSHOT command to motor 2</td>
                         </tr>
                         <tr>
-                            <td>6</td>
+                            <td><code class="amber">6</code></td>
                             <td>Motor 3</td>
                             <td>FC &rarr; ESC</td>
                             <td>DSHOT command to motor 3</td>
                         </tr>
                         <tr>
-                            <td>7</td>
+                            <td><code class="amber">7</code></td>
                             <td>Motor 4</td>
                             <td>FC &rarr; ESC</td>
                             <td>DSHOT command to motor 4</td>
                         </tr>
                         <tr>
-                            <td>8</td>
+                            <td><code class="amber">8</code></td>
                             <td>GND</td>
                             <td>—</td>
                             <td>Return reference</td>
@@ -426,15 +450,16 @@
                     <tbody>
                         <tr>
                             <td>Power in</td>
-                            <td>8.8&nbsp;V nominal from ESC BEC, up to 32&nbsp;V tolerated by buck</td>
+                            <td><code class="amber">8.8&nbsp;V</code> nominal from ESC BEC, up to <code
+                                    class="amber">32&nbsp;V</code> tolerated by buck</td>
                         </tr>
                         <tr>
                             <td>Motor protocol</td>
-                            <td>DSHOT300 (bidirectional capable)</td>
+                            <td>DSHOT<code class="amber">300</code> (bidirectional capable)</td>
                         </tr>
                         <tr>
                             <td>Motor count</td>
-                            <td>4 (M1-M4)</td>
+                            <td><code class="amber">4</code> (M1-M4)</td>
                         </tr>
                         <tr>
                             <td>Telemetry</td>
@@ -486,7 +511,7 @@
                         </tr>
                     </tbody>
                 </table>
-                <p>ST-Link compatible. 2.54&nbsp;mm pitch.</p>
+                <p>ST-Link compatible. <code class="amber">2.54&nbsp;mm</code> pitch.</p>
 
                 <h4 id="magnetometer-i2c">Magnetometer I2C Breakout</h4>
                 <table>
@@ -520,7 +545,7 @@
                         </tr>
                     </tbody>
                 </table>
-                <p>400&nbsp;kHz I2C, dedicated bus (not shared).</p>
+                <p><code class="amber">400&nbsp;kHz</code> I2C, dedicated bus (not shared).</p>
 
                 <h4 id="gnss-uart">GNSS UART Breakout</h4>
                 <table>
@@ -554,7 +579,8 @@
                         </tr>
                     </tbody>
                 </table>
-                <p>9600 baud default, configurable to 115200. NMEA 0183.</p>
+                <p><code class="amber">9600</code> baud default, configurable to <code class="amber">115200</code>. NMEA
+                    <code class="amber">0183</code>.</p>
 
                 <h4 id="expresslrs-header">ExpressLRS Receiver Header</h4>
                 <table>
@@ -588,7 +614,8 @@
                         </tr>
                     </tbody>
                 </table>
-                <p>420&nbsp;kbaud, CRSF protocol. Pinout follows the Betaflight Connector Standard for ELRS Nano
+                <p><code class="amber">420&nbsp;kbaud</code>, CRSF protocol. Pinout follows the Betaflight Connector
+                    Standard for ELRS Nano
                     receivers.</p>
 
                 <h4 id="power-test-header">Power Test Header</h4>
@@ -623,11 +650,12 @@
                         </tr>
                     </tbody>
                 </table>
-                <p>Current available on each rail is bounded by the upstream regulator: 150&nbsp;mA on 1V8, 2&nbsp;A on
-                    3V3, and 2&nbsp;A on the ESC's 8V8.</p>
+                <p>Current available on each rail is bounded by the upstream regulator: <code
+                        class="amber">150&nbsp;mA</code> on 1V8, <code class="amber">2&nbsp;A</code> on 3V3, and <code
+                        class="amber">2&nbsp;A</code> on the ESC's 8V8.</p>
 
                 <h3 id="firmware-target">Firmware Target (Betaflight &amp; Custom Firmware)</h3>
-                <p><em>Under construction — to be developed later in the semester.</em></p>
+                <p><em class="light-red">Under construction — to be developed later in the semester.</em></p>
                 <p>The FC supports two firmware paths sharing the same hardware. Detailed target definitions, resource
                     assignments, and build instructions will be added as bring-up progresses.</p>
                 <p>
@@ -635,8 +663,10 @@
                     following manufacturer guidelines. Key target metadata includes: target name (TBD, format
                     OSCAR_FC_H753), MCU define STM32H743xx, sensor defines for the ICM-40609-D, ENS220 barometer
                     (driver TBD), and MMC5983MA magnetometer (driver TBD). The receiver will use
-                    USE_SERIALRX_CRSF on the ELRS UART, with 4&times; DSHOT300 motor outputs on TIM1/TIM8 channels
-                    and an 8&nbsp;kHz PID loop with bidirectional DSHOT enabled.
+                    USE_SERIALRX_CRSF on the ELRS UART, with <code class="amber">4&times;</code> DSHOT<code
+                        class="amber">300</code> motor outputs on TIM1/TIM8 channels and an <code
+                        class="amber">8&nbsp;kHz</code>
+                    PID loop with bidirectional DSHOT enabled.
                 </p>
                 <p>The ENS220 barometer and MMC5983MA magnetometer are not in mainline Betaflight as of this revision.
                     Driver work is required before the Betaflight path is functional.</p>
@@ -649,7 +679,7 @@
                     standalone How to Flash document will accompany the firmware release.</p>
 
                 <h3 id="connector-pinout-summary">Connector Pinout Summary</h3>
-                <p><em>Under construction — to be developed next semester.</em></p>
+                <p><em class="light-red">Under construction — to be developed next semester.</em></p>
 
                 <h2 id="block-by-block-verification">Block by Block Verification</h2>
 
@@ -675,10 +705,14 @@
 
                 <h4 id="tvs-esd601">General Purpose TVS — TI ESD601</h4>
                 <p>The TI ESD601 was selected for ESD protection on exposed external signal and power pins (UART
-                    headers, SWD Debug, 3.3V, etc). The diode is bidirectional and sized as a 0402 device with the 18V
-                    reverse stand off, 33V clamp at 2.77A, a dynamic resistance of 0.9Ω and a typical line capacitance
-                    of 0.3pF, this is from figure 5.1 of electrical characteristics from ESD601. The ESD601 carries IEC
-                    61000-4-2 ratings of 15kV contact and 15kV air discharge, which is well above the required
+                    headers, SWD Debug, <code class="amber">3.3V</code>, etc). The diode is bidirectional and sized as
+                    a <code class="amber">0402</code> device with the <code class="amber">18V</code> reverse stand off,
+                    <code class="amber">33V</code> clamp at <code class="amber">2.77A</code>, a dynamic resistance of
+                    <code class="amber">0.9&Omega;</code> and a typical line capacitance of <code
+                        class="amber">0.3pF</code>,
+                    this is from figure <code class="amber">5.1</code> of electrical characteristics from ESD601. The
+                    ESD601 carries IEC <code class="amber">61000-4-2</code> ratings of <code class="amber">15kV</code>
+                    contact and <code class="amber">15kV</code> air discharge, which is well above the required
                     <a
                         href="https://www.esda.org/esd-overview/esd-fundamentals/part-6-esd-standards/#:~:text=A%20separate%20class%20of%20standards,cable%20discharge%20events%20(CDE).">IEC
                         61000-4-2</a> approval of 8kV contact and 15kV air discharge.
@@ -692,7 +726,7 @@
                     contains two diode pairs, one for D+ and one for the D-, with a shared VBUS rail and a shared
                     ground. Any positive ESD transient on either dataline is clamped to VBUS any negative transient is
                     clamped to GND. The clamping voltage stays well below the STM32H7's GPIO absolute maximum of 4.0V
-                    (STM32H753 datasheet, Section 6.3.1).
+                    (STM32H753 datasheet, Section <code class="amber">6.3.1</code>).
                 </p>
                 <p>Key parameters from the USBLC6-2 datasheet (Table 2, Electrical Characteristics):</p>
                 <table>
@@ -706,31 +740,34 @@
                     <tbody>
                         <tr>
                             <td>Reverse stand-off voltage</td>
-                            <td>5&nbsp;V</td>
-                            <td>Matches VBUS (5&nbsp;V USB)</td>
+                            <td><code class="amber">5&nbsp;V</code></td>
+                            <td>Matches VBUS (<code class="amber">5&nbsp;V</code> USB)</td>
                         </tr>
                         <tr>
                             <td>Line capacitance (D+/D&minus;)</td>
-                            <td>1.7&nbsp;pF maximum</td>
-                            <td>Low enough for USB FS (12&nbsp;Mbps)</td>
+                            <td><code class="amber">1.7&nbsp;pF</code> maximum</td>
+                            <td>Low enough for USB FS (<code class="amber">12&nbsp;Mbps</code>)</td>
                         </tr>
                         <tr>
                             <td>IEC 61000-4-2 contact discharge</td>
-                            <td>&plusmn;8&nbsp;kV</td>
-                            <td>&plusmn;8&nbsp;kV</td>
+                            <td><code class="amber">&plusmn;8&nbsp;kV</code></td>
+                            <td><code class="amber">&plusmn;8&nbsp;kV</code></td>
                         </tr>
                         <tr>
                             <td>IEC 61000-4-2 air discharge</td>
-                            <td>&plusmn;15&nbsp;kV</td>
-                            <td>&plusmn;15&nbsp;kV</td>
+                            <td><code class="amber">&plusmn;15&nbsp;kV</code></td>
+                            <td><code class="amber">&plusmn;15&nbsp;kV</code></td>
                         </tr>
                     </tbody>
                 </table>
 
                 <h4 id="power-supply-isolation">Power Supply Source Isolation (USB vs. LiPo)</h4>
                 <p>
-                    The board accepts power from two sources: USB-C (5&nbsp;V nominal) and the ESC-derived rail
-                    (8.8&nbsp;V nominal). Both can be present simultaneously, most commonly during bench testing when
+                    The board accepts power from two sources: USB-C (<code class="amber">5&nbsp;V</code> nominal) and
+                    the
+                    ESC-derived rail (<code class="amber">8.8&nbsp;V</code> nominal). Both can be present
+                    simultaneously,
+                    most commonly during bench testing when
                     USB is connected for debugging while the battery is also live for the motors. Without isolation, the
                     higher voltage source would force current backward into the lower one, potentially damaging the USB
                     host.
@@ -739,12 +776,13 @@
                     Each source feeds a forward-biased diode with both cathodes tied together at the regulator input.
                     The diode with the higher anode voltage conducts and supplies the load; the other is reverse-biased
                     and blocks. The OR'd node sits at the conducting source voltage minus one forward drop of
-                    approximately 0.39&nbsp;V.
+                    approximately <code class="amber">0.39&nbsp;V</code>.
                 </p>
                 <p>
                     <strong>Part Selection — ROHM RBE2EA20A.</strong> A dual Schottky in a SOT-25T package, with both
                     diodes brought out independently so a single part covers both sources. Schottky was chosen for its
-                    lower forward drop (V<sub>F</sub>&nbsp;=&nbsp;0.39&nbsp;V) compared to the 0.7&nbsp;V drop of a
+                    lower forward drop (V<sub>F</sub>&nbsp;=&nbsp;<code class="amber">0.39&nbsp;V</code>) compared to
+                    the <code class="amber">0.7&nbsp;V</code> drop of a
                     standard PN diode, which directly reduces continuous power dissipation.
                 </p>
                 <table>
@@ -758,17 +796,18 @@
                     <tbody>
                         <tr>
                             <td>Reverse Voltage — V<sub>R</sub></td>
-                            <td>20&nbsp;V</td>
-                            <td>Blocks 12&nbsp;V max ESC rail from the USB (met with margin)</td>
+                            <td><code class="amber">20&nbsp;V</code></td>
+                            <td>Blocks <code class="amber">12&nbsp;V</code> max ESC rail from the USB (met with margin)
+                            </td>
                         </tr>
                         <tr>
                             <td>Steady Draw — I<sub>O</sub></td>
-                            <td>2&nbsp;A</td>
-                            <td>3.3&nbsp;V regulator maximum output — met with margin</td>
+                            <td><code class="amber">2&nbsp;A</code></td>
+                            <td><code class="amber">3.3&nbsp;V</code> regulator maximum output — met with margin</td>
                         </tr>
                         <tr>
                             <td>Surge Current — I<sub>FSM</sub></td>
-                            <td>5&nbsp;A</td>
+                            <td><code class="amber">5&nbsp;A</code></td>
                             <td>Regulator inrush headroom</td>
                         </tr>
                     </tbody>
@@ -790,19 +829,28 @@
                 </p>
                 <p>
                     <strong>Why a switching regulator over an LDO.</strong> An LDO dropping the worst-case 8.4&nbsp;V
-                    to 3.3&nbsp;V at 2&nbsp;A output would dissipate 10.2&nbsp;W as heat — unacceptable on a
-                    50&times;50&nbsp;mm board with no heatsinking. Even at a more realistic 300&nbsp;mA load, an LDO
-                    would dissipate 1.53&nbsp;W. The AP63203 at roughly 92% efficiency dissipates approximately
-                    86&nbsp;mW for the same 300&nbsp;mA load, which is acceptable.
+                    to <code class="amber">3.3&nbsp;V</code> at <code class="amber">2&nbsp;A</code> output would
+                    dissipate <code class="amber">10.2&nbsp;W</code> as heat — unacceptable on a <code
+                        class="amber">50&times;50&nbsp;mm</code>
+                    board with no heatsinking. Even at a more realistic <code class="amber">300&nbsp;mA</code> load, an
+                    LDO
+                    would dissipate <code class="amber">1.53&nbsp;W</code>. The AP63203 at roughly <code
+                        class="amber">92%</code>
+                    efficiency dissipates approximately <code class="amber">86&nbsp;mW</code> for the same <code
+                        class="amber">300&nbsp;mA</code>
+                    load, which is acceptable.
                 </p>
                 <figure>
                     <img src="../../HardwareImages/FC/figure2.png" alt="AP63203 Buck Regulator"
                         style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" />
                     <figcaption>Figure 2: AP63203 Buck Regulator</figcaption>
                 </figure>
-                <p>C10 (10&nbsp;&mu;F) is the input bulk cap, L1 (3.9&nbsp;&mu;H) and C12 (100&nbsp;nF, bootstrap)
-                    follow the datasheet recommended values, and C14/C15 (2&times;&nbsp;22&nbsp;&mu;F) form the output
-                    filter. JP2 isolates the buck output from the 3.3&nbsp;V rail during bring-up so the regulator can
+                <p>C10 (<code class="amber">10&nbsp;&mu;F</code>) is the input bulk cap, L1 (<code
+                        class="amber">3.9&nbsp;&mu;H</code>)
+                    and C12 (<code class="amber">100&nbsp;nF</code>, bootstrap) follow the datasheet recommended values,
+                    and C14/C15 (<code class="amber">2&times;&nbsp;22&nbsp;&mu;F</code>) form the output filter. JP2
+                    isolates the buck
+                    output from the <code class="amber">3.3&nbsp;V</code> rail during bring-up so the regulator can
                     be verified before any downstream load is connected.</p>
                 <table>
                     <thead>
@@ -814,19 +862,19 @@
                     <tbody>
                         <tr>
                             <td>Input Voltage Range — V<sub>IN</sub></td>
-                            <td>3.8&nbsp;V - 32&nbsp;V</td>
+                            <td><code class="amber">3.8&nbsp;V - 32&nbsp;V</code></td>
                         </tr>
                         <tr>
                             <td>Output Current — I<sub>OUT</sub></td>
-                            <td>2&nbsp;A continuous</td>
+                            <td><code class="amber">2&nbsp;A</code> continuous</td>
                         </tr>
                         <tr>
                             <td>Switching frequency — f<sub>SW</sub></td>
-                            <td>1.1&nbsp;MHz</td>
+                            <td><code class="amber">1.1&nbsp;MHz</code></td>
                         </tr>
                         <tr>
                             <td>Fixed Output Voltage — V<sub>OUT</sub></td>
-                            <td>3.3&nbsp;V</td>
+                            <td><code class="amber">3.3&nbsp;V</code></td>
                         </tr>
                     </tbody>
                 </table>
@@ -836,19 +884,20 @@
                     the design equations at the worst-case input voltage.
                 </p>
                 <p>Looking at the worst case ripple is highest VIN.
-                    Using VIN = 8.4V, VOUT = 3.3V, fSW = 1.1MHz, and recommend L = 3.9H.</p>
-                <p class="math-display" style="color: white;">\[\text{Inductor (Eq. 7):}\]</p>
-                <p class="math-display" style="color: white;">\[
+                    Using VIN = <code class="amber">8.4V</code>, VOUT = <code class="amber">3.3V</code>, fSW = <code
+                        class="amber">1.1MHz</code>, and recommend L = <code class="amber">3.9H</code>.</p>
+                <p class="math-display light-blue">\[\text{Inductor (Eq. 7):}\]</p>
+                <p class="math-display light-blue">\[
                     \Delta I_L = \frac{V_{OUT}\left(V_{IN} - V_{OUT}\right)}{V_{IN}\cdot L\cdot f_{SW}}
                     \]</p>
-                <p class="math-display" style="color: white;">\[
+                <p class="math-display light-blue">\[
                     \Delta I_L =
                     \frac{3.3\cdot\left((8.4)-(3.3)\right)}
                     {(8.4)\cdot(3.9\,\mu H)\cdot(1.1\cdot10^6)}
                     = 467\,mA
                     \]</p>
-                <p class="math-display" style="color: white;">\[\text{Ripple Ratio:}\]</p>
-                <p class="math-display" style="color: white;">\[
+                <p class="math-display light-blue">\[\text{Ripple Ratio:}\]</p>
+                <p class="math-display light-blue">\[
                     \frac{\Delta I_L}{I_{OUT}}
                     =
                     \frac{515\,mA}{2\,A}
@@ -860,38 +909,41 @@
                     relative to where the datasheet would place the optimum. Having a smaller &delta;I<sub>L</sub> means
                     that our peak current is less from equation 8, in addition that we will have a smaller ripple which
                     is a benefit for this design. </p>
-                <p>The minimum output capacitance to hold a 100mV overshoot during a full 2A load step <em>(AP63203 Eq.
+                <p>The minimum output capacitance to hold a <code class="amber">100mV</code> overshoot during a full
+                    <code class="amber">2A</code> load step <em>(AP63203 Eq.
                         10)</em>:</p>
-                <p class="math-display" style="color: white;">\[
+                <p class="math-display light-blue">\[
                     C_{OUT} \;>\; \frac{L\cdot\left(I_{OUT} + \dfrac{\Delta I_L}{2}\right)^{2}}
                     {\left(\Delta V + V_{OUT}\right)^{2} - V_{OUT}^{2}}
                     \]</p>
-                <p class="math-display" style="color: white;">\[\text{Allowing a } \Delta V = 100\,mV \text{ overshoot
+                <p class="math-display light-blue">\[\text{Allowing a } \Delta V = 100\,mV \text{ overshoot
                     at a full 2A load:}\]</p>
-                <p class="math-display" style="color: white;">\[
+                <p class="math-display light-blue">\[
                     C_{OUT} \;>\; \frac{(3.9\,\mu H)\cdot\left(2 + \dfrac{0.515}{2}\right)^{2}}
                     {(0.1 + 3.3)^{2} - 3.3^{2}}
                     \]</p>
-                <p class="math-display" style="color: white;">\[
+                <p class="math-display light-blue">\[
                     C_{OUT} \;>\; 29\,\mu F
                     \]</p>
                 <!-- <img src="../../HardwareImages/FC/outputCapacitanceEquations.png" alt="Output Capacitance Calculation"
                     style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" /> -->
-                <p>The design places 2x 22uF X5R ceramic capacitors on the output for 44uF total, which is above the
-                    minimum. Additional decoupling capacitors distributed along the 3.3V plane increase the effective
+                <p>The design places <code class="amber">2x 22uF</code> X5R ceramic capacitors on the output for <code
+                        class="amber">44uF</code> total, which is above the minimum. Additional decoupling capacitors
+                    distributed along the <code class="amber">3.3V</code> plane increase the effective
                     output capacitance further.</p>
                 <p>Output voltage ripple from ESR <em>(AP63203 Eq. 9)</em>:</p>
-                <p class="math-display" style="color: white;">\[
+                <p class="math-display light-blue">\[
                     V_{ripple} \;=\; \Delta I_L \cdot ESR
                     \]</p>
                 <!-- <img src="../../HardwareImages/FC/vRipple.png" alt="ESR Ripple Calculation"
                     style="max-width:100%; margin: 1rem auto; border: 1px solid #444; display: block;" /> -->
                 <p>We have already calculated &delta;I<sub>L</sub> from before in Eq. 7. However the capacitors I had
                     specified for our design did not mention the ESR. However we can estimate, based on utilizing a
-                    ceramic capacitor rated at X5R, we can expect an ESR &lt; 0.015 from <a
+                    ceramic capacitor rated at X5R, we can expect an ESR &lt; <code class="amber">0.015</code> from <a
                         href="https://web.archive.org/web/20221015065249/http://my.execpc.com/~endlr/esr.html">here</a>.
-                    Making these assumptions, two in parallel of our worst case would assume 7.5mΩ.</p>
-                <p class="math-display" style="color: white;">\[
+                    Making these assumptions, two in parallel of our worst case would assume <code
+                        class="amber">7.5m&Omega;</code>.</p>
+                <p class="math-display light-blue">\[
                     V_{ripple} \;=\; 0.467\,A \cdot 0.0075\,\Omega \;=\; 3.5\,mV \text{ ripple.}
                     \]</p>
                 <!-- <img src="../../HardwareImages/FC/vRipple2.png" alt="ESR Ripple Calculation"
@@ -914,12 +966,18 @@
 
                 <h4 id="ldo-1v8">Linear Regulator to 1.8&nbsp;V</h4>
                 <p>
-                    The ENS220 barometer requires a dedicated 1.8&nbsp;V supply. The Microchip
-                    <strong>MIC5317-1.8YM5</strong> (SOT23-5) is a fixed 1.8&nbsp;V, 150&nbsp;mA LDO with a 2.5&nbsp;V
-                    to 6&nbsp;V input range (MIC5317 datasheet, Section 1.0, Operating Ratings). Feeding 3.3&nbsp;V from
+                    The ENS220 barometer requires a dedicated <code class="amber">1.8&nbsp;V</code> supply. The
+                    Microchip
+                    <strong>MIC5317-1.8YM5</strong> (SOT23-5) is a fixed <code class="amber">1.8&nbsp;V</code>, <code
+                        class="amber">150&nbsp;mA</code> LDO with a <code class="amber">2.5&nbsp;V to 6&nbsp;V</code>
+                    input range
+                    (MIC5317 datasheet, Section <code class="amber">1.0</code>, Operating Ratings). Feeding <code
+                        class="amber">3.3&nbsp;V</code> from
                     the AP63203 directly into V<sub>IN</sub> is within spec. EN is tied to V<sub>IN</sub>, so the
-                    regulator turns on whenever the 3.3&nbsp;V rail is present; the 1.2V logic-high threshold
-                    (V<sub>EN</sub> row, Section 1.0, Electrical Characteristics) is met by the 3.3V rail with margin.
+                    regulator turns on whenever the <code class="amber">3.3&nbsp;V</code> rail is present; the <code
+                        class="amber">1.2V</code> logic-high threshold (V<sub>EN</sub> row, Section <code
+                        class="amber">1.0</code>,
+                    Electrical Characteristics) is met by the <code class="amber">3.3V</code> rail with margin.
                 </p>
                 <figure>
                     <img src="../../HardwareImages/FC/figure4.png" alt="MIC5317 LDO"
@@ -927,22 +985,26 @@
                     <figcaption>Figure 4: MIC5317 LDO</figcaption>
                 </figure>
                 <p>
-                    <strong>Dropout check.</strong> Maximum dropout at 150&nbsp;mA is 380&nbsp;mV, so the minimum
-                    V<sub>IN</sub> needed is 1.8&nbsp;V&nbsp;+&nbsp;0.38&nbsp;V&nbsp;=&nbsp;2.18&nbsp;V. The
-                    3.3&nbsp;V supply gives 1.12&nbsp;V of headroom, so dropout is not a concern.
+                    <strong>Dropout check.</strong> Maximum dropout at <code class="amber">150&nbsp;mA</code> is <code
+                        class="amber">380&nbsp;mV</code>, so the minimum V<sub>IN</sub> needed is <code class="amber">1.8&nbsp;V
+                    + 0.38&nbsp;V = 2.18&nbsp;V</code>. The <code class="amber">3.3&nbsp;V</code> supply gives <code
+                        class="amber">1.12&nbsp;V</code> of headroom, so dropout is not a concern.
                 </p>
-                <p><strong>Capacitor selection.</strong> The MIC5317 requires a minimum 1 µF ceramic input and 1 µF
-                    ceramic output capacitor for stability (Section 4.1, 4.2). The board places 1 µF X7R on each,
+                <p><strong>Capacitor selection.</strong> The MIC5317 requires a minimum <code
+                        class="amber">1 &micro;F</code>
+                    ceramic input and <code class="amber">1 &micro;F</code> ceramic output capacitor for stability
+                    (Section <code class="amber">4.1, 4.2</code>). The board places <code
+                        class="amber">1 &micro;F</code> X7R on each,
                     meeting the requirement.</p>
                 <p>
                     <strong>Thermal check.</strong> The ENS220 is the only load on this rail, consuming
-                    75&nbsp;&mu;A
-                    typical. Using 100&nbsp;&mu;A as a conservative bound:
+                    <code class="amber">75&nbsp;&mu;A</code> typical. Using <code class="amber">100&nbsp;&mu;A</code> as
+                    a conservative bound:
                 </p>
-                <p class="math-display" style="color: white;">\[
+                <p class="math-display light-blue">\[
                     P_D \;=\; (3.3V - 1.8V)\cdot 0.0001 \;=\; 0.15\,mW
                     \]</p>
-                <p class="math-display" style="color: white;">\[
+                <p class="math-display light-blue">\[
                     T_J \;=\; T_A + P_D\cdot\theta_{JA} \;=\; 85^{\circ}C +
                     (0.15\,mW)\cdot\left(253\,\frac{^{\circ}C}{W}\right) \;=\; 85.04^{\circ}C
                     \]</p>
@@ -1124,7 +1186,7 @@
                     (Section 6.3.16). No external pull-up is needed. Using the typical value, the RC time constant with
                     C30 is
                 </p>
-                <p class="math-display" style="color: white;">\[
+                <p class="math-display light-blue">\[
                     \tau \;=\; R_{Pullup}\cdot C \;=\; 40\,k\Omega \cdot 0.1\,\mu F \;=\; 4\,ms
                     \]</p>
                 <!-- <img src="../../HardwareImages/FC/resetEqs.png" alt="Reset RC Time Constant Calculation"
