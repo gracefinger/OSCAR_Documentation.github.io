@@ -71,15 +71,4 @@ design course.
 
 ### Responsible Use Statement:
 
-OSCAR is an open-source educational project intended for hobbyists, students, and researchers. Users are expected to operate any drone built using this project in compliance with all applicable local, national, and international laws and regulations. By using this project, you agree to fly responsibly and safely.
-We ask that all users of this project commit to the following:
-- Legal Compliance: Always operate your drone in accordance with your local aviation authority's regulations. In the United States, this includes FAA Part 107 and any applicable airspace restrictions.
-- Safety First: Never fly over crowds, restricted airspace, or in conditions that could endanger people or property. Always maintain visual line of sight with your drone during flight.
-- Privacy: Respect the privacy of others. Do not use this drone to surveil individuals without their knowledge or consent.
-- Responsible Use: This project must not be used to cause harm to people, animals, property, or infrastructure. The OSCAR team explicitly condemns any weaponization or malicious use of this design.
-
-The OSCAR team is not liable for misuse of this project. We trust our community to uphold these values.
-
-## License
-
-Currently in progress...
+See [DISCLAIMER.md](./DISCLAIMER.md) for our detailed disclaimer statement. By using this open-source platform, you assume agreement to the disclaimer!
