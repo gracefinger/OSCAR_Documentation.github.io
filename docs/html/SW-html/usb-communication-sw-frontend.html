@@ -256,6 +256,7 @@
                     <li>startStreaming(command) → Starts streaming requested information</li>
                     <li>stopStreaming() → Triggers streaming to stop</li>
                     <li>getNextStreamPacket() → Allows for polling between frontend and backend</li>
+                    <li>getNextLogPacket() → Allows for polling between frontend and backend in relation to logs</li>
                 </ul>
                 <p>These functions abstract away all low-level USB communication from the rest of the application.</p>
                 </p>
@@ -415,6 +416,7 @@
                     <li>Communication failures - return JSON error string</li>
                     <li>CRC mismatch - retry</li>
                     <li>Port not found - return user-friendly error</li>
+                    <li>Selected logged errors - forwarded to frontend</li>
                 </ul>
                 </p>
 
@@ -710,6 +712,7 @@
                     <li>USB disconnection during stream</li>
                     <li>Corrupted packets or CRC mismatch</li>
                     <li>Buffer overflow due to missed reads</li>
+                    <li>Logged errors displayed on <a href="../SW-html/error-logging.html">Error Logging</a> UI page</li>
                 </ul>
                 <p>Recovery strategies:</p>
                 <ul>
@@ -917,6 +920,7 @@
                     <li>Allowing reconnection of the device</li>
                     <li>Refreshing UI state via populateAll()</li>
                     <li>Preventing stale or invalid data from being displayed</li>
+                    <li>Displaying error logs on frontend so the user can view it if necessary</li>
                 </ul>
                 </p>
                 <!-- #endregion -->

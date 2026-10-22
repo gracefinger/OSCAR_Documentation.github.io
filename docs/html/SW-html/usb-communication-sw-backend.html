@@ -428,6 +428,7 @@
                     <li>Returns JSON responses or structured error messages to the frontend.</li>
                     <li>Handles errors such as invalid commands, CRC failures, port failures, timeouts, and memory
                         allocation issues.</li>
+                    <li>Forwards select information (including warnings, errors, and timing info) to the frontend.</li>
                 </ul>
 
                 <p>The module is structured into the following layers:</p>
@@ -548,6 +549,14 @@
                                 returned data is then forwarded to the frontend through streamData events.</li>
                         </ul>
                     </li>
+                    <li>GetNextLogPacket()
+                        <ul>
+                            <li>Internal backend function implemented in the C module that retrieves the next available
+                                log data packet from a thread-safe queue. This function does not directly communicate with
+                                the frontend; instead, it is repeatedly called by the backend polling loop, and any
+                                returned data is then forwarded to the frontend through streamData events.</li>
+                        </ul>
+                    </li>
                 </ul>
 
                 <p><strong>Note:</strong> There are many other functions in the C module. These are just the ones that
@@ -580,6 +589,11 @@
                     <li>GetNextStreamPacket
                         <ul>
                             <li>calls getNextStreamPacket and allows forwarding of packets to frontend.</li>
+                        </ul>
+                    </li>
+                    <li>GetNextLogPacket
+                        <ul>
+                            <li>Calls getNextLogPacket and allows forwarding of log packets to frontend.</li>
                         </ul>
                     </li>
                     <li>All wrappers handle NULL values and memory allocation errors safely.</li>
@@ -615,6 +629,9 @@
                     <li>SP_ERR_SUPP - Operation not supported</li>
                     <li>SP_ERR_MEM - Memory allocation failure</li>
                 </ul>
+
+                <p><strong>Note: </strong>Many of these errors and warnings are forwarded to the frontend so the user can see them.
+                 For more information related to the Error Logging functionalities, view this <a href="../SW-html/error-logging.html">page</a></p>
                 </p>
 
                 <h4 id="device-detection">Device Detection & Verification</h4>
@@ -718,7 +735,12 @@
                     { "ERROR": "error description" }. The Electron renderer checks for the
                     presence of the ERROR field: If an error is present, a modal dialog is displayed to the user. This
                     approach allows the native module to communicate failures without crashing the
-                    desktop application.</p>
+                    desktop application.
+                    <br><br>
+                    Additionally, errors and warnings are returned through a polling function similarly to how streaming packets are 
+                    retreived. All errors and warnings are displayed on the Error Logging UI page. For more information on this view this 
+                    <a href="../SW-html/error-logging.html">page.</a>
+                </p>
 
                 <!-- #region Data Streaming-->
                 <h2 id="data-streaming">Data Streaming Setup</h2>
@@ -727,7 +749,8 @@
                     directly with the flight controller over USB serial communication. Unlike standard request–response
                     interactions, streaming introduces a continuous data flow that is handled through a dedicated
                     architecture
-                    involving dual COM ports, multithreading, and buffered data transfer to the frontend.
+                    involving dual COM ports, multithreading, and buffered data transfer to the frontend. Error Logging population
+                    is set up in the same fashion as data streaming is.
                 </p>
                 <h3 id="com-port-verification">COM Port Identification & Differentiation</h3>
                 <p>
