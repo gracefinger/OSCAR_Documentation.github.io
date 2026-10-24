@@ -13,10 +13,10 @@
 <body>
     <nav>
         <ul class="nav-links">
-            <li><a href="../index.html"><span class="nav-dot"></span>Home</a></li>
-            <li><a href="./hardware.html"><span class="nav-dot"></span>Hardware</a></li>
-            <li><a href="./firmware.html"><span class="nav-dot"></span>Firmware</a></li>
-            <li><a href="./software.html"><span class="nav-dot"></span>Software</a></li>
+            <li><a href="../../index.html"><span class="nav-dot"></span>Home</a></li>
+            <li><a href="../hardware.html"><span class="nav-dot"></span>Hardware</a></li>
+            <li><a href="../firmware.html"><span class="nav-dot"></span>Firmware</a></li>
+            <li><a href="../software.html"><span class="nav-dot"></span>Software</a></li>
             <li><a href="../disclaimer.html"><span class="nav-dot"></span>Disclaimer</a></li>
         </ul>
     </nav>
@@ -34,39 +34,1294 @@
 
             <h1>Error Logging</h1>
 
-            <!-- Table of Contents -->
-            <!-- <div id="toc-block">
-                <h2>Table of Contents</h2>
-                <ol>
-                    <li><a href="#section-1">Section 1</a></li>
-                    <li><a href="#section-2">Section 2</a>
-                        <ol>
-                            <li><a href="#subsection-2-1">Subsection 2.1</a></li>
-                            <li><a href="#subsection-2-2">Subsection 2.2</a></li>
-                        </ol>
-                    </li>
-                    <li><a href="#section-3">Section 3</a></li>
-                </ol>
-            </div> -->
-
             <section>
 
-                <p>Documentation for this page is under construction! Thank you for your patience! :)</p>
+                <!-- #region Error Logging & Data Flow -->
+                <h1 id="error-logging-data-flow">Error Logging &amp; Data Flow</h1>
+                <h2 id="overview">Overview</h2>
+                <p>This section explains how error logging works in OSCAR Ground Station and how the Error Logging page
+                    uses it. For the USB command path that most of these logs describe, see the <a
+                        href="./usb-communication-sw-backend.html">Backend USB Communication</a> and <a
+                        href="./usb-communication-sw-frontend.html">Frontend USB Communication</a> documentation. Those
+                    documents only mention the logging additions to the C file briefly and point back here for the
+                    details. A separate testing documentation gives an overview of every testing method and how to use
+                    each one; this document covers how the testing cards on this page work internally.</p>
+                <p>We will start with the two kinds of logs and the overall flow of a log entry (this part includes the
+                    C module). Then we will go through the logging code in the C module, the worker and IPC layers that
+                    carry entries to the window, the page itself (layout, filtering, saving, display limits), the
+                    Integration &amp; Regression Tests card, the firmware Flight Logs, the Onboard Firmware Unit Tests
+                    card, and finally how the logging system behaves when something goes wrong.</p>
+                <p>The Error Logging page has five cards:</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Card</th>
+                            <th>What it is for</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>About Logs &amp; Testing</td>
+                            <td>Explains the page to the user</td>
+                        </tr>
+                        <tr>
+                            <td>Onboard Flight Logs</td>
+                            <td>Logs the firmware stored in its EEPROM, requested with a button</td>
+                        </tr>
+                        <tr>
+                            <td>OSCAR Ground Station Debug Log</td>
+                            <td>Live history of what the desktop app logs about itself</td>
+                        </tr>
+                        <tr>
+                            <td>Integration &amp; Regression Tests</td>
+                            <td>Runs the firmware commands end to end and reports results</td>
+                        </tr>
+                        <tr>
+                            <td>Onboard Firmware Unit Tests</td>
+                            <td>Triggers tests built into the firmware to be run, then displays the output and results
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
 
-                <!-- <h1 id="section-1">Section 1</h1>
-                <p>Content goes here.</p>
+                <h2 id="two-kinds-of-logs">The Two Kinds of Logs</h2>
+                <p><strong class="amber">OSCAR Ground Station Debug Log (desktop side).</strong> Everything OSCAR Ground Station
+                    records about its own operation, almost all of it from the C communication layer: finding and
+                    verifying COM ports, sending commands, retries, CRC failures, timing, and starting and stopping the
+                    stream. Entries are created while the app runs, pushed to the page live, and kept only for the
+                    current session.</p>
+                <p><strong class="amber">Onboard Flight Logs (firmware side).</strong> Events the drone recorded for itself and saved
+                    in its own EEPROM, including times when it was not connected to the desktop app. These are not
+                    streamed. The user requests them with a button, and they never touch the C log queue or the log
+                    worker described below.</p>
+                    <br><br>
+                <p><strong>Note:</strong> A FW tag on a Debug Log entry does not mean the entry came from the Flight
+                    Logs. It means the desktop app noticed the firmware misbehaving while talking to it (a short read, a
+                    bad CRC, an unexpected header). Flight Logs are history stored on the drone.</p>
 
-                <h1 id="section-2">Section 2</h1>
-                <p>Content goes here.</p>
+                <h2 id="debug-log-data-flow">Debug Log Data Flow</h2>
+                <p>This flow applies to the OSCAR Ground Station Debug Log. The Flight Logs card does not use it.</p>
+                <ol class="numbered-list">
+                    <li>Something Happens in the C Module: Code in USBCommunication.c (the command port functions or the
+                        stream thread) calls log_event(source, level, format, ...) next to the printf that describes the
+                        event.</li>
+                    <li>The Entry Is Built: log_event formats the message, escapes it, adds a local timestamp, and wraps
+                        everything in a small JSON string.</li>
+                    <li>The Entry Waits in the Log Queue: The JSON string is pushed onto a native circular queue that has
+                        its own mutex, so any thread can log safely.</li>
+                    <li>The Log Worker Polls: A dedicated worker thread in Electron calls getNextLogPacket() repeatedly
+                        and drains the queue.</li>
+                    <li>The Main Process Stores and Forwards: main.js appends every entry to logHistory[] and, if a
+                        window is listening, sends it over the logData IPC channel.</li>
+                    <li>The Preload Script Exposes It: preload.js makes the channel available to the page as
+                        window.backendAPI.onLogData and getLogHistory.</li>
+                    <li>The Page Renders It: log.js parses the entry, hands a copy to every registered log tap (used by
+                        the integration tests), and then renders a row in the Debug Log.</li>
+                </ol>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            log_event()&emsp;(USBCommunication.c, any thread)<br>
+                            &emsp;&emsp;-&gt; log queue&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;native circular buffer, 128
+                            slots<br>
+                            &emsp;&emsp;-&gt; log worker thread&emsp;&emsp;&emsp;addonWorker.js, polls
+                            getNextLogPacket()<br>
+                            &emsp;&emsp;-&gt; main.js&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;adds to logHistory[],
+                            sends "logData" to the window<br>
+                            &emsp;&emsp;-&gt; preload.js&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;backendAPI.onLogData /
+                            getLogHistory<br>
+                            &emsp;&emsp;-&gt; log.js&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;appendLogEntry()<br>
+                            &emsp;&emsp;&emsp;&emsp;-&gt; logTaps&emsp;&emsp;&emsp;&emsp;every entry, unfiltered
+                            (integrationTests.js)<br>
+                            &emsp;&emsp;&emsp;&emsp;-&gt; Debug Log rows&emsp;every entry rendered; the filter only
+                            hides rows
+                        </div>
+                    </div>
+                </div>
 
-                <h2 id="subsection-2-1">Subsection 2.1</h2>
-                <p>Content goes here.</p>
+                <h2 id="files-involved">Files Involved</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>File</th>
+                            <th>Role in error logging</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>USBCommunication.c</td>
+                            <td>Creates log entries (log_event), owns the log queue, exports getNextLogPacket</td>
+                        </tr>
+                        <tr>
+                            <td>addonWorker.js</td>
+                            <td>Worker thread code that loads the native addon and runs calls such as getNextLogPacket
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>main.js</td>
+                            <td>Log worker, polling loop, logHistory, getLogHistory and save-log-file IPC handlers</td>
+                        </tr>
+                        <tr>
+                            <td>preload.js</td>
+                            <td>Exposes the log methods to the page through backendAPI</td>
+                        </tr>
+                        <tr>
+                            <td>log.html</td>
+                            <td>The five cards and their element IDs</td>
+                        </tr>
+                        <tr>
+                            <td>log.js</td>
+                            <td>Renders entries, runs the Debug Log filter, saves the Debug Log, provides logTaps</td>
+                        </tr>
+                        <tr>
+                            <td>integrationTests.js</td>
+                            <td>The desktop to flight controller testing card. Must load after log.js because it uses
+                                logTaps</td>
+                        </tr>
+                        <tr>
+                            <td>logShared.js</td>
+                            <td>Shared functionality between all logging and tests on the Error Logging page</td>
+                        </tr>
+                        <tr>
+                            <td>flightLogs.js</td>
+                            <td>The main logic for the Onboard Flight Logs card</td>
+                        </tr>
+                        <tr>
+                            <td>firmwareTests.js</td>
+                            <td>The main logic for the Onboard Firmware Unit Tests card</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <!-- #endregion -->
 
-                <h2 id="subsection-2-2">Subsection 2.2</h2>
-                <p>Content goes here.</p>
+                <!-- #region Native C Logging -->
+                <h1 id="native-c-logging">Native C Logging</h1>
+                <h2 id="native-c-overview">Overview</h2>
+                <p>All logging in the C module goes through one function, log_event(). It was added so the Error
+                    Logging page can show exactly what the communication layer is doing, without anyone having to attach
+                    a console to the app. It is designed around three rules:</p>
+                <ul>
+                    <li>It is thread-safe. The command functions and the stream thread can call it at the same time.
+                    </li>
+                    <li>It never blocks on the UI. Entries only go into an in-memory queue; the worker drains it later.
+                    </li>
+                    <li>It mirrors the console. Every message that is printed is also logged, and the other way around.
+                    </li>
+                </ul>
 
-                <h1 id="section-3">Section 3</h1>
-                <p>Content goes here.</p> -->
+                <h2 id="log-event">log_event()</h2>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            <span class="light-red">void</span> <span class="light-green">log_event</span>(LogSource
+                            source, LogLevel level, <span class="light-red">const char*</span> format, ...);
+                        </div>
+                    </div>
+                </div>
+                <p>Each call does the following, in order:</p>
+                <ol class="numbered-list">
+                    <li>Format the Message: The message is built with vsnprintf into a 512-byte buffer, so anything
+                        longer than 511 characters is cut off.</li>
+                    <li>Escape It for JSON: json_escape() escapes quotes, backslashes, newline, carriage return, tab,
+                        and writes every other control character below 0x20 as a \u00XX sequence. This matters because
+                        text that arrives through a %s argument can contain raw control bytes. For example, Windows
+                        appends a carriage return and line feed to the text returned by sp_last_error_message(), and a
+                        raw control character makes JSON.parse on the page fail with “Bad control character in string
+                        literal”.</li>
+                    <li>Stamp It: The timestamp comes from GetLocalTime(), so it is the local time of the computer
+                        running the app.</li>
+                    <li>Build the JSON: The source, level, timestamp, and escaped message are written into a 1200-byte
+                        buffer.</li>
+                    <li>Print It: The entry is also printed to the console as [SW][INFO] message.</li>
+                    <li>Queue It: The JSON string is pushed to the log queue with log_queue_push().</li>
+                </ol>
+                <br>
+                <p><strong>Note:</strong> Because log_event prints to the console itself, a message that also has its
+                    own printf appears twice in the console. That is expected. The one printf that must never be paired
+                    is the one inside log_event, which would recurse.</p>
+
+                <h2 id="log-entry-format">Log Entry Format</h2>
+                <p>Every entry delivered to the frontend is a JSON string like this:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            {<br>
+                            &emsp;&emsp;<span class="light-green">"source"</span>: <span
+                                class="light-green">"SW"</span>,<br>
+                            &emsp;&emsp;<span class="light-green">"level"</span>: <span
+                                class="light-green">"ERROR"</span>,<br>
+                            &emsp;&emsp;<span class="light-green">"timestamp"</span>: <span
+                                class="light-green">"2026-09-09 14:32:07"</span>,<br>
+                            &emsp;&emsp;<span class="light-green">"message"</span>: <span class="light-green">"Port
+                                verification failed in populateAll()"</span><br>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Field</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>source</td>
+                            <td>SW or FW (see Levels and Sources)</td>
+                        </tr>
+                        <tr>
+                            <td>level</td>
+                            <td>INFO, TIMING, WARNING, or ERROR</td>
+                        </tr>
+                        <tr>
+                            <td>timestamp</td>
+                            <td>YYYY-MM-DD HH:MM:SS, local time of the computer at the moment the entry was logged</td>
+                        </tr>
+                        <tr>
+                            <td>message</td>
+                            <td>Human-readable text. Newlines are escaped in the JSON and shown as line breaks on the
+                                page. Truncated at 511 characters by the C module</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h2 id="levels-and-sources">Levels and Sources</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Value</th>
+                            <th>Meaning</th>
+                            <th>Color</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>INFO</td>
+                            <td>Normal events: device found, port verified, attempt started, streaming started</td>
+                            <td>Blue #5DADFF</td>
+                        </tr>
+                        <tr>
+                            <td>WARNING</td>
+                            <td>Recoverable problems: failed reads, handshake failures, stream CRC mismatches</td>
+                            <td>Yellow #F5C542</td>
+                        </tr>
+                        <tr>
+                            <td>ERROR</td>
+                            <td>Failures: all retries failed, port not found, invalid command, stream read error</td>
+                            <td>Red #FF6B6B</td>
+                        </tr>
+                        <tr>
+                            <td>TIMING</td>
+                            <td>Performance measurements, such as the Timing: line written after a valid response</td>
+                            <td>Pink #FF7AC6</td>
+                        </tr>
+                        <tr>
+                            <td>SW</td>
+                            <td>Created by the desktop side: port scanning, opening and closing ports, attempts, timing,
+                                verification results</td>
+                            <td>Purple #B78CFF</td>
+                        </tr>
+                        <tr>
+                            <td>FW</td>
+                            <td>The desktop noticed a problem with what the firmware sent, or did not send</td>
+                            <td>Green #3DDC97</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>In practice the source is chosen like this. Use SW for things the desktop did or decided. Use FW for
+                    things observed about the firmware's side of the conversation: a short or missing read, a size
+                    mismatch, a CRC mismatch, an unexpected header, a CRC error reported by the firmware, or a stream
+                    read error.</p>
+                <p><strong>Note:</strong> Two retry causes in write_to_port() (“CRC mismatch — retrying” and
+                    “Unexpected response header”) are currently logged as FW / INFO, while the matching handshake and
+                    stream CRC failures are WARNING. Anything that triggers a retry should be a WARNING. This is more
+                    than cosmetic: the integration tests only attach WARNING and ERROR entries to a failed result row,
+                    so an INFO-level retry reason will not show up there.</p>
+
+                <h2 id="log-queue">The Log Queue</h2>
+                <p>The queue is a circular buffer of heap-allocated JSON strings.</p>
+                <ul>
+                    <li><strong>Size:</strong> LOG_QUEUE_SIZE is 128 slots. One slot is always kept empty to tell a full
+                        queue from an empty one, so it holds up to 127 entries.</li>
+                    <li><strong>When it is full:</strong> The oldest entry is freed and dropped, so a slow consumer still
+                        shows the most recent messages. This only matters if the poller falls behind.</li>
+                    <li><strong>Locking:</strong> The queue has its own mutex, separate from the stream queue (64 slots),
+                        so a flood of one can never push entries out of the other.</li>
+                    <li><strong>Lazy setup:</strong> The mutex is created on first use through InitOnceExecuteOnce.
+                        Logging can happen before streaming has ever started, and from any thread, so setup cannot
+                        depend on one known thread running first.</li>
+                    <li><strong>Reading:</strong> getNextLogPacket() removes and returns the oldest entry, or NULL if the
+                        queue is empty. The Node-API wrapper converts it to a JavaScript string and frees the C copy.
+                        The function is exported to JavaScript alongside the other five addon functions.</li>
+                </ul>
+
+                <h2 id="keeping-log-readable">Keeping the Log Readable</h2>
+                <ul>
+                    <li><strong>Hex dumps are one entry.</strong> The per-byte hex printouts of raw packets are logged
+                        through log_hex_bytes() as a single entry per packet. The text buffer is 512 bytes at three
+                        characters per byte, so very long packets are truncated in the log (the console still prints
+                        every byte).</li>
+                    <li><strong>Stream packets are throttled.</strong> Stream packets arrive at a high rate. Only one
+                        sample is logged per STREAM_LOG_INTERVAL_MS (60 seconds), shown as [STREAM] Sample packet:
+                        {...}. The first packet of a session is always logged. This only affects logging: every packet
+                        still goes into the stream queue and reaches the UI through getNextStreamPacket(). Without the
+                        throttle the stream would flood the log queue and push real errors out of it.</li>
+                    <li><strong>Retries are visible.</strong> write_to_port() logs Attempt N... at the start of every
+                        attempt, so a command that needed two retries shows three of these lines before its result.</li>
+                    <li><strong>Responses are logged.</strong> The JSON a command returns is logged as JSON Response:
+                        followed by the text (still subject to the 511 character cut).</li>
+                </ul>
+
+                <h2 id="adding-or-changing-a-log-message">Adding or Changing a Log Message</h2>
+                <ol class="numbered-list">
+                    <li>Pair it with the printf: Put a log_event next to any new printf so the console and the page
+                        agree.</li>
+                    <li>Choose source and level: Follow the conventions above. Retry causes are WARNING.</li>
+                    <li>Never pass dynamic text as the format: Use log_event(..., "%s", text).</li>
+                    <li>Treat the wording as a contract: The integration tests recognize several messages by their first
+                        words. If you reword one of the messages below, update the matching pattern in
+                        integrationTests.js.</li>
+                </ol>
+                <br><br>
+
+                <h3 id="messages-tests-depend-on">Messages the Tests Depend On</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Message starts with</th>
+                            <th>Source / level</th>
+                            <th>Emitted by</th>
+                            <th>Used by the tests for</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Attempt N...</td>
+                            <td>SW / INFO</td>
+                            <td>write_to_port(), once per attempt</td>
+                            <td>Counting attempts and retries</td>
+                        </tr>
+                        <tr>
+                            <td>Valid response received</td>
+                            <td>SW / INFO</td>
+                            <td>write_to_port()</td>
+                            <td>Marks a successful call's logs as complete</td>
+                        </tr>
+                        <tr>
+                            <td>Timing:</td>
+                            <td>SW / TIMING</td>
+                            <td>write_to_port(), after the line above</td>
+                            <td>Phase timing shown on the result row</td>
+                        </tr>
+                        <tr>
+                            <td>All retries failed</td>
+                            <td>SW / ERROR</td>
+                            <td>write_to_port()</td>
+                            <td>Marks a failed call's logs as complete</td>
+                        </tr>
+                        <tr>
+                            <td>Invalid header in ...</td>
+                            <td>SW / ERROR</td>
+                            <td>populateAll, updateValue, startStreaming</td>
+                            <td>Completion of the unknown-command test</td>
+                        </tr>
+                        <tr>
+                            <td>Port verification failed</td>
+                            <td>SW / ERROR</td>
+                            <td>populateAll, updateValue</td>
+                            <td>Completion when no device is found</td>
+                        </tr>
+                        <tr>
+                            <td>Failed to find to COM port / Failed to open to COM port</td>
+                            <td>SW / WARNING</td>
+                            <td>write_to_port()</td>
+                            <td>Completion when the port cannot be opened</td>
+                        </tr>
+                        <tr>
+                            <td>Reconnection to port failed</td>
+                            <td>SW / ERROR</td>
+                            <td>write_to_port()</td>
+                            <td>Completion after a failed reopen</td>
+                        </tr>
+                        <tr>
+                            <td>Testing COMx...</td>
+                            <td>SW / INFO</td>
+                            <td>find_com_port()</td>
+                            <td>Detecting that a port re-scan happened</td>
+                        </tr>
+                        <tr>
+                            <td>Streaming started, Stream already running, Command port verification failed, Stream port
+                                verification failed, Failed to send start-streaming ..., Failed to create ...</td>
+                            <td>SW</td>
+                            <td>startStreaming()</td>
+                            <td>Completion of the stream start call</td>
+                        </tr>
+                        <tr>
+                            <td>Streaming stopped, Stream is not running</td>
+                            <td>SW / INFO</td>
+                            <td>stopStreaming()</td>
+                            <td>Completion of the stream stop call</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p><strong>Note:</strong> “Failed to find to COM port” and “Failed to open to COM port” are
+                    written exactly like that in the C file (the extra “to” is a typo there). The test pattern matches
+                    the text as emitted. If the C wording is ever fixed, change the pattern in IT_DEFAULT_TERMINALS at
+                    the same time.</p>
+                <!-- #endregion -->
+
+                <!-- #region Worker & IPC -->
+                <h1 id="worker-ipc-layers">Worker &amp; IPC Layers for Logs</h1>
+                <h2 id="dedicated-log-worker">Dedicated Log Worker</h2>
+                <p>Log polling runs on its own worker thread in main.js, separate from both the command worker
+                    (populateAll / updateValue) and the stream worker (getNextStreamPacket). This was intentional. The
+                    quaternion stream is polled at about 60 fps, and logs need to be drained continuously and
+                    independently of whatever the user is doing on other pages. Sharing a worker with either of those
+                    could delay log delivery or, worse, delay stream and command responses while waiting on a log poll.
+                </p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            <span class="light-red">let</span> logWorker = <span class="light-red">null</span>;<br>
+                            <span class="light-red">let</span> logPendingRequests = <span class="light-red">new</span>
+                            Map();<br>
+                            <span class="light-red">let</span> logHistory = [];&emsp;&emsp;// persists across page
+                            navigation for the session<br>
+                            <span class="light-red">const</span> MAX_LOG_HISTORY = 500;<br>
+                            <br>
+                            <span class="light-red">function</span> <span
+                                class="light-green">getLogWorker</span>() { /* creates or reuses the log worker */ }<br>
+                            <span class="light-red">function</span> <span
+                                class="light-green">runInLogWorker</span>(method, args) { /* posts a message, resolves
+                            on response */ }
+                        </div>
+                    </div>
+                </div>
+                <p>Each worker thread loads the native module with require(addonPath). Windows loads a given DLL path
+                    into a process once and shares it across threads, so all three workers operate on the same static
+                    state inside the C addon. This is the same reasoning that already applied to verified_port and
+                    port_verified being shared between the command and stream workers, and it is why the log queue can
+                    be filled by one thread and drained by another.</p>
+
+                <h2 id="continuous-polling">Continuous Polling</h2>
+                <p>Log polling starts once, at app startup, and runs for the life of the app. It is not tied to the user
+                    opening the Error Logging page, so entries from the whole session are captured. The poll loop runs
+                    on a slower interval than the stream poll loop. Every entry that comes off the queue is:</p>
+                <ul>
+                    <li>Pushed into logHistory</li>
+                    <li>Sent immediately to the renderer through the logData IPC channel, as long as a window is
+                        currently listening</li>
+                </ul>
+                <p><strong>Note:</strong> logHistory is in memory only, so it resets when the app restarts.</p>
+
+                <h2 id="log-history">Log History</h2>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            ipcMain.handle(<span class="light-green">"getLogHistory"</span>, () => {<br>
+                            &emsp;&emsp;<span class="light-red">return</span> logHistory;<br>
+                            });
+                        </div>
+                    </div>
+                </div>
+                <p>This lets a newly opened Error Logging page ask for everything that has happened so far in the
+                    session before it starts listening for live updates. logHistory is capped at MAX_LOG_HISTORY (500),
+                    so the page can only recover the most recent 500 entries.</p>
+
+                <h2 id="preload-bridge">Preload Bridge</h2>
+                <p>Four log-related methods are part of the backendAPI object exposed in preload.js:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            getLogHistory: () => ipcRenderer.invoke(<span
+                                class="light-green">"getLogHistory"</span>),<br>
+                            onLogData: (callback) => ipcRenderer.on(<span class="light-green">"logData"</span>, (event,
+                            packet) => callback(packet)),<br>
+                            offLogData: () => ipcRenderer.removeAllListeners(<span
+                                class="light-green">"logData"</span>),<br>
+                            saveLogFile: (logFile) => ipcRenderer.invoke(<span
+                                class="light-green">"save-log-file"</span>, logFile)
+                        </div>
+                    </div>
+                </div>
+                <p>getLogHistory is a request and response call, onLogData is the push channel for live entries,
+                    offLogData removes the listener when the page closes, and saveLogFile hands a finished text file to
+                    the main process (see Saving Log Files).</p>
+                <!-- #endregion -->
+
+                <!-- #region Error Logging Page -->
+                <h1 id="error-logging-page">Error Logging Page (Frontend)</h1>
+                <h2 id="page-layout">Page Layout (log.html)</h2>
+                <p>The page has five cards. See the <a href="#error-logging-data-overview">overview</a> section above for what each card is for.</p>
+
+                <h2 id="debug-log-filter">OSCAR Ground Station Debug Log Filter</h2>
+                <p>The Filtering Options panel (#logFilterPanel) sits above the Debug Log and is always visible. It has
+                    source checkboxes (SW, FW), level checkboxes (INFO, TIMING, WARNING, ERROR), and a Reset button
+                    (#logFilterReset) that re-checks everything. Everything is shown by default.</p>
+                <p>How it works:</p>
+                <ol class="numbered-list">
+                    <li>Checkbox Changes: Each checkbox carries data-filter="source" or data-filter="level" plus a value.
+                        Changing one updates the matching set (activeSources or activeLevels) and calls
+                        applyLogFilter().</li>
+                    <li>Existing Rows: applyLogFilter() toggles the log-filtered-out class on every existing row, then
+                        scrolls the list to the bottom.</li>
+                    <li>New Rows: New rows are checked against the filter as they are created, so they arrive already
+                        hidden or visible.</li>
+                    <li>Visibility Rule: A row is shown only if both its source and its level are enabled. A source or
+                        level that is not in the known lists is always shown, so odd entries cannot disappear.</li>
+                </ol>
+                <p>The filter is view-only. It does not change logHistory, the row cap, or what logTaps listeners
+                    receive, so filtering the display never affects integration test results. Hiding rows does not
+                    remove them, and turning a checkbox back on brings them back. It does affect the saved Debug Log
+                    file (see Saving Log Files).</p>
+                <p>To add a new level or source later:</p>
+                <ol class="numbered-list">
+                    <li>Add it to KNOWN_LEVELS or KNOWN_SOURCES in log.js.</li>
+                    <li>Add its checkbox in log.html, with data-filter and a value that matches the uppercase name.</li>
+                    <li>Add its color variable and .log-&lt;name&gt; or .src-&lt;name&gt; styles in log.css.</li>
+                    <li>Add it to the level or source conventions in this document and, if the C module can emit it, to
+                        the LogLevel or LogSource enum and the name functions in USBCommunication.c.</li>
+                </ol>
+
+                <h2 id="saving-log-files">Saving Log Files</h2>
+                <p>The Save Debug Log button (saveGroundStationLogs) saves the OSCAR Ground Station Debug Log to a plain
+                    text file. It follows the same pattern as Save Configuration on the Load &amp; Save page: the
+                    renderer collects the data, and the main process shows the save dialog and writes the file. The
+                    difference is that the output is formatted like the on-screen log rather than as JSON.</p>
+                <p>The renderer never touches the file system. It only passes the finished text and a suggested file
+                    name to the main process.</p>
+
+                <h3 id="what-gets-saved">What gets saved</h3>
+                <ul>
+                    <li><strong>Only the visible rows.</strong> The text is built from the rows in #logList that are not
+                        hidden by the filter (.log-entry:not(.log-filtered-out)), so the file matches the screen. To
+                        save everything regardless of the filter, change the selector in collectGroundStationLog() to
+                        .log-entry.</li>
+                    <li><strong>Only what is on the page.</strong> Rows trimmed past MAX_LOG_ENTRIES (5000) are gone.
+                        After navigating away and back, the page reloads only the last 500 entries from main.js, so a
+                        save in that case holds at most 500 lines plus anything logged since.</li>
+                    <li><strong>Empty log.</strong> If there are no visible rows, nothing is saved and the error modal
+                        shows “There are no log entries to save.”</li>
+                </ul>
+
+                <h3 id="file-format">File format</h3>
+                <p>One line per entry, in the same field order as the page:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            [timestamp] [SOURCE] [LEVEL&emsp;] message<br>
+                            <br>
+                            [2026-09-09 14:32:07] [SW] [INFO&emsp;&nbsp;] Connected to flight controller<br>
+                            [2026-09-09 14:32:09] [FW] [WARNING] Battery voltage low<br>
+                            [2026-09-09 14:32:11] [SW] [ERROR&emsp;] Port verification failed in populateAll()
+                        </div>
+                    </div>
+                </div>
+                <ul>
+                    <li>The level is padded to 7 characters (the length of WARNING) so messages line up.</li>
+                    <li>If an entry has no timestamp, the timestamp bracket is left out.</li>
+                    <li>Multi-line messages are written as they appear on the page, so they span several lines in the
+                        file.</li>
+                    <li>Lines end with a line feed. Switch to carriage return plus line feed if users open files in
+                        older Windows Notepad.</li>
+                </ul>
+
+                <h3 id="file-name-and-dialog">File name and dialog</h3>
+                <ul>
+                    <li>The default name is oscar-debug-log-&lt;timestamp&gt;.txt, where the timestamp is the ISO time
+                        with : and . replaced by - (those characters are not allowed in Windows file names).</li>
+                    <li>The save dialog (titled “Save Log”) offers Text Files (.txt) and Log Files (.log).</li>
+                    <li>If the user cancels, the handler returns { canceled: true } and nothing happens.</li>
+                    <li>Any error thrown while collecting or writing is shown through showError() in errorHandler.js.
+                    </li>
+                </ul>
+
+                <h3 id="saving-implementation-notes">Implementation notes</h3>
+                <ul>
+                    <li>main.js imports fs as require("fs/promises"), so the handler must call fs.writeFile(...).
+                        fs.promises.writeFile does not exist with that import and will throw.</li>
+                    <li>The IPC channel name save-log-file must match in preload.js and main.js.</li>
+                    <li>The Integration &amp; Regression Tests card does not use this path. Its Save Test Results button
+                        builds a Blob in the renderer and downloads it (see Results Rows and Saved Report).</li>
+                </ul>
+
+                <h2 id="display-limits">Display Limits</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Where</th>
+                            <th>Setting</th>
+                            <th>Limit</th>
+                            <th>Behavior when exceeded</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>C log queue</td>
+                            <td>LOG_QUEUE_SIZE</td>
+                            <td>128 slots (127 usable)</td>
+                            <td>Oldest entry dropped; only matters if the poller falls behind</td>
+                        </tr>
+                        <tr>
+                            <td>C log message</td>
+                            <td>message buffer</td>
+                            <td>511 characters</td>
+                            <td>Message is cut off</td>
+                        </tr>
+                        <tr>
+                            <td>main.js history</td>
+                            <td>MAX_LOG_HISTORY</td>
+                            <td>500</td>
+                            <td>Caps what getLogHistory() returns; in memory only, resets on app restart</td>
+                        </tr>
+                        <tr>
+                            <td>log.js page</td>
+                            <td>MAX_LOG_ENTRIES</td>
+                            <td>5000</td>
+                            <td>Oldest rows removed from the page</td>
+                        </tr>
+                        <tr>
+                            <td>Debug Log save file</td>
+                            <td>none of its own</td>
+                            <td>whatever is on the page</td>
+                            <td>Limited by the two caps above</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>Because getLogHistory() is capped at 500 by main.js, raising MAX_LOG_ENTRIES alone will not show more
+                    history when the page loads. To see more past entries, raise MAX_LOG_HISTORY as well. Live entries
+                    keep accumulating on the page (up to MAX_LOG_ENTRIES) for as long as it stays open.</p>
+                <!-- #endregion -->
+
+                <!-- #region Integration & Regression Tests -->
+                <h1 id="integration-regression-tests">Integration &amp; Regression Tests</h1>
+                <h2 id="integration-overview">Overview</h2>
+                <p>The Integration &amp; Regression Tests card runs real commands against a connected drone to check
+                    that the firmware and OSCAR Ground Station communicate end to end. It is driven by
+                    integrationTests.js, not log.js, and it calls the same window.backendAPI functions the rest of the
+                    app uses (populateAll, updateValue, startStreaming, stopStreaming, onStreamData). For each call it
+                    reports pass, fail, or skip, the round-trip time, and how many attempts and retries the C module
+                    needed. When the run finishes it adds summary statistics. The same card is used for both integration
+                    testing (does a new command work) and regression testing (did a firmware or software change break an
+                    old one).</p>
+                <p>This section explains how the card works internally. The testing documentation covers how to set up
+                    and use each testing method, including how to read the results.</p>
+
+                <h2 id="how-tests-read-logs">How the Tests Read the Logs</h2>
+                <p>The C addon only returns a response string. It does not return retry counts or phase timings. To get
+                    them, the test runner reads the same live log stream as the Debug Log:</p>
+                <ol class="numbered-list">
+                    <li>Register a Tap: Before each call, the runner adds a listener to logTaps (from log.js). Every
+                        incoming entry, parsed and unfiltered, is copied to it.</li>
+                    <li>Time the Call: The call is timed from the moment it starts to the moment its promise resolves.
+                        This is the round-trip time shown on the row.</li>
+                    <li>Wait for the Final Log Line: Log entries reach the page over IPC some time after the call
+                        returns. Instead of a fixed delay, the runner waits until a terminal line for that call has
+                        arrived (see below), polling every 25 ms for up to 3000 ms and then allowing 30 ms of grace.
+                        This keeps one call's attempts from being counted against the next call.</li>
+                    <li>Wait for the Timing Line: write_to_port() logs its Timing: line just after Valid response
+                        received. If the success line has been seen but the timing line has not, the runner waits up to
+                        1500 ms for it. If it never arrives, the runner decides this build does not emit timing lines
+                        and stops waiting for it on later calls.</li>
+                    <li>Summarize the Logs: The runner counts Attempt N... lines for attempts, takes the first Timing:
+                        line, sets a re-scan flag if any Testing COMx... line appeared (the port had to be
+                        rediscovered), and collects every WARNING and ERROR message as log issues.</li>
+                </ol>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Constant</th>
+                            <th>Value</th>
+                            <th>Meaning</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>IT_LOG_TIMEOUT_MS</td>
+                            <td>3000</td>
+                            <td>How long to wait for a call's terminal log line</td>
+                        </tr>
+                        <tr>
+                            <td>IT_LOG_POLL_MS</td>
+                            <td>25</td>
+                            <td>How often to check for it</td>
+                        </tr>
+                        <tr>
+                            <td>IT_LOG_GRACE_MS</td>
+                            <td>30</td>
+                            <td>Extra wait after it arrives, so trailing lines are captured</td>
+                        </tr>
+                        <tr>
+                            <td>IT_TIMING_WAIT_MS</td>
+                            <td>1500</td>
+                            <td>How long to wait for the Timing: line after a valid response</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>The terminal lines are the last message the C module logs for a call. They are kept in three pattern
+                    lists in integrationTests.js:</p>
+                <ul>
+                    <li>IT_DEFAULT_TERMINALS for populateAll and updateValue: valid response received, all retries
+                        failed, invalid header, port verification failed, failed to find or open the COM port,
+                        reconnection failed.</li>
+                    <li>IT_STREAM_START_TERMINALS for startStreaming: streaming started, stream already running, invalid
+                        header, command or stream port verification failed, failed to send the start command or create
+                        the thread or mutex.</li>
+                    <li>IT_STREAM_STOP_TERMINALS for stopStreaming: streaming stopped, stream is not running.</li>
+                </ul>
+                <p>Because of this design:</p>
+                <ul>
+                    <li>The Debug Log filter has no effect on test results.</li>
+                    <li>If log forwarding is unavailable, or the terminal line does not arrive within the timeout,
+                        attempts and retries show as n/a and the call counts as a single attempt in the statistics.</li>
+                    <li>Rewording any of the C messages in the table under Messages the Tests Depend On requires updating
+                        the matching pattern.</li>
+                </ul>
+
+                <h2 id="test-plan">Test Plan</h2>
+                <p>The plan is the INTEGRATION_TESTS array. Tests run in array order, filtered to the groups the user
+                    has enabled.</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Group</th>
+                            <th>What it does</th>
+                            <th>Default</th>
+                            <th>Tests</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>read</td>
+                            <td>Getters only, plus one deliberate-failure test. Always runs and cannot be unchecked</td>
+                            <td>On</td>
+                            <td>13</td>
+                        </tr>
+                        <tr>
+                            <td>settings</td>
+                            <td>Writes back the value the device just reported, so there is no net change</td>
+                            <td>On</td>
+                            <td>6</td>
+                        </tr>
+                        <tr>
+                            <td>streaming</td>
+                            <td>Starts, samples, and stops each data stream</td>
+                            <td>On</td>
+                            <td>2</td>
+                        </tr>
+                        <tr>
+                            <td>calibration</td>
+                            <td>Calibration and reset commands. May overwrite stored data</td>
+                            <td>Off</td>
+                            <td>8</td>
+                        </tr>
+                        <tr>
+                            <td>motors</td>
+                            <td>Motor commands. Remove props first. May change motor configuration</td>
+                            <td>Off</td>
+                            <td>15</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>Each entry has a kind that decides how it runs:</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Kind</th>
+                            <th>Runs</th>
+                            <th>Used by</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>populate</td>
+                            <td>backendAPI.populateAll(command)</td>
+                            <td>Getters in the read group</td>
+                        </tr>
+                        <tr>
+                            <td>update</td>
+                            <td>backendAPI.updateValue(command, payload)</td>
+                            <td>Calibration and motor commands, and the unknown-command test</td>
+                        </tr>
+                        <tr>
+                            <td>roundtrip</td>
+                            <td>Reads a value from an earlier response, then writes it back with updateValue</td>
+                            <td>The settings group</td>
+                        </tr>
+                        <tr>
+                            <td>stream</td>
+                            <td>Start, count packets, stop</td>
+                            <td>The streaming group</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>Entries can use the following fields:</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Field</th>
+                            <th>Purpose</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>group, kind, command</td>
+                            <td>Which group, how to run it, and the command string passed to the backend</td>
+                        </tr>
+                        <tr>
+                            <td>payload</td>
+                            <td>Value sent by update tests (empty string for commands that take none). On a round trip
+                                it forces the value instead of reading it</td>
+                        </tr>
+                        <tr>
+                            <td>expect</td>
+                            <td>List of checks on the parsed response. "Key" means the key must exist anywhere in the
+                                response. "Key=Value" means it must exist and equal the value, case-insensitive. Any
+                                miss fails the test as an unexpected response</td>
+                        </tr>
+                        <tr>
+                            <td>expectError</td>
+                            <td>The test passes only if the call returns an error (used for the unmapped command test)
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>preflight</td>
+                            <td>If this test fails, the rest of the run is aborted. Set on GetConnection</td>
+                        </tr>
+                        <tr>
+                            <td>source, valueMap, numericOnly</td>
+                            <td>Round-trip settings, explained below</td>
+                        </tr>
+                        <tr>
+                            <td>extraStop, extraExpect</td>
+                            <td>Stream tests: a command to send after the normal stop, and the checks for its response
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>quirk</td>
+                            <td>Marks a response that passes today but looks wrong. It is shown as a warning on the row
+                                and in the summary so it is not forgotten. When the firmware is fixed the expect check
+                                will fail, which is the cue to update expect and remove quirk</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p><strong>Note:</strong> Command names in the plan must match map_command() in the C file
+                    exactly, including its spelling. For example the firmware version getter is GetFrimwareVersion in
+                    both places.</p>
+
+                <h2 id="running-a-test-run">Running a Test Run</h2>
+                <p>runIntegrationTests() is the entry point for the Run Integration Tests button.</p>
+                <ol class="numbered-list">
+                    <li>Second Click Means Stop: If a run is already in progress, the click sets an abort flag and the
+                        status line reads “Stopping after current call…”. The run stops after the call in flight
+                        finishes.</li>
+                    <li>Confirm Risky Groups: If calibration or motors is enabled, a confirmation popup tells the user to
+                        remove all propellers and warns that the commands can change motor settings or overwrite
+                        calibration data. Cancelling ends the run before anything is sent.</li>
+                    <li>Reset State: The report is cleared, the results list is emptied, and the UI switches to its
+                        running state: the button reads Stop Tests, Save Test Results is disabled, and the group
+                        checkboxes are locked.</li>
+                    <li>Run Each Test: The status line shows Running i/n: command. Before each test the abort flag is
+                        checked. One test can produce several result rows (a stream test produces start, data, and stop
+                        rows).</li>
+                    <li>Summarize: The statistics rows are added, the status line shows Complete or Aborted with the
+                        counts, and the UI returns to its idle state.</li>
+                </ol>
+                <p>If the page is closed mid-test, a pagehide handler stops any active stream so the drone is not left
+                    streaming.</p>
+
+                <h2 id="judging-a-response">Judging a Response</h2>
+                <p>For populateAll and updateValue calls, itEvaluateResponse() decides whether a usable response came
+                    back:</p>
+                <ul>
+                    <li>A null result or an empty string is a failure (“No response (null)” or “Empty response”).</li>
+                    <li>A string that is not valid JSON counts as received and passing, with a “non-JSON response” note.
+                    </li>
+                    <li>An object with an ERROR key (case-insensitive) is a failure, and the error text becomes the
+                        failure reason. This is how “No device detected” and “Communication failed” from the C module
+                        show up.</li>
+                    <li>Otherwise the response is received. Successful populateAll responses are stored in ctx.responses
+                        for the round-trip tests.</li>
+                </ul>
+                <p>Then the expect checks run against the parsed response. Key lookups search nested objects (up to five
+                    levels deep), ignore case, and ignore stray spaces around keys. A passing row shows a preview of the
+                    response, cut at IT_PREVIEW_CHARS (140) characters.</p>
+                <p>The unknown-command test (NotARealCommand) is a negative test. It passes only if the call returns an
+                    error. It is reported in the summary on its own line and excluded from every count and percentage.
+                </p>
+
+                <h2 id="settings-round-trip-tests">Settings Round-Trip Tests</h2>
+                <p>The settings group changes real settings, so it is built to leave them exactly as they were. For each
+                    test the runner:</p>
+                <ol class="numbered-list">
+                    <li>Looks up the response of the getter named in source.command (for example
+                        GetInitialValuesVolt). If that read did not succeed, the test is skipped.</li>
+                    <li>Searches that response for any of the keys in source.keys (up to four levels deep, first simple
+                        value wins). If none is found, the test is skipped.</li>
+                    <li>If a valueMap is set, converts the display text the device reports into the option value the page
+                        sends. For example “Onboard ADC” becomes adc. An unmapped value is skipped.</li>
+                    <li>If numericOnly is set and the value is not a number, skips the test. This protects against
+                        writing display text to a field that expects a raw number.</li>
+                    <li>Sends the value back with updateValue and checks the expect list (for example
+                        SetMinCellVoltage=Done).</li>
+                </ol>
+                <p>A skip is a warning row, not a failure. A test is skipped rather than writing a guess to the drone.
+                    Setting an explicit payload on a test bypasses the lookup.</p>
+                <p><strong>Note:</strong> The pilot and drone name tests write back the name string as reported. These
+                    are the string inputs that the planned maximum size values apply to (see Maximum Input Sizes).</p>
+
+                <h2 id="streaming-tests">Streaming Tests</h2>
+                <p>A stream test checks the whole stream path, not just one packet. For each stream command it:</p>
+                <ol class="numbered-list">
+                    <li>Checks the API: If startStreaming, stopStreaming, or onStreamData is not exposed by the preload
+                        script, the test is skipped.</li>
+                    <li>Counts Packets: It clears any old stream listener, then registers one that counts packets and
+                        records when the first one arrives after the start call returns.</li>
+                    <li>Starts the Stream: startStreaming(command) must return true. This call is timed, but its time is
+                        excluded from latency statistics because it includes stream-port discovery.</li>
+                    <li>Samples: If the start passed, it waits IT_STREAM_SAMPLE_MS (2000 ms). The data check passes if at
+                        least IT_STREAM_MIN_PACKETS (1) packets arrived, and its row reports the total, the count in the
+                        window, the approximate rate per second, and the time to first packet.</li>
+                    <li>Stops the Stream: stopStreaming() must return true. If the start failed, the stop row is a skip.
+                        Stop is also excluded from latency statistics because it waits for the stream thread to finish.
+                    </li>
+                    <li>Cleans Up: The listener is removed, and the stream is stopped again if it is somehow still
+                        active.</li>
+                    <li>Extra Stop: If extraStop is set, that command is sent afterwards as a normal updateValue test.
+                        This is needed because stopStreaming() always sends the quaternion stop command (0x8501), so the
+                        receiver stream's own stop command (StopReceiverStreamData) has to be exercised separately.</li>
+                </ol>
+
+                <h2 id="results-rows-and-saved-report">Results Rows and Saved Report</h2>
+                <p>Each call has one row in the results list. A row first shows RUN while the call is in flight, then is
+                    redrawn in place with the final verdict. Row color follows these rules:</p>
+                <ul>
+                    <li><strong>Red (error):</strong> the test failed.</li>
+                    <li><strong>Yellow (warning):</strong> the test passed but needed a retry, needed a port re-scan, or
+                        has a known quirk. Skips are also yellow.</li>
+                    <li><strong>Blue (info):</strong> a clean pass.</li>
+                </ul>
+                <p>A result line has fields separated by |: the call, its duration, attempts and retries, a re-scan note
+                    if one happened, the Timing: text, any reason, and a response preview. A failed row also includes
+                    the last two warning or error log lines captured during the call.</p>
+                <p>The Save Test Results button downloads a text report. Only final rows go into it (not the temporary
+                    RUN rows), each as [time] [tag] text, after a header with the date and the enabled groups. The file
+                    is built as a Blob in the renderer and downloaded directly, so it does not use the save-log-file IPC
+                    path or the save dialog that the Debug Log uses. The default name is
+                    oscar-integration-tests-YYYYMMDD-HHMMSS.txt. If there are no results yet, an error is shown instead.
+                    The button is disabled while a run is in progress.</p>
+
+                <h2 id="summary-statistics">Summary Statistics</h2>
+                <p>When the run ends, a ----- Statistics ----- row is followed by these summary lines. Executed tests are
+                    those that were not skipped.</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Line</th>
+                            <th>How it is calculated</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Totals</td>
+                            <td>Counted tests, passed, failed, skipped, and run time. Expected-error tests are not
+                                counted</td>
+                        </tr>
+                        <tr>
+                            <td>Pass rate</td>
+                            <td>Passed divided by executed tests</td>
+                        </tr>
+                        <tr>
+                            <td>USB communication accuracy (packet level)</td>
+                            <td>Successful device calls divided by total attempts across all device calls. A call with
+                                unknown attempt data counts as one attempt</td>
+                        </tr>
+                        <tr>
+                            <td>First-try success</td>
+                            <td>Device calls that passed with no retry, divided by all device calls</td>
+                        </tr>
+                        <tr>
+                            <td>Retries</td>
+                            <td>Total retries, average per call, and the call with the most retries</td>
+                        </tr>
+                        <tr>
+                            <td>Attempt data warning</td>
+                            <td>Shown if any call had no attempt data (final log line not received in time)</td>
+                        </tr>
+                        <tr>
+                            <td>Latency</td>
+                            <td>Average, median, 95th percentile, minimum, and maximum of passed calls. Streaming start
+                                and stop are excluded. Percentiles use the nearest-rank method</td>
+                        </tr>
+                        <tr>
+                            <td>Slowest</td>
+                            <td>The three slowest executed calls</td>
+                        </tr>
+                        <tr>
+                            <td>Streaming note</td>
+                            <td>Start and stop times, listed separately because they are not comparable to a command
+                                round trip</td>
+                        </tr>
+                        <tr>
+                            <td>Known quirks</td>
+                            <td>One note per passed test that has a quirk</td>
+                        </tr>
+                        <tr>
+                            <td>Expected-error test</td>
+                            <td>Pass or fail of the negative test, reported separately</td>
+                        </tr>
+                        <tr>
+                            <td>Failures and skips</td>
+                            <td>One FAILED row per failed call with its reason and one SKIPPED row per skip, or “No
+                                failed calls.”</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p><strong>Note:</strong> A call that gets a valid response but fails its expect checks counts as failed
+                    in the accuracy and first-try numbers, so those two percentages measure correct responses, not just
+                    delivered packets.</p>
+
+                <h2 id="keeping-tests-up-to-date">Keeping the Tests Up to Date</h2>
+                <p>The tests are only as accurate as the plan, the expected keys, and the log patterns. Update them
+                    whenever any of these change:</p>
+                <ul>
+                    <li><strong>A New Firmware Command:</strong> Add it to map_command() in the C file, then add an entry
+                        to INTEGRATION_TESTS in the right group with an expect list that matches the JSON the firmware
+                        returns.</li>
+                    <li><strong>A Changed JSON Key or Value:</strong> Update the matching expect entries. A stale
+                        expectation shows up as an unexpected response failure.</li>
+                    <li><strong>A Reworded C Log Message:</strong> Update the matching pattern in the terminal lists or
+                        in the summary code (Attempt, Timing:, Testing).</li>
+                    <li><strong>A New Stream:</strong> Add a stream test, and an extraStop if it has its own stop
+                        command.</li>
+                    <li><strong>A New Group:</strong> Add the group to the plan, add a checkbox with data-test-group in
+                        log.html, and add the confirmation text if the group is risky.</li>
+                </ul>
+
+                <h2 id="where-to-find-more">Where to Find More</h2>
+                <p>Test groups, how to add or update tests, how to read the results, and the regression workflow are
+                    covered in the Integration Testing and Regression Testing sections of the <a href="./sw-testing.html">testing documentation.</a></p>
+                <!-- #endregion -->
+
+                <!-- #region Onboard Flight Logs -->
+                <h1 id="onboard-flight-logs">Onboard Flight Logs (Firmware Based Logs)</h1>
+                <h2 id="flight-logs-overview">Overview</h2>
+                <p>The Onboard Flight Logs card shows logs recorded and stored by the drone's firmware, including events
+                    from times when the drone was not connected to the desktop app. Unlike the OSCAR Ground Station Debug
+                    Log, these are not streamed live and they do not go through the C log queue or the log worker. They
+                    are historical data the desktop app asks the firmware for.</p>
+
+                <h2 id="flight-logs-decisions">Decisions</h2>
+                <ul>
+                    <li><strong>Logs are stored in the EEPROM.</strong> The firmware saves its log entries in EEPROM so
+                        they survive power loss and disconnects.</li>
+                    <li><strong>The user requests the logs with a button.</strong> The page no longer reads them
+                        automatically when it opens. This replaces the earlier plan of reading them once on page load.
+                    </li>
+                    <li><strong>Storage is shown.</strong> The card displays how much log storage is used and how much
+                        total storage there is.</li>
+                    <li><strong>The user can clear the stored logs.</strong> A button erases the stored log data after
+                        the user confirms.</li>
+                    <li><strong>Every number and string input gets a maximum size.</strong> See Maximum Input Sizes.
+                    </li>
+                </ul>
+
+                <h2 id="flight-log-flow">Flight Log Flow From the Desktop</h2>
+                <p>To view more from the firmware side of the implementation, see the <a
+                        href="../FW-html/usb-communication-fw.html">Firmware USB Communication documentation</a>.</p>
+                <ol class="numbered-list">
+                    <li>Page Opens: The card shows the empty-state text. The storage line (used and total) is requested
+                        so it is filled in without loading any log entries.</li>
+                    <li>User Clicks Request Flight Logs: The button is disabled while the request is in progress so the
+                        user cannot send it twice.</li>
+                    <li>Request Goes Out: The renderer calls an exposed backendAPI function, which travels through IPC to
+                        the command worker and the C module. Flight logs are ordinary request and response commands, so
+                        they use the same path as populateAll, not the log worker.</li>
+                    <li>Firmware Replies: The firmware reads its EEPROM and returns the stored entries, in one packet or
+                        several.</li>
+                    <li>The Card Fills In: The entries are rendered into #flightLogList using the same four-field row
+                        layout as the Debug Log, with the source set to FW.</li>
+                    <li>Storage Refreshes: The used and total values are updated.</li>
+                </ol>
+                <p><strong>Clearing the logs.</strong> When the user clicks Clear, a confirmation popup explains that the
+                    stored logs will be permanently erased. On confirm, the clear command is sent. On success the list is
+                    emptied and the storage line is refreshed. On failure the error is shown through showError() and the
+                    list is left as it was.</p>
+                <p><strong>Saving the logs.</strong> Save Flight Logs reuses the same save path as the Debug Log
+                    (backendAPI.saveLogFile and the save-log-file IPC channel) with a default name such as
+                    oscar-flight-log-&lt;timestamp&gt;.txt. If nothing has been loaded, it shows an error instead of
+                    saving an empty file.</p>
+
+                <h2 id="flight-log-commands">Commands</h2>
+                <p>View all the commands for this in the <a href="../FW-html/usb-communication-fw.html">Firmware USB
+                        Communication documentation</a>.</p>
+
+                <h2 id="maximum-input-sizes">Maximum Input Sizes</h2>
+                <p>Every number and string input in the app gets a defined maximum size. Many of these size limits are
+                    implemented in the frontend.</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Max Size</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Strings</td>
+                            <td>16 bytes</td>
+                        </tr>
+                        <tr>
+                            <td>Toggles</td>
+                            <td>1 byte</td>
+                        </tr>
+                        <tr>
+                            <td>Standard Integer Values</td>
+                            <td>1 byte</td>
+                        </tr>
+                        <tr>
+                            <td>Motor Throttle Integer Size</td>
+                            <td>2 bytes</td>
+                        </tr>
+                        <tr>
+                            <td>Voltage Displays</td>
+                            <td>2 bytes</td>
+                        </tr>
+                        <tr>
+                            <td>Decimal Values</td>
+                            <td>2 bytes</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <!-- #endregion -->
+
+                <!-- #region Onboard Firmware Unit Tests -->
+                <h1 id="onboard-firmware-unit-tests">Onboard Firmware Unit Tests</h1>
+                <h2 id="unit-tests-overview">Overview</h2>
+                <p>The Onboard Firmware Unit Tests card triggers tests that are built into the firmware and shows what
+                    the drone reports back. The tests run on the drone, and the desktop only starts them and displays the
+                    results. It is driven by firmwareTests.js, which shares helpers with the Flight Logs card through
+                    logShared.js. For what each test checks and how the firmware runs it, see the firmware unit testing
+                    documentation.</p>
+                <p>This card is different from the Integration &amp; Regression Tests card:</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>Integration &amp; Regression Tests</th>
+                            <th>Onboard Firmware Unit Tests</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Where the tests run</td>
+                            <td>On the desktop, one command at a time</td>
+                            <td>On the drone</td>
+                        </tr>
+                        <tr>
+                            <td>What is checked</td>
+                            <td>That a command gets a correct response</td>
+                            <td>Whatever the firmware's own tests check</td>
+                        </tr>
+                        <tr>
+                            <td>Who decides pass or fail</td>
+                            <td>The desktop (expect checks)</td>
+                            <td>The firmware, reported in its reply</td>
+                        </tr>
+                        <tr>
+                            <td>Uses the C log queue</td>
+                            <td>Reads it through logTaps</td>
+                            <td>No</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h2 id="unit-tests-desktop-flow">Desktop Flow</h2>
+                <ol class="numbered-list">
+                    <li>User Clicks Run: The button is disabled and the status line shows that the tests are running.
+                    </li>
+                    <li>Trigger Goes Out: The renderer calls a backendAPI function that sends the trigger value to the
+                        firmware. Like the Flight Logs, this is an ordinary request and response command. It goes
+                        through IPC to the command worker and the C module, not the log worker.</li>
+                    <li>Firmware Runs and Replies: The firmware runs its tests and returns the results.</li>
+                    <li>Parse: A parser function in firmwareTests.js turns the reply into a list of results.</li>
+                    <li>Render: Each result becomes a row in the results list, using the same row layout as the other
+                        cards with the source set to FW. The row tag is PASS, FAIL, or SKIP.</li>
+                    <li>Summarize: A summary row follows the list, and the button returns to its idle state.</li>
+                </ol>
+
+                <h2 id="unit-tests-results-and-saving">Results and Saving</h2>
+                <ul>
+                    <li><strong>Rows:</strong> Each test has one row with its tag, name, and any detail text the firmware
+                        sent.</li>
+                    <li><strong>Summary row:</strong> It shows the counts for passed, failed, and skipped tests.</li>
+                    <li><strong>Save Test Results:</strong> It saves the results as a text file, similar to the
+                        Integration &amp; Regression Tests card.</li>
+                </ul>
+
+                <h2 id="unit-tests-configuration">Configuration (firmwareTests.js)</h2>
+                <p>The file opens with a config block and parser functions, so the firmware hookup can be changed in one
+                    place.</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Setting</th>
+                            <th>Purpose</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Command name</td>
+                            <td>The command string sent to the firmware to start the tests</td>
+                        </tr>
+                        <tr>
+                            <td>Trigger value</td>
+                            <td>The payload sent with the command</td>
+                        </tr>
+                        <tr>
+                            <td>resultsCommand</td>
+                            <td>Optional. For a two-step design where the firmware acknowledges the trigger immediately
+                                and the desktop then requests results with a second command</td>
+                        </tr>
+                        <tr>
+                            <td>JSON keys</td>
+                            <td>Where the parser looks in the reply for each test's name, status, and detail</td>
+                        </tr>
+                        <tr>
+                            <td>ready</td>
+                            <td>When false, the button shows a “not hooked up yet” message instead of sending an unknown
+                                command</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <!-- #endregion -->
+
+                <!-- #region Logging Error Handling -->
+                <h1 id="logging-error-handling">Logging Error Handling</h1>
+                <p>The logging system is designed to fail quietly so that a logging problem never stops the app from
+                    talking to the drone. These are the behaviors to expect:</p>
+                <ul>
+                    <li><strong>Queue full:</strong> the oldest entry is dropped and nothing else is affected. The stream
+                        throttle exists to make this rare.</li>
+                    <li><strong>No window listening:</strong> entries still go into logHistory, so a page opened later can
+                        load them, up to 500.</li>
+                    <li><strong>Page opened late or app restarted:</strong> only the last 500 entries of the session are
+                        available. A restart clears everything.</li>
+                    <li><strong>Unparseable entry:</strong> it is shown as an SW / INFO row with the raw text instead of
+                        being dropped.</li>
+                    <li><strong>Unknown level or source:</strong> the row is shown with INFO styling and is never hidden
+                        by the filter.</li>
+                    <li><strong>Message too long:</strong> it is cut at 511 characters by the C module.</li>
+                    <li><strong>Backend API missing:</strong> log.js uses optional calls, so the lists simply stay empty.
+                        The integration tests report attempts as n/a, and they refuse to run if populateAll or
+                        updateValue is unavailable.</li>
+                    <li><strong>Save failed or nothing to save:</strong> the error is shown in the error modal through
+                        showError().</li>
+                    <li><strong>Console fallback:</strong> because log_event also prints, a build run with a console still
+                        has the full output there.</li>
+                </ul>
+                <!-- #endregion -->
 
             </section>
 
@@ -87,7 +1342,7 @@
         </ul>
     </footer>
 
-    <script src="../components/main.js"></script>
+    <script src="../../components/main.js"></script>
 
 </body>
 
