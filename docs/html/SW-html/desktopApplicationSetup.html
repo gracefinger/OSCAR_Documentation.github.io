@@ -162,10 +162,9 @@
                     </div>
                 </div>
                 <p>The main.js file will be the entry point for your Electron application. We created it when we
-                    initialized
-                    the project. It controls the main process, which runs in a Node.js environment, and is responsible
-                    for the application life cycle, displaying native interfaces, performing privileged operations, and
-                    managing renderer processes.</p>
+                    initialized the project. It controls the main process, which runs in a Node.js environment,
+                    and is responsible for the application life cycle, displaying native interfaces, performing
+                    privileged operations, and managing renderer processes.</p>
                 <p>Add "electron ." to the start command in the scripts field of your package.json in order to run the
                     main.js file. For example:</p>
                 <div class="terminal">
@@ -177,7 +176,7 @@
                             &emsp;&emsp;"description": "Hello World!",<br>
                             &emsp;&emsp;"main": "main.js",<br>
                             &emsp;&emsp;"scripts": {<br>
-                            &emsp;&emsp;<strong class="red">"start": "electron .",</strong><br>
+                            &emsp;&emsp;<strong class="red">"start": "electron-forge start",</strong><br>
                             &emsp;&emsp;"test": "echo \"Error: no test specified\" && exit 1"<br>
                             },<br>
                             &emsp;&emsp;"author": "Jane Doe",<br>
@@ -231,7 +230,7 @@
                                 &emsp;&emsp;&emsp;&emsp;width: 800,<br>
                                 &emsp;&emsp;&emsp;&emsp;height: 600,<br>
                                 &emsp;&emsp;&emsp;&emsp;webPreferences: {<br>
-                                &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;nodeIntegration: true<br>
+                                &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;nodeIntegration: false<br>
                                 &emsp;&emsp;&emsp;&emsp;}<br>
                                 &emsp;&emsp;})<br>
                                 <br>
