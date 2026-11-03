@@ -33,40 +33,418 @@
         <main class="doc-content">
 
             <h1>Load & Save</h1>
-
-            <!-- Table of Contents -->
-            <!-- <div id="toc-block">
-                <h2>Table of Contents</h2>
-                <ol>
-                    <li><a href="#section-1">Section 1</a></li>
-                    <li><a href="#section-2">Section 2</a>
-                        <ol>
-                            <li><a href="#subsection-2-1">Subsection 2.1</a></li>
-                            <li><a href="#subsection-2-2">Subsection 2.2</a></li>
-                        </ol>
-                    </li>
-                    <li><a href="#section-3">Section 3</a></li>
-                </ol>
-            </div> -->
-
             <section>
 
-                <p>Documentation for this page is under construction! Thank you for your patience! :)</p>
+                <h2 id="ui-setup">UI Setup</h2>
 
-                <!-- <h1 id="section-1">Section 1</h1>
-                <p>Content goes here.</p>
+                <p>This document explains how configuration values are gathered and displayed in the OSCAR Ground
+                    Station UI Load and Save page, how the Save workflow exports them to a JSON file, and how the
+                    Load workflow validates and applies a file to the flight controller.</p>
 
-                <h1 id="section-2">Section 2</h1>
-                <p>Content goes here.</p>
+                <h3 id="pages-involved">Pages involved</h3>
+                <p>Load &amp; Save is a summary and file-management page. The values it presents come from the other
+                    configuration pages; it does not query the controller for all of them itself.</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Page</th>
+                            <th>Configuration group</th>
+                            <th>Examples</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Home</td>
+                            <td><code>config</code></td>
+                            <td>Pilot name, Drone name</td>
+                        </tr>
+                        <tr>
+                            <td>Motors</td>
+                            <td><code>motors</code></td>
+                            <td>Mixer type, motor direction, ESC protocol, motor stop, ESC sensor</td>
+                        </tr>
+                        <tr>
+                            <td>Power &amp; Battery</td>
+                            <td><code>battery</code></td>
+                            <td>Meter sources, cell-voltage thresholds, battery capacity</td>
+                        </tr>
+                        <tr>
+                            <td>Receiver</td>
+                            <td><code>receiver</code></td>
+                            <td>Stick Settings (Min, Center, Max)</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>These pages include
+                    <code>Components/configurationState.js</code>. The Load &amp; Save page includes
+                    <code>Components/loadAndSave.js</code>. Their roles are different:
+                    <code>configurationState.js</code> keeps the shared cache synchronized from settings pages,
+                    while <code>loadAndSave.js</code> drives the Load &amp; Save page's preview, export, and import
+                    interactions.
+                </p>
 
-                <h2 id="subsection-2-1">Subsection 2.1</h2>
-                <p>Content goes here.</p>
+                <h3 id="two-scripts">What the two scripts do</h3>
+                <h4><code>configurationState.js</code>: collect and cache settings</h4>
+                <p>This shared helper is used by the source settings pages. It does not retrieve values from the
+                    controller, populate the form, or itself send a controller command. Instead, it reads controls
+                    after the page-specific code has populated them and mirrors their values into the main process's
+                    configuration cache.</p>
+                <p>It has four main responsibilities:</p>
+                <ul>
+                    <li><strong>Convert controls into cache values.</strong>
+                        <code>getConfigurationSettingValue()</code> serializes a checkbox as <code>"1"</code> or
+                        <code>"0"</code>, takes trimmed text from a <code>SPAN</code>, and otherwise reads the
+                        control's <code>.value</code>.
+                    </li>
+                    <li><strong>Keep readable labels separate from the actual setting JSON value.</strong> Selects
+                        record the selected option's visible text; checkboxes use the
+                        <code>data-display-on</code> or <code>data-display-off</code> label. These display-only
+                        values are used by the preview and are not a substitute for the underlying setting.
+                    </li>
+                    <li><strong>Send a page snapshot.</strong>
+                        <code>cacheFrontendConfiguration()</code> scans the current document for
+                        <code>[data-setting][data-group]</code>, builds nested group/key objects for settings and
+                        labels, and sends them to <code>window.backendAPI.cacheConfiguration()</code>.
+                    </li>
+                    <li><strong>Send incremental changes.</strong> Document-level <code>input</code> and
+                        <code>change</code> listeners call <code>cacheChangedConfigurationSetting()</code>. Controls
+                        without both required metadata attributes are ignored, and an annotated control sends a
+                        one-setting update when it changes.
+                    </li>
+                </ul>
+                <p>The page-specific scripts (<code>home.js</code>, <code>motors.js</code>, and
+                    <code>powerBattery.js</code>) perform their page's hardware reads and UI population, then call
+                    <code>cacheFrontendConfiguration()</code> so the initial controller values are cached. Their
+                    existing change handlers send user edits to the controller; the shared cache listeners
+                    separately mirror those edits to the cache. Caching a setting is not the same operation as
+                    writing it to the flight controller.
+                </p>
 
-                <h2 id="subsection-2-2">Subsection 2.2</h2>
-                <p>Content goes here.</p>
+                <h4><code>loadAndSave.js</code>: present, export, and import configuration</h4>
+                <p>This script is loaded only on the Load &amp; Save page and wires its controls to the preload API.
+                    Its primary operations are:</p>
+                <ul>
+                    <li><strong>Refresh the preview.</strong> On <code>DOMContentLoaded</code>,
+                        <code>refreshConfigurationPreview()</code> reads the cache and updates every preview element
+                        annotated with <code>data-setting</code>, <code>data-group</code>, and
+                        <code>data-source-page</code>. It shows <strong>Unset</strong> when the cached group/key is
+                        missing, null, or empty, and otherwise prefers a saved display label over the raw value.
+                    </li>
+                    <li><strong>Prepare an export.</strong> <code>collectCurrentConfiguration()</code> checks that
+                        every setting represented in the preview exists in the cache. It reports missing source pages.
+                        If complete, it removes <code>displayLabels</code> and creates the versioned object with
+                        <code>formatVersion</code>, <code>savedAt</code>, and <code>settings</code>. The Save button
+                        asks for confirmation, then calls <code>window.backendAPI.saveConfiguration()</code> to open
+                        the native save dialog and write the file.
+                    </li>
+                    <li><strong>Build import rules from the UI.</strong> For Load, the script asks the main process
+                        for the Home, Motors, and Power &amp; Battery HTML. It parses the annotated controls and
+                        derives each setting's type, allowed select values, numeric constraints, controller command,
+                        display labels, and writable or unsupported status from their HTML attributes.</li>
+                    <li><strong>Validate and apply an import.</strong> It parses and validates the selected JSON,
+                        normalizes values, separates writable operations from recognized unsupported settings, and
+                        presents a review dialog. Only after confirmation does it check the controller and send the
+                        supported settings one at a time. It mirrors successful writes into the cache, refreshes the
+                        preview, and reports completion, skipped settings, or partial failure.</li>
+                </ul>
+                <p>This script handles the configuration file and review UI; controller communication is mediated by
+                    <code>backendAPI</code> and the main-process IPC handlers. It does not directly access Node.js or
+                    the serial addon.
+                </p>
 
-                <h1 id="section-3">Section 3</h1>
-                <p>Content goes here.</p> -->
+                <h3 id="metadata">HTML metadata identifies settings</h3>
+                <p>Each included setting control in the source-page HTML uses:</p>
+                <ul>
+                    <li><code>data-setting</code> — the setting's key, such as <code>mixerType</code>.</li>
+                    <li><code>data-group</code> — its section, such as <code>motors</code>.</li>
+                    <li>Optional metadata such as <code>data-cmd</code>, <code>data-cmd-on</code>,
+                        <code>data-cmd-off</code>, <code>data-cache-only</code>, and
+                        <code>data-config-loadable</code> — used to determine how, or whether, a setting can be sent
+                        to the controller.
+                    </li>
+                </ul>
+                <p>The Load &amp; Save page has display-only elements marked with <code>data-setting</code>,
+                    <code>data-group</code>, and <code>data-source-page</code>. The first two identify the cached
+                    value; <code>data-source-page</code> identifies which settings page provides it. The preview
+                    currently shows Personalization, Motor Configuration, and Battery Configuration, including Motor
+                    1 and Motor 2 battery values.
+                </p>
+
+                <h3 id="initialization">Page initialization and value capture</h3>
+                <p>When a settings page loads, its page-specific script requests values from the backend/controller
+                    and populates the controls. For example, Home calls
+                    <code>populateAll("GetHomePageData")</code>, and Power &amp; Battery calls
+                    <code>populateAll("GetInitialValuesVolt")</code>.
+                </p>
+                <p>Once controls are populated, the page calls
+                    <code>cacheFrontendConfiguration()</code> to send a snapshot of all controls on that page that
+                    have both <code>data-setting</code> and <code>data-group</code>. The snapshot is organized by
+                    group and setting key. Checkboxes are stored as <code>"1"</code> or <code>"0"</code>; other
+                    controls contribute their current value. Selects and checkboxes can also contribute a display
+                    label, which is kept separate from the underlying value so the preview can show human-readable
+                    text while the configuration file retains the actual setting value.
+                </p>
+                <p><code>configurationState.js</code> also listens for <code>input</code> and <code>change</code>
+                    events. When an annotated control changes, it sends that one value to the cache. The page's own
+                    script separately handles controller updates for normal user edits; the cache listener's role is
+                    to keep the Load &amp; Save snapshot current.</p>
+
+                <h3 id="renderer-path">Renderer-to-main-process path</h3>
+                <p>The configuration cache is maintained in memory by Electron's main process, not in a file and
+                    not in the Load &amp; Save page itself:</p>
+                <pre><code>Settings page controls
+    -&gt; configurationState.js
+    -&gt; window.backendAPI (preload.js)
+    -&gt; Electron IPC
+    -&gt; main.js in-memory configuration cache
+    -&gt; Load &amp; Save preview / Save workflow</code></pre>
+                <br>
+                <p><code>preload.js</code> exposes a limited set of methods to the renderer, including
+                    <code>cacheConfiguration()</code> and <code>getCachedConfiguration()</code>.
+                    <code>main.js</code> stores configuration values and display labels in separate
+                    <code>config</code>, <code>motors</code>, and <code>battery</code> objects. The Load &amp; Save
+                    page requests the cache when it initializes and uses it to update the preview. A missing, null,
+                    or empty-string preview value is displayed as <strong>Unset</strong>.
+                </p>
+                <p>The cache lasts only for the current application session. It is not a durable record of the
+                    controller's settings and is not automatically restored on a later launch. Open the settings
+                    pages in the current session so they can populate the cache before saving. Save checks the
+                    preview's declared settings and reports the source pages whose values are missing; merely seeing
+                    the Load &amp; Save page does not cause those source pages to be queried.</p>
+            </section>
+
+            <section>
+                <h2 id="save-feature">Save Feature</h2>
+
+                <h3 id="save-includes">What Save includes</h3>
+                <p>Save exports the values currently in the in-memory cache. It does not make a fresh all-settings
+                    controller request when the Save button is clicked. The configuration is assembled from the cache
+                    groups (<code>config</code>, <code>motors</code>, and <code>battery</code>), with the
+                    <code>displayLabels</code> property removed before serialization. Exported values are only as
+                    current as the values captured by the settings pages and their change listeners during this
+                    session.
+                </p>
+
+                <h3 id="save-workflow">Save workflow</h3>
+                <ul>
+                    <li>Open <strong>Home</strong>, <strong>Motors</strong>, and <strong>Power &amp; Battery</strong>
+                        during the current session so their settings can be read and cached. Set the required
+                        settings from each page.</li>
+                    <li>Open <strong>Load &amp; Save</strong>. Its preview displays cached values using display labels
+                        when available; uncached or unset values display <strong>Unset</strong>.</li>
+                    <li>Select <strong>Save Configuration</strong>. The app checks that each setting represented by a
+                        preview card is present in the cache. If any are missing, saving stops and an error identifies
+                        the source page or pages to open.</li>
+                    <li>Review the prompt, <strong>Have you reviewed your selected settings?</strong> This is a
+                        confirmation step, not a second detailed listing of the values. Check the page's preview
+                        before continuing.</li>
+                    <li>Select <strong>Continue</strong> to open the native save dialog. Choose where to save the JSON
+                        file. The suggested filename is <code>oscar-configuration.json</code>.</li>
+                    <li>The main process serializes the configuration as formatted JSON and writes it to the selected
+                        path. Canceling either confirmation or the save dialog exits without writing a file.</li>
+                </ul>
+
+                <h3 id="json-format">JSON format</h3>
+                <p>A saved file has this top-level shape:</p>
+                <pre><code>{
+  "formatVersion": 1,
+  "savedAt": "2026-01-01T00:00:00.000Z",
+  "settings": {
+    "config": {
+      "PilotName": "Pilot",
+      "DroneName": "Research Quad"
+    },
+    "motors": {
+      "motorDirection": "0",
+      "escProtocol": "value-from-the-selected-option"
+    },
+    "battery": {
+      "MinCellVoltage": "3"
+    }
+  }
+}</code></pre>
+                <br>
+                <p>The example values are illustrative. <code>formatVersion</code> identifies the supported file
+                    schema. <code>savedAt</code> is generated as an ISO timestamp when Save runs. The
+                    <code>settings</code> property contains the grouped cached values. Display labels are not written
+                    to the file, and fields are represented by setting keys rather than UI captions. Values are
+                    stored as JSON values; many controls contribute strings, including checkbox values represented as
+                    <code>"1"</code> or <code>"0"</code>.
+                </p>
+                <p>The file may contain settings that are useful to preserve or show in the preview but cannot
+                    currently be written back to the controller. Such settings can be saved; Load identifies and
+                    skips them during its review/apply flow.</p>
+            </section>
+
+            <section>
+                <h2 id="load-feature">Load Feature</h2>
+
+                <h3 id="select-parse">Selecting and parsing a file</h3>
+                <ul>
+                    <li>Open Load &amp; Save and select <strong>Choose Configuration File</strong>.</li>
+                    <li>Select a file with a <code>.json</code> extension. Files larger than 1 MB are rejected.</li>
+                    <li>The renderer reads and parses the file as JSON. Invalid JSON is rejected before the
+                        controller is contacted.</li>
+                    <li>The renderer requests the source-page HTML for Home, Motors, and Power &amp; Battery from the
+                        main process. It derives import rules from those pages' editable controls and metadata rather
+                        than relying on a separate hard-coded list of commands.</li>
+                    <li>The file is validated and converted into controller operations and a separate list of
+                        settings recognized but unsupported for controller writes.</li>
+                    <li>If there is at least one supported operation, the review dialog opens before any controller
+                        connection check or setting write. Its title includes the selected filename, and its summary
+                        states the number of supported settings that will be sent.</li>
+                    <li>If the file also contains recognized settings that cannot be written, the dialog shows a
+                        <strong>Not applied</strong> section. It names each skipped setting and explains why it is
+                        unsupported. A safety warning reminds the user to remove propellers, check that the values fit
+                        the aircraft, and verify the setup before flight.
+                    </li>
+                    <li>Choose <strong>Apply Settings</strong> only after reviewing the listed values and skipped
+                        items. The controller is contacted only after this confirmation. Choose
+                        <strong>Cancel</strong>, use the close button, or dismiss the dialog to stop the load without
+                        sending settings. If validation finds no supported operation, the app rejects the file instead
+                        of showing an empty review.
+                    </li>
+                </ul>
+
+                <h3 id="validation">File and value validation</h3>
+                <p>The root must be an object with <code>formatVersion: 1</code> and an object-valued
+                    <code>settings</code> property. The only accepted top-level keys are <code>formatVersion</code>,
+                    <code>savedAt</code>, and <code>settings</code>. Within <code>settings</code>, each group must be
+                    a known configuration group and contain an object of setting keys and values. Unknown settings are
+                    accepted as unsupported legacy settings, provided the group structure is valid
+                </p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Control type</th>
+                            <th>Accepted values and checks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Checkbox</td>
+                            <td><code>true</code>, <code>1</code>, <code>"1"</code>, or <code>"true"</code>
+                                normalize to <code>"1"</code>; <code>false</code>, <code>0</code>, <code>"0"</code>,
+                                or <code>"false"</code> normalize to <code>"0"</code>.</td>
+                        </tr>
+                        <tr>
+                            <td>Select</td>
+                            <td>The value must match one of the select's option values.</td>
+                        </tr>
+                        <tr>
+                            <td>Number</td>
+                            <td>The value must be a finite number, satisfy declared <code>min</code> and
+                                <code>max</code>, and align with the declared <code>step</code> when applicable. It
+                                is normalized to a numeric string.
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Text</td>
+                            <td>The value must be a string with no null character and at most 4088 UTF-8 bytes.</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>Unknown root fields, groups, setting keys, malformed setting structures, unsupported format
+                    versions, and invalid values reject the entire file rather than silently applying a partial
+                    interpretation. A setting identified by the source-page metadata as non-writable is handled as an
+                    unsupported item, not as an operation to send.</p>
+
+                <h3 id="review-dialog">Review dialog</h3>
+                <p>Before any settings are sent, the app shows a review dialog titled with the selected filename. It
+                    groups supported operations under sections such as Personalization, Motor Settings, and Battery
+                    Settings. It reports how many supported settings will be sent and displays their setting names and
+                    values, using select/toggle labels where available.</p>
+                <p>When the file contains recognized but non-writable settings, the dialog adds a
+                    <strong>Not applied</strong> section with the setting and the reason it will be skipped. The
+                    dialog includes a safety warning to remove propellers, confirm the values are appropriate for the
+                    aircraft, and verify the setup before flight. Selecting <strong>Cancel</strong> or closing the
+                    dialog cancels the load; the controller has not been contacted. If the file yields no supported
+                    operations, Load is rejected because there is nothing it can apply.
+                </p>
+
+                <h3 id="controller-writes">Controller writes and progress</h3>
+                <p>After the user selects <strong>Apply settings</strong>, the app first calls
+                    <code>populateAll("GetHomePageData")</code> as a controller connection check. If that response
+                    is invalid or reports an error, the load stops. Otherwise, supported operations are sent one at a
+                    time through <code>backendAPI.updateValue()</code>.
+                </p>
+                <p>For ordinary settings, the command comes from <code>data-cmd</code> when present, or defaults to
+                    the setting key. For boolean controls with <code>data-cmd-on</code> and
+                    <code>data-cmd-off</code>, the selected command depends on whether the normalized value is on or
+                    off. The normalized value is sent as the operation payload. The status indicator reports progress,
+                    such as <strong>Applying 2 of 5 settings...</strong>.
+                </p>
+                <p>Some HTML metadata makes an otherwise recognized setting non-writable:</p>
+                <ul>
+                    <li><code>data-cache-only</code> — the setting is for local configuration state, not a
+                        controller write.</li>
+                    <li><code>data-config-loadable="false"</code> — the source page explicitly disables loading that
+                        setting to the controller.</li>
+                    <li>A non-editable or unsupported control type — no supported write operation can be created.</li>
+                </ul>
+                <p>These settings appear in the review dialog as skipped and remain unchanged on the controller.
+                    Saving a value in a file does not guarantee that the current controller can accept it.</p>
+
+                <h3 id="completion">Completion, partial application, and cache updates</h3>
+                <p>Each successful controller write is recorded. If all writes succeed, the app updates the
+                    corresponding values in the in-memory cache and refreshes the Load &amp; Save preview. The final
+                    status reports the number applied and, if relevant, the number skipped.</p>
+                <p>Writes are sequential, not transactional. If a write fails, the app stops sending later
+                    operations, preserves the settings already written, reports which setting failed and how many
+                    succeeded, and does not roll back the controller. The status identifies the result as
+                    <strong>Partially applied</strong>.
+                </p>
+                <p>If controller writes succeed but the cache/preview update fails, the UI reports that the
+                    controller was updated even though the local preview could not be refreshed; it does not describe
+                    that situation as a complete local success.</p>
+            </section>
+
+            <section>
+                <h2 id="safety">Safety and Practical Notes</h2>
+                <ul>
+                    <li>Loading can immediately change values on the connected flight controller. Carefully inspect
+                        the review list and skipped settings before applying.</li>
+                    <li>The application recommends removing propellers before applying a file.</li>
+                    <li>After loading, verify the configuration and the aircraft's setup before operating the drone.
+                    </li>
+                    <li>Use OSCAR configuration files. The file extension alone does not make an arbitrary JSON
+                        document a valid OSCAR configuration.</li>
+                    <li>The Load &amp; Save cache is in-memory and session-scoped. Save a JSON file if a durable copy
+                        is needed between application sessions.</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2 id="maintenance">Load &amp; Save Settings Maintenance</h2>
+                <p>The Load &amp; Save page has two separate setting lists:</p>
+                <ul>
+                    <li>The <strong>save list</strong> is the set of elements in
+                        <code>HTML/loadAndSave.html</code> with <code>data-setting</code>, <code>data-group</code>,
+                        and <code>data-source-page</code>.
+                    </li>
+                    <li>The <strong>load list</strong> is generated from the controls in each source page. A control
+                        with <code>data-cache-only</code> or <code>data-config-loadable="false"</code> is accepted as
+                        legacy input but is skipped instead of being written to the controller.</li>
+                </ul>
+
+                <h3 id="change-procedure">Reproducible change procedure</h3>
+                <p>To remove a setting from both the save requirements and controller-load requirements:</p>
+                <ul>
+                    <li>Find the setting control in its source page, such as <code>HTML/motors.html</code>.</li>
+                    <li>Keep its <code>data-setting</code> and <code>data-group</code> attributes if the source page
+                        still uses the setting at runtime.</li>
+                    <li>Add <code>data-config-loadable="false"</code> when the setting must not be written by
+                        configuration loading. Use <code>data-cache-only</code> instead for a frontend-only cached
+                        value.</li>
+                    <li>Remove the setting's entire preview <code>.configuration-setting</code> block from
+                        <code>HTML/loadAndSave.html</code>. Do not leave a commented preview block behind.
+                    </li>
+                    <li>Add or update a regression case in <code>test/loadAndSave.test.js</code> covering the
+                        setting's skipped-load behavior.</li>
+                    <li>Run <code>npm test</code> from <code>Software/OSCAR-app</code>.</li>
+                    <li>Search the application for the setting name and confirm it remains only in runtime code,
+                        source-page controls, tests, or documentation as intended.</li>
+                </ul>
 
             </section>
 
