@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="../../components/disclaimer.js" defer></script>
+    <title>GNSS Design Justification</title>
+    <link rel="stylesheet" href="../../styles/main.css">
+    <link rel="stylesheet" href="../../styles/tableOfContents.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.18.5/dist/katex.min.css">
+</head>
+
+<body>
+    <nav>
+        <ul class="nav-links">
+            <li><a href="../../index.html"><span class="nav-dot"></span>Home</a></li>
+            <li><a href="../hardware.html" class="active"><span class="nav-dot"></span>Hardware</a></li>
+            <li><a href="../firmware.html"><span class="nav-dot"></span>Firmware</a></li>
+            <li><a href="../software.html"><span class="nav-dot"></span>Software</a></li>
+            <li><a href="../disclaimer.html"><span class="nav-dot"></span>Disclaimer</a></li>
+        </ul>
+    </nav>
+
+    <div class="page-layout">
+        <aside id="doc-sidebar">
+            <div class="sidebar-title">On this page</div>
+            <ul id="sidebar-nav"></ul>
+        </aside>
+
+        <main class="doc-content">
+            <h1 id="gnss-design-justification">GNSS Design Justification</h1>
+
+            <section>
+                <h2 id="front-matter">Front Matter</h2>
+
+                <h3 id="version-change-register">Version Change Register</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Version</th>
+                            <th>Date</th>
+                            <th>Changes, Reasons, and Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Draft 0.1</td>
+                            <td>13 October 2026</td>
+                            <td>Initial draft for Rev B of the GNSS board</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 id="intent">Intent</h3>
+                <p>This document is the design justification for Rev B of the OSCAR GNSS Receiver PCB. For each block
+                    it records the part that was selected, why it was selected, the datasheet numbers that matter, and
+                    how much margin the design has against the application. It is written to be read alongside the
+                    <a href="FC.html">Flight Controller Design Justification Document</a>, so topics already explained
+                    there, such as stackup, JLCPCB capabilities, and TVS fundamentals, are only summarized here.
+                </p>
+                <p>The document is paired with the schematic, BOM, and KiCad project files. Where this document and the
+                    schematic disagree, the schematic is authoritative for what was actually fabricated; this document
+                    captures the reasoning at the time of design.</p>
+
+                <h3 id="use-restrictions-and-disclaimer">Use Restrictions and Disclaimer</h3>
+                <p>This project is released under the
+                    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons
+                        Attribution-NonCommercial-ShareAlike 4.0 International license (CC BY-NC-SA 4.0)</a>.
+                    You must credit the original authors, cannot use this work commercially, and must release
+                    modifications under the same license.
+                </p>
+                <p>This design is for civilian research and education. It was not built for weapons, targeting
+                    systems, or anything designed for malicious intent. If that is your intended use, you do not have
+                    permission to use this work.</p>
+
+                <h3 id="glossary">Glossary</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Term</th>
+                            <th>Definition</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>GNSS</td>
+                            <td>Global Navigation Satellite System; the umbrella term for GPS, GLONASS, Galileo, and
+                                BeiDou.</td>
+                        </tr>
+                        <tr>
+                            <td>L1</td>
+                            <td>The civil GNSS band around 1.575 GHz; GPS L1 is 1575.42 MHz.</td>
+                        </tr>
+                        <tr>
+                            <td>NMEA 0183</td>
+                            <td>Plain-text sentence format, such as <code class="amber">$GPGGA</code>, sent by GNSS
+                                modules over UART.</td>
+                        </tr>
+                        <tr>
+                            <td>TTFF</td>
+                            <td>Time To First Fix: the time from power-up until the receiver reports a position.</td>
+                        </tr>
+                        <tr>
+                            <td>CEP</td>
+                            <td>Circular Error Probable: the radius containing 50% of position fixes.</td>
+                        </tr>
+                        <tr>
+                            <td>LNA</td>
+                            <td>Low-Noise Amplifier, the first gain stage after the antenna.</td>
+                        </tr>
+                        <tr>
+                            <td>SAW filter</td>
+                            <td>Surface Acoustic Wave filter; a sharp band-pass filter.</td>
+                        </tr>
+                        <tr>
+                            <td>Noise Figure (NF)</td>
+                            <td>How much a stage degrades signal-to-noise ratio, in dB. Lower is better.</td>
+                        </tr>
+                        <tr>
+                            <td>S-parameters</td>
+                            <td>How an RF network reflects (S11, S22) and passes (S21, S12) a signal.</td>
+                        </tr>
+                        <tr>
+                            <td>RHCP</td>
+                            <td>Right-Hand Circular Polarization, the polarization transmitted by GNSS satellites.</td>
+                        </tr>
+                        <tr>
+                            <td>Microstrip</td>
+                            <td>A trace on an outer layer over a ground plane on the next layer down.</td>
+                        </tr>
+                        <tr>
+                            <td>Via fence</td>
+                            <td>Rows of ground vias along an RF trace that keep its fields contained.</td>
+                        </tr>
+                        <tr>
+                            <td>LDO</td>
+                            <td>Low-Dropout linear regulator.</td>
+                        </tr>
+                        <tr>
+                            <td>PSRR</td>
+                            <td>Power-Supply Rejection Ratio: how well a regulator blocks input ripple.</td>
+                        </tr>
+                        <tr>
+                            <td>TVS</td>
+                            <td>Transient Voltage Suppression diode, used for ESD protection.</td>
+                        </tr>
+                        <tr>
+                            <td>ADS</td>
+                            <td>Keysight Advanced Design System, the RF simulator used for the front end.</td>
+                        </tr>
+                        <tr>
+                            <td>+A3V3</td>
+                            <td>The flight controller's analog 3.3 V rail, which powers this entire board.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <section>
+                <h2 id="high-level-overview">1. High Level Overview</h2>
+
+                <h3 id="description-of-project">1.1 Description of Project</h3>
+                <p>The OSCAR platform is a senior design project developing a custom flight stack from the board level
+                    up. This document covers the GNSS Receiver board, one of three custom PCBs in the stack alongside
+                    the Flight Controller (FC) and the Electronic Speed Controller (ESC). It answers two questions for
+                    the FC: <strong>where are we</strong> (X/Y position, velocity, and time from the ST Teseo-LIV3R GNSS
+                    module), and
+                    <strong>which way are we pointing</strong> (magnetic heading from the MEMSIC MMC5983MA
+                    magnetometer).
+                </p>
+                <p>The board is 4-layer, 60 x 60 mm, and mounts directly above the FC on the same 50 x 50 mm M2 hole
+                    pattern. It is mounted with its <strong>bottom side facing the sky</strong>, which puts the ceramic
+                    patch antenna on
+                    top of the drone while all active circuitry sits underneath, shielded by the board's own ground
+                    planes.</p>
+                <p><strong>Why does a GNSS board need this much care?</strong> By the time a GPS signal reaches the
+                    ground it is roughly
+                    \(\text{-130 dBm}\), while thermal noise in the 2 MHz GPS bandwidth is about \(\text{-111 dBm}\):
+                    \[\Delta P = -130\ \mathrm{dBm} - (-111\ \mathrm{dBm}) \approx -19\ \mathrm{dB}.\]
+                    The signal is therefore about 19 dB below the noise floor and is recovered through spread-spectrum
+                    correlation gain. Every dB lost in front of the first amplifier is a dB of sensitivity gone for
+                    good, driving most of the decisions in <a href="#gnss-rf-path">Section 3.5</a>.</p>
+
+                <h3 id="scope">1.2 Scope</h3>
+                <p>This document is a block-by-block design justification for Rev B of the GNSS board.</p>
+                <ul>
+                    <li>Interconnects to the FC: JST-SH connectors and ESD protection.</li>
+                    <li>Magnetometer subsystem: I2C and SPI operation.</li>
+                    <li>GNSS receiver system level: UART, supply filtering, LNA regulator, and backup battery.</li>
+                    <li>GNSS RF path: antenna, LNA, SAW filter, and Keysight ADS simulation.</li>
+                    <li>Layout overview and JLCPCB ordering.</li>
+                </ul>
+                <p>Out of scope and covered in companion documents are the FC itself, the ESC, and the firmware that
+                    parses NMEA and runs compass calibration. Project files and related documentation are available in
+                    the <a href="https://github.com/gracefinger/OSCAR_Documentation.github.io">OSCAR documentation
+                        repository</a>.</p>
+
+                <h3 id="block-diagram">1.3 Block Diagram</h3>
+                <!-- Figure 1 placeholder: GNSS Receiver block diagram. -->
+                <figure class="image-placeholder">
+                    <div>Figure 1 image placeholder</div>
+                    <figcaption>Figure 1: GNSS Receiver block diagram</figcaption>
+                </figure>
+                <!-- Figure 2 placeholder: Interface block diagram. -->
+                <figure class="image-placeholder">
+                    <div>Figure 2 image placeholder</div>
+                    <figcaption>Figure 2: Interface block diagram</figcaption>
+                </figure>
+                <p>Power comes up from the FC's analog 3.3 V rail through any of the three JST-SH connectors. It feeds
+                    the Teseo-LIV3R through a small 27 nH filter and the magnetometer directly. The Teseo passes a
+                    filtered copy of its supply out on VCC_RF, and a 2.8 V LDO turns that into a clean rail for the
+                    LNA.</p>
+                <p>On the RF side the signal path reads left to right: the patch antenna, a DC-blocking capacitor and
+                    matching inductor, the BGA725L6 LNA, the B4327 SAW filter, a second DC block, and finally the
+                    Teseo RF input. Position comes back to the FC as NMEA over UART (J1). Heading data goes back over
+                    I2C (J2) or SPI (J3), depending on which cable is plugged in.</p>
+            </section>
+
+            <section>
+                <h2 id="absolute-system-limits">2. Absolute System Limits</h2>
+                <p>This section sets the boundaries the board has to live inside. Each limit is the most restrictive
+                    rating among the parts it touches.</p>
+
+                <h3 id="size-and-mounting">2.1 Size and Mounting</h3>
+                <p>The board is 60 x 60 mm with 5 mm corner radii and uses the same 50 x 50 mm M2 hole pattern as the
+                    FC and ESC, so all boards stack directly. Size was the binding constraint on the antenna. ST notes
+                    that bigger patch antennas perform better, but a 25 mm patch would not leave room for the
+                    connectors, so an 18 mm patch was used. Board size also forced the antenna onto the bottom layer.
+                </p>
+
+                <h3 id="electrical-limits">2.2 Electrical Limits</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Min</th>
+                            <th>Typ</th>
+                            <th>Max</th>
+                            <th>Set by</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>+A3V3 supply</td>
+                            <td>3.0 V</td>
+                            <td>3.3 V</td>
+                            <td>3.6 V</td>
+                            <td>Teseo VCC_IO minimum; MMC5983MA and ESD351 maximum</td>
+                        </tr>
+                        <tr>
+                            <td>LNA rail (VCC_RF_2V8)</td>
+                            <td>2.77 V</td>
+                            <td>2.80 V</td>
+                            <td>2.83 V</td>
+                            <td>TLV75528 ±1%; LNA allows 1.5–3.3 V</td>
+                        </tr>
+                        <tr>
+                            <td>Backup battery (VBAT)</td>
+                            <td>2.1 V</td>
+                            <td>3.0 V</td>
+                            <td>4.3 V</td>
+                            <td>Teseo VBAT range; CR2032 coin cell</td>
+                        </tr>
+                        <tr>
+                            <td>RF input at LNA</td>
+                            <td>≈ −130 dBm</td>
+                            <td>—</td>
+                            <td>0 dBm</td>
+                            <td>BGA725L6 absolute maximum</td>
+                        </tr>
+                        <tr>
+                            <td>I2C / SPI clock (MAG)</td>
+                            <td>—</td>
+                            <td>400 kHz / 5 MHz</td>
+                            <td>400 kHz / 10 MHz</td>
+                            <td>MMC5983MA</td>
+                        </tr>
+                        <tr>
+                            <td>Operating temperature</td>
+                            <td>−25 °C</td>
+                            <td>—</td>
+                            <td>+85 °C</td>
+                            <td>JST-SH low end; Teseo, LNA, and SAW high end</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 id="power-dissipation">2.3 Power Dissipation</h3>
+                <p>Everything runs from +A3V3 at 3.3 V. Typical numbers use datasheet typicals. Maximum numbers use
+                    datasheet maximums where they exist. The Teseo has no published maximum, so it gets a 20% allowance.
+                </p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>IC</th>
+                            <th>Typical current</th>
+                            <th>Typical power</th>
+                            <th>Maximum current</th>
+                            <th>Maximum power</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Teseo-LIV3R (GPS + GLONASS tracking)</td>
+                            <td>44.5 mA</td>
+                            <td>147 mW</td>
+                            <td>53.4 mA</td>
+                            <td>176 mW</td>
+                        </tr>
+                        <tr>
+                            <td>BGA725L6 LNA (at 2.8 V)</td>
+                            <td>3.6 mA</td>
+                            <td>10.1 mW</td>
+                            <td>4.5 mA</td>
+                            <td>12.6 mW</td>
+                        </tr>
+                        <tr>
+                            <td>TLV75528 LDO (headroom loss)</td>
+                            <td>—</td>
+                            <td>1.9 mW</td>
+                            <td>—</td>
+                            <td>2.4 mW</td>
+                        </tr>
+                        <tr>
+                            <td>MMC5983MA magnetometer</td>
+                            <td>0.45 mA</td>
+                            <td>1.5 mW</td>
+                            <td>4.6 mA</td>
+                            <td>15.1 mW</td>
+                        </tr>
+                        <tr>
+                            <td>Pull-ups, filter inductor, TVS leakage</td>
+                            <td>—</td>
+                            <td>1.3 mW</td>
+                            <td>2.1 mA</td>
+                            <td>8.8 mW</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Total board</strong></td>
+                            <td><strong>48.6 mA</strong></td>
+                            <td><strong>≈ 160 mW</strong></td>
+                            <td><strong>64.6 mA</strong></td>
+                            <td><strong>≈ 213 mW</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <ul>
+                    <li>The Teseo is rated at 93.4 mW with VCC = 2.1 V, so its current is
+                        \[I = \frac{93.4\ \mathrm{mW}}{2.1\ \mathrm{V}} = 44.5\ \mathrm{mA},\qquad
+                        P = 3.3\ \mathrm{V}\cdot 44.5\ \mathrm{mA} \approx 147\ \mathrm{mW}.\]</li>
+                    <li>The magnetometer maximum is continuous 1 kHz sampling, scaled from the datasheet because its
+                        current is proportional to measurement rate.</li>
+                    <li>Pull-ups draw current only while a line is held low: 0.7 mA each through 4.7 kΩ. At about
+                        0.2 W worst case across the board, no heatsinking is needed. The LDO rises only about
+                        \[ \Delta T = 2.4\ \mathrm{mW}\cdot 231\ ^\circ\mathrm{C/W} \approx 0.5\ ^\circ\mathrm{C}. \]
+                    </li>
+                </ul>
+            </section>
+
+            <section>
+                <h2 id="block-by-block-verification">3. Block by Block Verification</h2>
+
+                <h3 id="jst-connectors">3.1 JST Connectors</h3>
+                <p>The board uses JST SH-series (1.0 mm pitch) right-angle headers, the same family the FC uses. They
+                    are standard on drone peripherals, small enough to fit, and have a friction lock so they stay
+                    seated under vibration. Every connector carries its own 3.3 V and ground, so the board powers up
+                    from whichever cable is plugged in.</p>
+                <p>Signal names are written from the FC's point of view, so GNSS_UART_RX is the line the FC receives on
+                    (the Teseo TX pin). Because both boards use the same convention, a straight 1:1 JST cable works on
+                    all three connectors.</p>
+                <h4 id="j1-uart">J1: GNSS UART (mates with FC J6)</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Pin</th>
+                            <th>Signal</th>
+                            <th>Direction</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>GND</td>
+                            <td>—</td>
+                            <td>Return / reference</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>GNSS_UART_RX</td>
+                            <td>GNSS → FC</td>
+                            <td>NMEA out of the Teseo (TX, pin 2)</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>GNSS_UART_TX</td>
+                            <td>FC → GNSS</td>
+                            <td>Configuration commands into the Teseo (RX, pin 3)</td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td>+A3V3</td>
+                            <td>FC → GNSS</td>
+                            <td>FC-to-GNSS board supply</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <h4 id="j2-i2c">J2: Magnetometer I2C (mates with FC J9)</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Pin</th>
+                            <th>Signal</th>
+                            <th>Direction</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>GND</td>
+                            <td>—</td>
+                            <td>Return / reference</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>MAG_SCL</td>
+                            <td>FC → MAG</td>
+                            <td>FC I2C clock</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>MAG_SDA</td>
+                            <td>Bidirectional</td>
+                            <td>I2C data</td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td>+A3V3</td>
+                            <td>FC → GNSS</td>
+                            <td>GNSS board supply</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <h4 id="j3-spi">J3: Magnetometer SPI (mates with FC J8)</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Pin</th>
+                            <th>Signal</th>
+                            <th>Direction</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>GND</td>
+                            <td>—</td>
+                            <td>Return / reference</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>MAG_CS</td>
+                            <td>FC → MAG</td>
+                            <td>Chip select (active low)</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>MAG_SCLK</td>
+                            <td>FC → MAG</td>
+                            <td>SPI clock</td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td>MAG_MISO</td>
+                            <td>MAG → FC</td>
+                            <td>Sensor data out (MMC5983MA SDO, pin 5)</td>
+                        </tr>
+                        <tr>
+                            <td>5</td>
+                            <td>MAG_MOSI</td>
+                            <td>FC → MAG</td>
+                            <td>Sensor data in (MMC5983MA SDI, pin 16)</td>
+                        </tr>
+                        <tr>
+                            <td>6</td>
+                            <td>+A3V3</td>
+                            <td>FC → GNSS</td>
+                            <td>GNSS board supply</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Rating</th>
+                            <th>Application</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Current per contact</td>
+                            <td>1.0 A</td>
+                            <td>65 mA worst-case board current through one connector (15× margin)</td>
+                        </tr>
+                        <tr>
+                            <td>Voltage rating</td>
+                            <td>50 V</td>
+                            <td>3.3 V rail</td>
+                        </tr>
+                        <tr>
+                            <td>Temperature</td>
+                            <td>−25 °C to +85 °C</td>
+                            <td>Sets the low end of the board operating range</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 id="tvs-diodes">3.2 TVS Diodes</h3>
+                <p>The key TVS parameters (stand-off voltage, clamp voltage, dynamic resistance, and line capacitance)
+                    are explained in Section 4.1.1 of the FC Design Justification Document. Every pin that leaves this
+                    board, except ground, gets one TI ESD351, for 11 total (D1–D11).</p>
+                <p>The ESD351 is used instead of the ESD601 used on the FC because every line on the GNSS board is
+                    3.3 V, and the protected parts have absolute maximums of only 3.6–4.3 V. Its 3.6 V stand-off sits
+                    above the rail without leaking and it clamps at only 6.5 V.</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Value</th>
+                            <th>Requirement</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Reverse stand-off voltage (VRWM)</td>
+                            <td>3.6 V</td>
+                            <td>Above the 3.3 V rail (9% margin)</td>
+                        </tr>
+                        <tr>
+                            <td>Breakdown voltage (VBR)</td>
+                            <td>4.5 V min</td>
+                            <td>Will not conduct during normal operation</td>
+                        </tr>
+                        <tr>
+                            <td>Clamping voltage</td>
+                            <td>6.5 V at 16 A</td>
+                            <td>As low as practical for 3.3 V parts</td>
+                        </tr>
+                        <tr>
+                            <td>Line capacitance</td>
+                            <td>1.8 pF typ</td>
+                            <td>Negligible on 400 kHz I2C, 10 MHz SPI, or UART</td>
+                        </tr>
+                        <tr>
+                            <td>IEC 61000-4-2 contact / air</td>
+                            <td>±30 kV / ±30 kV</td>
+                            <td>±8 kV / ±15 kV required (Level 4)</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 id="magnetometer">3.3 Magnetometer (I2C and SPI)</h3>
+                <p>The MMC5983MA was selected to answer which way the vehicle is pointing. The magnetometer was moved
+                    off the FC because motor and ESC currents directly underneath the FC could interfere with Earth's
+                    field. Mounted on the GNSS board, it sits as far from those currents as the stack allows.</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Value</th>
+                            <th>Why it matters</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Resolution / range</td>
+                            <td>18-bit, ±8 G</td>
+                            <td>Plenty of range around Earth's ~0.5 G field</td>
+                        </tr>
+                        <tr>
+                            <td>Noise</td>
+                            <td>0.4 mG RMS</td>
+                            <td>Supports 0.5–1° heading accuracy</td>
+                        </tr>
+                        <tr>
+                            <td>Output data rate</td>
+                            <td>Up to 1 kHz</td>
+                            <td>Faster than the flight loop needs</td>
+                        </tr>
+                        <tr>
+                            <td>SET/RESET</td>
+                            <td>Built-in degaussing coil</td>
+                            <td>Removes offset drift and magnetization from strong motor fields</td>
+                        </tr>
+                        <tr>
+                            <td>Interfaces</td>
+                            <td>I2C 400 kHz or SPI 10 MHz</td>
+                            <td>Either FC port can be used</td>
+                        </tr>
+                        <tr>
+                            <td>Supply</td>
+                            <td>2.8–3.6 V, 0.45 mA typ</td>
+                            <td>Runs directly from +A3V3</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>The interface is set by the chip-select pin. R1 (4.7 kΩ) pulls CS high, putting the sensor in I2C
+                    mode. When the FC is plugged into J3 and drives CS low, the sensor switches to SPI. The mode follows
+                    whichever cable is plugged in; no mode switch is needed.</p>
+                <p>The FC already has 4.7 kΩ pull-ups on its magnetometer I2C bus, so local pull-ups R2 and R3 are open
+                    by default. JP2 and JP3 connect them if the board is used with a host that has no pull-ups. With
+                    approximately 35 pF of cable and pin capacitance:</p>
+                <p class="math-display light-blue">\[
+                    t_r \approx 0.8473 \cdot R \cdot C
+                    = 0.8473 \cdot 4.7\ \mathrm{k\Omega}\cdot 35\ \mathrm{pF}
+                    \approx 140\ \mathrm{ns} < 300\ \mathrm{ns} \]</p>
+                        <p>This is below the I2C Fast-mode limit. If JP2 and JP3 are bridged while connected to the FC,
+                            R2 and
+                            R3 are parallel with the FC pull-ups, producing an effective 2.35 kΩ and a rise time of
+                            about 70 ns,
+                            so accidentally closing the jumpers does not break anything.</p>
+                        <p>Supporting parts are C8 (4.7 µF), which decouples VDD, and C7 (10 µF) on the CAP pin, which
+                            is the
+                            energy reservoir for the SET/RESET pulse and is placed close to the pin as required by
+                            MEMSIC.</p>
+
+                        <h3 id="gnss-receiver-system-level">3.4 GNSS Receiver System Level</h3>
+                        <p>The TESEO-LIV3R was selected to provide X/Y position. It is a complete GNSS receiver in a
+                            9.7 x 10.1 mm module with its own TCXO, real-time clock, and ROM firmware. It powers up and
+                            starts
+                            outputting NMEA without needing firmware to be flashed.</p>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Parameter</th>
+                                    <th>Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Constellations</td>
+                                    <td>GPS + GLONASS by default, or GPS + BeiDou, plus QZSS and SBAS</td>
+                                </tr>
+                                <tr>
+                                    <td>Tracking sensitivity</td>
+                                    <td>−163 dBm with the external LNA used here</td>
+                                </tr>
+                                <tr>
+                                    <td>Position accuracy</td>
+                                    <td>&lt; 1.5 m CEP</td>
+                                </tr>
+                                <tr>
+                                    <td>Fix rate</td>
+                                    <td>Up to 10 Hz</td>
+                                </tr>
+                                <tr>
+                                    <td>TTFF</td>
+                                    <td>&lt; 32 s cold start, &lt; 1.5 s hot start</td>
+                                </tr>
+                                <tr>
+                                    <td>Power (tracking)</td>
+                                    <td>≈ 147 mW at 3.3 V</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p>Unused pins (1PPS, Wake-Up, SYS_RSTn, Ant_OFF, I2C, and reserved pins) are left floating as
+                            the
+                            datasheet instructs.</p>
+
+                        <h4 id="uart-protocol">3.4.1 UART Protocol</h4>
+                        <p>The Teseo communicates with the FC over a 3.3 V UART carrying NMEA 0183 text sentences. It
+                            defaults
+                            to 9600 baud, which is sufficient at a 1 Hz fix rate. At 10 Hz, the estimated data rate is:
+                        </p>
+                        <p class="math-display light-blue">\[
+                            5\ \mathrm{sentences}\cdot 80\ \mathrm{characters}\cdot 10\ \mathrm{Hz}
+                            \cdot 10\ \frac{\mathrm{bits}}{\mathrm{character}}
+                            \approx 40\ \mathrm{kbit/s}.
+                            \]</p>
+                        <p>This is about four times what 9600 baud can carry, so FC firmware should switch the Teseo to
+                            115200 baud (approximately 11.5 kB/s) before enabling 10 Hz updates. Both ends use the same
+                            3.3 V
+                            rail, so no level shifting is needed.</p>
+
+                        <h4 id="general-filtering">3.4.2 General Filtering on VDD</h4>
+                        <p>ST's hardware manual (UM2231) specifies a 27 nH series inductor in the Teseo supply because
+                            noise
+                            on VCC directly degrades sensitivity. The design uses L1 (Murata LQG15HN27N) with a 10 nF
+                            capacitor
+                            on each side (C4 and C5), forming a small pi filter.</p>
+                        <p>BT1 is a CR2032 coin cell on the Teseo VBAT pin. While VBAT is powered, the module keeps its
+                            real-time
+                            clock, satellite data, and configuration. This preserves the difference between a &lt; 1.5 s
+                            hot
+                            start and a &lt; 32 s cold start. In standby the Teseo draws only about 6 µA from the cell,
+                            so a
+                            225 mAh CR2032 lasts years. There is no charging path from the 3.3 V rail into the battery,
+                            which
+                            matters because a CR2032 cannot sink current.</p>
+
+                        <h4 id="lna-regulator">3.4.3 2V8 LDO Voltage Regulator for LNA</h4>
+                        <p>The LNA is powered from the Teseo VCC_RF pin, which ST describes as a filtered copy of VCC
+                            intended
+                            for an external LNA or active antenna. A TI TLV75528 LDO drops this to 2.8 V. The regulator
+                            provides
+                            absolute-maximum margin, adds approximately 52 dB of PSRR to the Teseo filtering, and avoids
+                            the
+                            switching noise a buck would introduce near the RF signal. With a load under 5 mA and a 0.5
+                            V drop,
+                            the LDO wastes only about 2 mW.</p>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Parameter</th>
+                                    <th>Rating</th>
+                                    <th>Application</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Input range</td>
+                                    <td>1.45–5.5 V</td>
+                                    <td>VCC_RF ≈ 3.27 V</td>
+                                </tr>
+                                <tr>
+                                    <td>Dropout</td>
+                                    <td>300 mV at 500 mA</td>
+                                    <td>≈ 3 mV at 4.5 mA; 470 mV headroom</td>
+                                </tr>
+                                <tr>
+                                    <td>Output current</td>
+                                    <td>500 mA</td>
+                                    <td>LNA draws 3.6 mA typ (&lt; 1%)</td>
+                                </tr>
+                                <tr>
+                                    <td>Accuracy</td>
+                                    <td>±1%</td>
+                                    <td>2.77–2.83 V, inside the LNA's 1.5–3.3 V range</td>
+                                </tr>
+                                <tr>
+                                    <td>Capacitors</td>
+                                    <td>≥ 1 µF in / out</td>
+                                    <td>C9 and C10 = 4.7 µF</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p>VCC_RF turns off when the Teseo enters hardware standby, so the LNA powers down
+                            automatically.</p>
+
+                        <h3 id="gnss-rf-path">3.5 GNSS RF Path</h3>
+                        <p>The RF chain is the antenna, a DC block and matching inductor, the BGA725L6 LNA, the B4327
+                            SAW
+                            filter, a second DC block, and the Teseo RF input. This is the same front end ST uses in its
+                            own
+                            Teseo-LIV3 reference design (UM2231).</p>
+
+                        <h4 id="antenna-choice">3.5.1 Antenna Choice</h4>
+                        <p>The Linx ANT-GNSSCP-TH18L1 is an 18 x 18 x 4 mm ceramic patch antenna. It is soldered by a
+                            single
+                            feed pin and held with an adhesive pad.</p>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Parameter</th>
+                                    <th>GPS L1</th>
+                                    <th>GLONASS</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Peak gain</td>
+                                    <td>5.1 dBi</td>
+                                    <td>4.0 dBi</td>
+                                </tr>
+                                <tr>
+                                    <td>Efficiency</td>
+                                    <td>66%</td>
+                                    <td>65%</td>
+                                </tr>
+                                <tr>
+                                    <td>VSWR (max)</td>
+                                    <td>2.8</td>
+                                    <td>2.9</td>
+                                </tr>
+                                <tr>
+                                    <td>Polarization</td>
+                                    <td>RHCP</td>
+                                    <td>RHCP</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p>GNSS satellites transmit right-hand circularly polarized signals. Reflections from the ground
+                            or
+                            drone frame flip to left-hand polarization, so an RHCP patch naturally rejects much of this
+                            multipath. A chip antenna is smaller but linearly polarized and omnidirectional, so it also
+                            picks
+                            up reflections.</p>
+                        <p>The passive antenna was chosen primarily for the design challenge and the opportunity to
+                            simulate,
+                            lay out, and assemble part of the RF path. The antenna is on the bottom layer because of
+                            board
+                            size; this also puts the board's ground planes between the antenna and noisy digital parts.
+                            The
+                            board is mounted bottom-up so the antenna faces the sky.</p>
+                        <p>Linx measured this antenna on a 70 x 70 mm ground plane while this board is 60 x 60 mm. The
+                            smaller
+                            ground plane can shift tuning slightly and cost some gain.</p>
+
+                        <h4 id="lna-choice">3.5.2 LNA Choice</h4>
+                        <p>The Infineon BGA725L6 is a silicon-germanium LNA built specifically for GNSS (1550–1615 MHz)
+                            in a
+                            0.7 x 1.1 mm package.</p>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Parameter</th>
+                                    <th>Rating</th>
+                                    <th>Application</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Gain</td>
+                                    <td>20 dB</td>
+                                    <td>Makes losses after it nearly irrelevant</td>
+                                </tr>
+                                <tr>
+                                    <td>Noise figure</td>
+                                    <td>0.65 dB</td>
+                                    <td>Sets the noise figure of the whole receiver</td>
+                                </tr>
+                                <tr>
+                                    <td>Supply current</td>
+                                    <td>3.6 mA</td>
+                                    <td>Small power cost</td>
+                                </tr>
+                                <tr>
+                                    <td>Output match</td>
+                                    <td>Internally matched to 50 Ω</td>
+                                    <td>Connects directly to the SAW filter</td>
+                                </tr>
+                                <tr>
+                                    <td>Stability μ</td>
+                                    <td>&gt; 1, 20 MHz–10 GHz</td>
+                                    <td>Will not oscillate</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p>The Friis equation shows why the LNA comes first:</p>
+                        <p class="math-display light-blue">\[
+                            F_{\mathrm{total}} = F_1 + \frac{F_2-1}{G_1}
+                            + \frac{F_3-1}{G_1G_2}+\cdots
+                            \]</p>
+                        <p>With the LNA first, its 0.65 dB noise figure sets the system. Putting the SAW filter first
+                            would
+                            add approximately 1 dB loss directly, giving roughly 1.9 dB total instead of 1.0 dB. The
+                            tradeoff
+                            is that the LNA sees strong out-of-band signals before filtering, which is why it runs at
+                            2.8 V
+                            for better linearity and the ELRS antenna should be kept at least 20–30 cm away.</p>
+                        <p>Infineon's application circuit uses a series inductor to match the LNA input. Here L2 = 8.2
+                            nH was
+                            re-tuned in ADS to absorb antenna pad parasitics. C3 (27 pF) is a DC block: at 1.575 GHz its
+                            reactance is approximately:</p>
+                        <p class="math-display light-blue">\[
+                            |X_C|=\frac{1}{2\pi f C}
+                            =\frac{1}{2\pi(1.575\ \mathrm{GHz})(27\ \mathrm{pF})}
+                            \approx 3.7\ \Omega.
+                            \]</p>
+
+                        <h4 id="saw-filter-choice">3.5.3 SAW Filter Choice</h4>
+                        <p>The RF360 (Qualcomm) B39162B4327P810 is a 1.4 x 1.1 mm SAW filter that needs no matching
+                            components. It passes the three bands the Teseo can track with about 1 dB loss and rejects
+                            everything else.</p>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Band</th>
+                                    <th>Rejection / loss</th>
+                                    <th>What lives there</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>824–925 MHz</td>
+                                    <td>43 dB</td>
+                                    <td>Cellular, ELRS 868/915 MHz</td>
+                                </tr>
+                                <tr>
+                                    <td>1710–1910 MHz</td>
+                                    <td>46–48 dB</td>
+                                    <td>Cellular uplink (DCS/PCS)</td>
+                                </tr>
+                                <tr>
+                                    <td>2400–2500 MHz</td>
+                                    <td>46 dB</td>
+                                    <td>ELRS 2.4 GHz, Wi-Fi, Bluetooth</td>
+                                </tr>
+                                <tr>
+                                    <td>GPS L1 passband</td>
+                                    <td>1.0 dB loss</td>
+                                    <td>The desired signal</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p>The SAW cannot tolerate DC voltage, so C2 (27 pF) sits between it and the Teseo RF input.</p>
+
+                        <h4 id="simulated-results">3.5.4 Simulated Results</h4>
+                        <p>The complete RF path, from antenna pad to Teseo RF input pad, was simulated in Keysight ADS
+                            using
+                            real copper geometry, Murata S-parameter models for the 0402 capacitors and inductor,
+                            Infineon's
+                            2.8 V LNA model, and the JLC04161H-7628 substrate
+                            (\(H=0.2104\ \mathrm{mm}\), \(\epsilon_r=4.4\)).</p>
+                        <!-- Figure 3 placeholder: Keysight ADS schematic of the RF path. -->
+                        <figure class="image-placeholder">
+                            <div>Figure 3 image placeholder</div>
+                            <figcaption>Figure 3: Keysight ADS schematic of the RF path</figcaption>
+                        </figure>
+                        <!-- Figure 4 placeholder: ADS S-parameters, noise figure, and Smith chart. -->
+                        <figure class="image-placeholder">
+                            <div>Figure 4 image placeholder</div>
+                            <figcaption>Figure 4: ADS results: S-parameters, noise figure, and Smith chart</figcaption>
+                        </figure>
+                        <!-- Figure 5 placeholder: ADS stability results. -->
+                        <figure class="image-placeholder">
+                            <div>Figure 5 image placeholder</div>
+                            <figcaption>Figure 5: ADS results: stability</figcaption>
+                        </figure>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Metric at 1.575 GHz</th>
+                                    <th>Simulated</th>
+                                    <th>Target</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Gain (S21)</td>
+                                    <td>17.75 dB</td>
+                                    <td>LNA 20 dB minus SAW and matching losses</td>
+                                </tr>
+                                <tr>
+                                    <td>Input match (S11)</td>
+                                    <td>−17.4 dB</td>
+                                    <td>Better than −10 dB</td>
+                                </tr>
+                                <tr>
+                                    <td>Output match (S22)</td>
+                                    <td>−20.4 dB</td>
+                                    <td>Better than −10 dB</td>
+                                </tr>
+                                <tr>
+                                    <td>Reverse isolation (S12)</td>
+                                    <td>−38.2 dB</td>
+                                    <td>Better than −30 dB</td>
+                                </tr>
+                                <tr>
+                                    <td>Noise figure</td>
+                                    <td>1.01 dB</td>
+                                    <td>As low as possible</td>
+                                </tr>
+                                <tr>
+                                    <td>Stability (Mu1)</td>
+                                    <td>&gt; 1 from 10 MHz–4 GHz</td>
+                                    <td>&gt; 1 everywhere</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p>A hand sanity check uses 0.2 dB matching loss, the LNA (0.65 dB, 20 dB gain), the SAW (1 dB),
+                            and
+                            an assumed 6 dB noise figure for the Teseo internal front end:</p>
+                        <p class="math-display light-blue">\[
+                            F=1.047+0.169+0.003+0.039=1.258
+                            \quad\Longrightarrow\quad NF\approx 1.0\ \mathrm{dB}.
+                            \]</p>
+                        <p>This agrees with ADS. Without the external LNA, the same chain would be around 7 dB, so the
+                            front
+                            end buys about 6 dB of sensitivity, which is the margin assumed by ST's −163 dBm tracking
+                            figure.</p>
+            </section>
+
+            <section>
+                <h2 id="layout-overview">4. Layout Overview</h2>
+                <h3 id="board-stackup">4.1 Board Stackup (4-layer)</h3>
+                <p>The board uses the JLC04161H-7628 stackup, with dielectric thicknesses locked in KiCad so the ADS
+                    substrate matches what JLCPCB builds.</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Layer</th>
+                            <th>Purpose</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>F.Cu (L1)</td>
+                            <td>All components, RF path, signal, and GND pour</td>
+                        </tr>
+                        <tr>
+                            <td>In1.Cu (L2)</td>
+                            <td>Solid GND, reference plane under RF path</td>
+                        </tr>
+                        <tr>
+                            <td>In2.Cu (L3)</td>
+                            <td>Power and magnetometer routing plus GND pour</td>
+                        </tr>
+                        <tr>
+                            <td>B.Cu (L4)</td>
+                            <td>Solid GND, ground plane for patch antenna</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <!-- Figure 6 placeholder: GNSS top copper layer. -->
+                <figure class="image-placeholder">
+                    <div>Figure 6 image placeholder</div>
+                    <figcaption>Figure 6: GNSS top copper layer</figcaption>
+                </figure>
+                <!-- Figure 7 placeholder: GNSS top solder mask layer. -->
+                <figure class="image-placeholder">
+                    <div>Figure 7 image placeholder</div>
+                    <figcaption>Figure 7: GNSS top solder mask layer</figcaption>
+                </figure>
+                <!-- Figure 8 placeholder: GNSS inner layer 2 copper. -->
+                <figure class="image-placeholder">
+                    <div>Figure 8 image placeholder</div>
+                    <figcaption>Figure 8: GNSS inner layer 2 copper</figcaption>
+                </figure>
+
+                <h3 id="rf-layout">4.2 RF Layout</h3>
+                <p>The RF parts are placed in a straight line in signal order, pad-to-pad, with as little copper between
+                    them as possible. The top-layer ground pour is kept away from the RF strip, so every piece is a true
+                    microstrip over solid ground on L2.</p>
+                <!-- Figure 9 placeholder: RF route top view. -->
+                <figure class="image-placeholder">
+                    <div>Figure 9 image placeholder</div>
+                    <figcaption>Figure 9: RF route top view</figcaption>
+                </figure>
+                <!-- Figure 10 placeholder: RF route 3D view. -->
+                <figure class="image-placeholder">
+                    <div>Figure 10 image placeholder</div>
+                    <figcaption>Figure 10: RF route 3D view</figcaption>
+                </figure>
+                <p>A 50 Ω microstrip on this stackup would be about 0.38 mm wide, while the pad-width copper used is
+                    about 0.62 mm, or roughly 37 Ω.</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Trace width</th>
+                            <th>Impedance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>0.20 mm</td>
+                            <td>≈ 68 Ω</td>
+                        </tr>
+                        <tr>
+                            <td>0.38 mm</td>
+                            <td>≈ 50 Ω</td>
+                        </tr>
+                        <tr>
+                            <td>0.62 mm (as built)</td>
+                            <td>≈ 37 Ω</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>At 1.575 GHz on this board, the wavelength is about 102 mm and every RF segment is 1.2 mm or
+                    shorter, less than 1/80 of a wavelength. A line this short does not behave like a transmission
+                    line, and ADS already accounts for the copper parasitics:</p>
+                <p class="math-display light-blue">\[
+                    \lambda=\frac{c}{f\sqrt{\epsilon_{\mathrm{eff}}}}
+                    =\frac{300\ \mathrm{mm}}{1.575\sqrt{3.47}}
+                    \approx 102\ \mathrm{mm}.
+                    \]</p>
+                <p>Two staggered rows of ground vias run along each side of the RF path at 1.0 mm pitch, following the
+                    5 × dielectric-height rule:
+                    \[5\cdot 0.21\ \mathrm{mm}\approx 1\ \mathrm{mm}.\]
+                    This is tighter than the approximately 5 mm (\(\lambda/20\)) needed at L1, keeping RF fields
+                    contained and tying all four ground layers together.</p>
+            </section>
+
+            <section>
+                <h2 id="ordering-for-jlcpcb">5. Ordering for JLCPCB</h2>
+                <p>The board is ordered bare from JLCPCB and assembled by hand. Parts come from DigiKey, except the
+                    Teseo-LIV3R, which comes from LCSC.</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Option</th>
+                            <th>Setting</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Layers</td>
+                            <td>4</td>
+                        </tr>
+                        <tr>
+                            <td>Dimensions</td>
+                            <td>60 x 60 mm</td>
+                        </tr>
+                        <tr>
+                            <td>Thickness</td>
+                            <td>1.6 mm</td>
+                        </tr>
+                        <tr>
+                            <td>Impedance control</td>
+                            <td>Yes, JLC04161H-7628</td>
+                        </tr>
+                        <tr>
+                            <td>Outer / inner copper</td>
+                            <td>1 oz / 0.5 oz</td>
+                        </tr>
+                        <tr>
+                            <td>Surface finish</td>
+                            <td>ENIG (optional)</td>
+                        </tr>
+                        <tr>
+                            <td>Via covering</td>
+                            <td>Tented</td>
+                        </tr>
+                        <tr>
+                            <td>Minimum via hole / diameter</td>
+                            <td>0.25 mm / 0.55 mm</td>
+                        </tr>
+                        <tr>
+                            <td>Solder mask / silkscreen</td>
+                            <td>Black / White</td>
+                        </tr>
+                        <tr>
+                            <td>Stencil</td>
+                            <td>Yes, top side</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>ENIG is preferred over HASL because the SAW filter, LNA, and magnetometer have pads underneath
+                    packages, with the smallest only 0.7 x 1.1 mm. HASL leaves slightly domed pads that can make these
+                    parts tilt or bridge; ENIG is flat. A stencil is needed because these parts cannot be soldered with
+                    an iron.</p>
+                <ul>
+                    <li>Reflow all top-side parts first. Fit the antenna last by hand because its adhesive pad is not
+                        rated for reflow.</li>
+                    <li>The SAW filter (MSL 2a), Teseo, and magnetometer (MSL 3) are moisture sensitive; keep them
+                        sealed until use.</li>
+                    <li>At first power-up, expect about 45–50 mA from 3.3 V and exactly 2.8 V on the LNA rail.</li>
+                </ul>
+                <p><strong>Important:</strong> Before submitting a board to JLCPCB, use its Design for Manufacturing
+                    (DFM) tool to validate that the board meets specifications before purchasing.</p>
+            </section>
+
+            <section>
+                <h2 id="testing-results">6. Testing Results</h2>
+                <p>After assembling the PCB, DC continuity tests found no shorts after the reflow oven and small rework.
+                    The next step was validating that the 2.8 V regulator could supply the LNA.</p>
+                <!-- Figure 11 placeholder: 2.8 V regulator measurement. -->
+                <figure class="image-placeholder">
+                    <div>Figure 11 image placeholder</div>
+                    <figcaption>Figure 11: 2.8 V regulator measurement</figcaption>
+                </figure>
+                <p>RF validation is difficult at microwave frequencies. The design operates at 1.575 GHz, so a standard
+                    oscilloscope measurement is not valid; a vector network analyzer (VNA) is required. The carrier
+                    wave is also far below the noise floor, while the LibreVNA has a minimum noise measurement of
+                    −100 dB.</p>
+                <!-- Figure 12 placeholder: GNSS PCB with UFL attached at RF input. -->
+                <figure class="image-placeholder">
+                    <div>Figure 12 image placeholder</div>
+                    <figcaption>Figure 12: GNSS PCB with UFL attached at the RF input for the Teseo-LIV3R module
+                    </figcaption>
+                </figure>
+                <!-- Figure 13 placeholder: UFL calibration set for two-port SOLT. -->
+                <figure class="image-placeholder">
+                    <div>Figure 13 image placeholder</div>
+                    <figcaption>Figure 13: UFL calibration set to run 2-port SOLT calibration using LibreVNA
+                    </figcaption>
+                </figure>
+                <!-- Figure 14 placeholder: Port 1 and Port 2 open-circuit background measurement. -->
+                <figure class="image-placeholder">
+                    <div>Figure 14 image placeholder</div>
+                    <figcaption>Figure 14: Port 1 and Port 2 open-circuit background measurement</figcaption>
+                </figure>
+                <!-- Figure 15 placeholder: Port 1 near Port 2 antenna, DC bias off. -->
+                <figure class="image-placeholder">
+                    <div>Figure 15 image placeholder</div>
+                    <figcaption>Figure 15: Port 1 near Port 2 antenna, DC bias OFF</figcaption>
+                </figure>
+                <!-- Figure 16 placeholder: Port 1 near Port 2 antenna, DC bias on. -->
+                <figure class="image-placeholder">
+                    <div>Figure 16 image placeholder</div>
+                    <figcaption>Figure 16: Port 1 near Port 2 antenna, DC bias ON</figcaption>
+                </figure>
+                <p>These measurements do not provide a clear quantitative answer on LNA performance; that would require
+                    a
+                    full two-port measurement with a proper UFL connection at the antenna feed point into the LNA.
+                    They do show that the RF chain is connected and amplifying the band of interest, which is sufficient
+                    before placing the ST receiver and moving on.</p>
+            </section>
+
+            <section>
+                <h2 id="references">References</h2>
+                <ul>
+                    <li>STMicroelectronics, Teseo-LIV3R datasheet (DS12821) and Teseo-LIV3 Hardware Manual (UM2231).
+                    </li>
+                    <li>Infineon, BGA725L6 datasheet.</li>
+                    <li>RF360 / Qualcomm, B39162B4327P810 SAW filter datasheet.</li>
+                    <li>Texas Instruments, TLV755P and ESD351 datasheets.</li>
+                    <li>MEMSIC, MMC5983MA datasheet.</li>
+                    <li>TE Connectivity / Linx, ANT-GNSSCP-TH18L1 datasheet.</li>
+                    <li>JST, SH series catalogue; Murata, LQG15HN series datasheet.</li>
+                    <li><a href="FC.html">OSCAR Flight Controller Design Justification Document</a>.</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2 id="back-to-hardware">Back to Hardware</h2>
+                <a href="../hardware.html" class="back-link">← Return to Hardware Overview</a>
+            </section>
+        </main>
+    </div>
+
+    <footer>
+        <div class="footer-brand">OSCAR <span>Docs</span></div>
+        <ul class="footer-links">
+            <li><a href="../contact.html">Contact Us</a></li>
+            <li><a href="https://sddec26-05.sd.ece.iastate.edu/">Senior Design Website</a></li>
+            <li><a href="https://github.com/gracefinger/OSCAR_Documentation.github.io">GitHub</a></li>
+        </ul>
+    </footer>
+
+    <script src="../../components/main.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.18.5/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.18.5/dist/contrib/auto-render.min.js"
+        onload="renderMathInElement(document.body, { delimiters: [{left: '\\[', right: '\\]', display: true}, {left: '\\(', right: '\\)', display: false}] });"></script>
+</body>
+
+</html>
