@@ -13,10 +13,10 @@
 <body>
     <nav>
         <ul class="nav-links">
-            <li><a href="../index.html"><span class="nav-dot"></span>Home</a></li>
-            <li><a href="./hardware.html"><span class="nav-dot"></span>Hardware</a></li>
-            <li><a href="./firmware.html"><span class="nav-dot"></span>Firmware</a></li>
-            <li><a href="./software.html"><span class="nav-dot"></span>Software</a></li>
+            <li><a href="../../index.html"><span class="nav-dot"></span>Home</a></li>
+            <li><a href="../hardware.html"><span class="nav-dot"></span>Hardware</a></li>
+            <li><a href="../firmware.html"><span class="nav-dot"></span>Firmware</a></li>
+            <li><a href="../software.html" class="active"><span class="nav-dot"></span>Software</a></li>
             <li><a href="../disclaimer.html"><span class="nav-dot"></span>Disclaimer</a></li>
         </ul>
     </nav>
@@ -34,39 +34,696 @@
 
             <h1>Testing</h1>
 
-            <!-- Table of Contents -->
-            <!-- <div id="toc-block">
-                <h2>Table of Contents</h2>
-                <ol>
-                    <li><a href="#section-1">Section 1</a></li>
-                    <li><a href="#section-2">Section 2</a>
-                        <ol>
-                            <li><a href="#subsection-2-1">Subsection 2.1</a></li>
-                            <li><a href="#subsection-2-2">Subsection 2.2</a></li>
-                        </ol>
-                    </li>
-                    <li><a href="#section-3">Section 3</a></li>
-                </ol>
-            </div> -->
-
             <section>
 
-                <p>Documentation for this page is under construction! Thank you for your patience! :)</p>
+                <!-- #region Overview -->
+                <h1 id="testing-overview">Testing Across OSCAR Ground Station</h1>
+                <p>This page describes every kind of testing used on OSCAR Ground Station: unit, integration,
+                    regression, automated (CI/CD), and acceptance testing. Some of it is built into the desktop app and
+                    some is run by developers from a terminal or by the GitLab pipeline. For how the testing cards on the
+                    Error Logging page work internally, see the <a href="./error-logging.html">Error Logging</a>
+                    documentation.</p>
 
-                <!-- <h1 id="section-1">Section 1</h1>
-                <p>Content goes here.</p>
+                <h2 id="testing-integrated">Testing Integrated Into OSCAR Ground Station</h2>
+                <p>From the desktop app, users can run hardware-in-the-loop integration and regression tests without
+                    leaving Ground Station. These are available from the Integration &amp; Regression Testing card on
+                    the Error Logging page. With a flight controller connected over USB, users can:</p>
+                <ul>
+                    <li><strong>Select test groups.</strong> Read commands, Settings, and Streaming are on by default.
+                        Calibration &amp; reset and Motors are off by default, and enabling either one triggers a
+                        confirmation dialog. Motor tests must only be run with propellers removed.</li>
+                    <li><strong>Run the full communication chain.</strong> Each test exercises the UI,
+                        window.backendAPI, the C addon, USB, and the firmware, then the path back.</li>
+                    <li><strong>Watch live results.</strong> Each row shows PASS, FAIL, or SKIP, round-trip time,
+                        attempts, retries, and a response preview. Yellow rows flag retries, port re-scans, or known
+                        quirks.</li>
+                    <li><strong>Stop a run early.</strong> Stop Tests halts the run after the current call.</li>
+                    <li><strong>Review aggregate statistics.</strong> These include pass rate, packet-level USB
+                        accuracy, first-try success, retry counts, latency (avg, median, p95, min, max), slowest calls,
+                        known quirks, failures, and skips.</li>
+                    <li><strong>Diagnose failures.</strong> The Ground Station Debug Log above the card shows the
+                        underlying WARNING and ERROR entries.</li>
+                    <li><strong>Save a report.</strong> Save Test Results downloads
+                        oscar-integration-tests-&lt;timestamp&gt;.txt. Saved reports act as baselines for regression
+                        comparison and as evidence for acceptance testing.</li>
+                </ul>
 
-                <h1 id="section-2">Section 2</h1>
-                <p>Content goes here.</p>
+                <h2 id="testing-not-integrated">Testing Not Integrated Into OSCAR Ground Station</h2>
+                <p>Some testing was implemented for the project but is not available from the desktop app. It is run by
+                    developers from a terminal or by the GitLab pipeline.</p>
 
-                <h2 id="subsection-2-1">Subsection 2.1</h2>
-                <p>Content goes here.</p>
+                <h3 id="what-we-did">What We Did</h3>
+                <ul>
+                    <li><strong>Unit tests</strong> using Node's built-in node:test framework, located in
+                        Software/OSCAR-app/test/. They use mocked backend APIs (window.backendAPI), mocked DOM elements,
+                        and VM-based test harnesses, so no flight controller is needed. Current areas are configuration
+                        import validation, configuration state restoration, load and save workflows, and Electron
+                        process boundaries.</li>
+                    <li><strong>Code coverage measurement</strong> with c8, split into three scopes: application,
+                        UI-only, and Electron process-boundary. Each is run with its own npm run test:*-coverage
+                        script.</li>
+                    <li><strong>Automated CI/CD testing</strong> through GitLab (.gitlab-ci.yml). On every push or merge
+                        request, the pipeline installs dependencies with npm ci --ignore-scripts, runs the tests and
+                        coverage commands, and publishes a Cobertura coverage report. The application coverage
+                        percentage is used as GitLab's primary figure.</li>
+                    <li><strong>Manual pre-release checks</strong> for Calibration and Motors with props removed.</li>
+                </ul>
+                <p>These are not exposed in the app because they are developer-facing. They test application logic
+                    without hardware, which makes them suited to fast, repeatable checks during development rather than
+                    end-user operation.</p>
 
-                <h2 id="subsection-2-2">Subsection 2.2</h2>
-                <p>Content goes here.</p>
+                <h3 id="what-we-did-not-do">What We Did Not Do But Could Be Useful</h3>
+                <ul>
+                    <li><strong>Automated end-to-end UI tests.</strong> Driving the real Electron window (for example
+                        with Playwright's Electron support) would catch problems that mocked DOM tests can't.</li>
+                    <li><strong>Hardware-in-the-loop CI.</strong> The integration tests currently need a physical flight
+                        controller and are run manually. A self-hosted Windows runner with a connected controller could
+                        run them automatically on each merge.</li>
+                    <li><strong>Automated report comparison.</strong> Baseline and new integration reports are currently
+                        compared by hand. A script or in-app diff view could flag new FAILs, increased retries, or
+                        latency regressions automatically.</li>
+                    <li><strong>Enforced coverage thresholds.</strong> Coverage is reported but not required to meet a
+                        minimum, so a significant drop wouldn't fail the pipeline on its own.</li>
+                    <li><strong>Windows CI runners.</strong> The app only works on Windows, but CI runs on Linux with
+                        --ignore-scripts, so native C addon builds are not verified in CI.</li>
+                    <li><strong>Fault-injection tests.</strong> Examples are USB unplug and replug mid-run, corrupted or
+                        partial packets, and a controller that stops responding.</li>
+                    <li><strong>Stream data validation.</strong> Streaming tests count packets but do not check that
+                        values are plausible.</li>
+                    <li><strong>Packaging and installer smoke tests.</strong> These would confirm that a built release
+                        launches and detects hardware.</li>
+                    <li><strong>In-app access to unit tests.</strong> A button to run the unit suite and show results
+                        could help users who don't have a development environment.</li>
+                </ul>
+                <!-- #endregion -->
 
-                <h1 id="section-3">Section 3</h1>
-                <p>Content goes here.</p> -->
+                <!-- #region Unit Testing -->
+                <h1 id="unit-testing">Unit Testing</h1>
+                <h2 id="unit-overview">Overview</h2>
+                <p>According to GeeksforGeeks, "Unit Testing is a software testing technique used to verify individual
+                    units of source code, such as methods, functions, or classes, in isolation." Unit testing ensures
+                    that each module behaves according to its requirements and helps prevent new features from
+                    regressing older ones. This section explains how unit testing is done in an npm environment for
+                    OSCAR Ground Station.</p>
+                <p>For our purposes, unit testing does not interact with any real flight-controller hardware. See
+                    <a href="#integration-testing">Integration Testing</a> for end-to-end testing. The unit tests focus
+                    on the desktop application's user interface behavior.</p>
+                <p>OSCAR Ground Station uses Node.js's built-in node:test framework, which makes the process simple and
+                    reproducible. Tests use mocked backend APIs to simulate Electron, browser, and flight-controller
+                    responses and verify that frontend UI behavior aligns with expectations.</p>
+                <p>Current testing areas include (work in progress):</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Test Area</th>
+                            <th>File Name (inside /test folder)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Configuration File Import Validation</td>
+                            <td>configurationImport.test.js</td>
+                        </tr>
+                        <tr>
+                            <td>Configuration State Restoration</td>
+                            <td>configurationState.test.js</td>
+                        </tr>
+                        <tr>
+                            <td>Load &amp; Save Workflows</td>
+                            <td>loadAndSave.test.js</td>
+                        </tr>
+                        <tr>
+                            <td>Electron Process Boundaries</td>
+                            <td>processBoundaries.test.js</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>Unit tests can run in a GitLab CI pipeline without being connected to a flight controller. See
+                    <a href="#automated-testing">Automated Testing and CI/CD</a> for more. They can also be run locally
+                    in a terminal with the command npm test.</p>
+
+                <h2 id="unit-code-implementation">Code Implementation Necessary</h2>
+                <p>To add test files of your own, navigate to the Software/OSCAR-app/test/ folder. You can use Node's
+                    built-in testing modules:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            <span class="light-red">const</span> { describe, it } = <span
+                                class="light-red">require</span>(<span class="light-green">"node:test"</span>);<br>
+                            <span class="light-red">const</span> assert = <span class="light-red">require</span>(<span
+                                class="light-green">"node:assert/strict"</span>);
+                        </div>
+                    </div>
+                </div>
+                <p>Rather than connecting to a real flight controller, we use mocked versions of the backend API
+                    (window.backendAPI) to simulate flight-controller responses. We can also mock browser objects, such
+                    as the window, document, DOM (Document Object Model) elements, dialogs, file inputs, and more.</p>
+                <p>When testing page scripts that normally depend on a browser, we use test harnesses. A test harness is
+                    the supporting code around a test that creates a controlled environment for the code being tested.
+                    For example, configurationState.test.js creates:</p>
+                <ul>
+                    <li>MockElement to act like an HTML input, checkbox, or select.</li>
+                    <li>A mock document with querySelectorAll() and createElement().</li>
+                    <li>A mock window.sessionStorage.</li>
+                    <li>A mock window.backendAPI.</li>
+                    <li>A VM context in which the real application script can run.</li>
+                </ul>
+
+                <h2 id="how-to-write-unit-tests">How to Write Unit Tests</h2>
+                <h3 id="identify-behavior">Identify Behavior to Test</h3>
+                <p>Review each page and identify:</p>
+                <ul>
+                    <li>Inputs and outputs</li>
+                    <li>Buttons and user interactions</li>
+                    <li>Backend API calls</li>
+                    <li>Error handling</li>
+                    <li>Default values</li>
+                    <li>Invalid input behavior</li>
+                </ul>
+                <p>Begin with logic that does not require rendering or hardware.</p>
+
+                <h3 id="create-test-file">Create a Test File</h3>
+                <ol class="numbered-list">
+                    <li>Create the File: Create a &lt;test_file_name&gt;.test.js file in the test directory.</li>
+                    <li>Build the Harness: Create the test harness, if necessary.</li>
+                    <li>Group Tests: Group related tests with describe.</li>
+                    <li>Write Cases: Write individual cases with it, using clear names that describe the expected
+                        behavior.</li>
+                </ol>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            describe(<span class="light-green">"configuration state"</span>, () => {<br>
+                            &emsp;&emsp;it(<span class="light-green">"restores cached checkbox values"</span>, <span
+                                class="light-red">async</span> () => {<br>
+                            &emsp;&emsp;&emsp;&emsp;// Arrange, act, and assert<br>
+                            &emsp;&emsp;});<br>
+                            });
+                        </div>
+                    </div>
+                </div>
+
+                <h3 id="arrange-test">Arrange the Test</h3>
+                <ul>
+                    <li>Create mock cached settings, backend responses, or DOM elements. For example, provide a cached
+                        motor configuration or a mock configuration file.</li>
+                    <li>Set up the expected initial state.</li>
+                </ul>
+
+                <h3 id="act-test">Act on the Application Logic</h3>
+                <p>Call the function being tested, or simulate a button click, file selection, dialog confirmation, or
+                    backend response. Examples:</p>
+                <ul>
+                    <li>Restore cached settings.</li>
+                    <li>Import a configuration file.</li>
+                    <li>Confirm a save dialog.</li>
+                    <li>Reject an invalid number.</li>
+                    <li>Simulate a controller write failure.</li>
+                </ul>
+
+                <h3 id="assert-result">Assert the Result</h3>
+                <p>Use assertions to verify the expected behavior. Examples:</p>
+                <ul>
+                    <li>A value was restored to a form control.</li>
+                    <li>An error was thrown.</li>
+                    <li>A backend command was called with the correct arguments.</li>
+                    <li>A dialog was canceled without saving.</li>
+                    <li>A status changed to "Partially applied."</li>
+                    <li>An unsupported setting was skipped.</li>
+                </ul>
+
+                <h3 id="run-tests-locally">Run Tests Locally</h3>
+                <p>From the OSCAR app directory (Software/OSCAR-app), run a specific test file:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div><span class="t-prompt">$</span> <span class="t-cmd">node --test
+                                test\configurationState.test.js</span></div>
+                    </div>
+                </div>
+                <p>Run the entire test suite:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div><span class="t-prompt">$</span> <span class="t-cmd">npm test</span></div>
+                    </div>
+                </div>
+                <p>Confirm that all tests pass, and investigate any failure before adding or merging additional
+                    changes.</p>
+
+                <h3 id="run-coverage-locally">Run Coverage Locally</h3>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div><span class="t-prompt">$</span> <span class="t-cmd">npm run
+                                test:application-coverage</span></div>
+                        <div style="margin-top: 0.5rem;"><span class="t-prompt">$</span> <span class="t-cmd">npm run
+                                test:ui-coverage</span></div>
+                        <div style="margin-top: 0.5rem;"><span class="t-prompt">$</span> <span class="t-cmd">npm run
+                                test:process-coverage</span></div>
+                    </div>
+                </div>
+                <ul>
+                    <li><strong>Application coverage</strong> includes the broader JavaScript application logic.</li>
+                    <li><strong>UI-only coverage</strong> excludes main.js, preload.js, and addonWorker.js.</li>
+                    <li><strong>Process-boundary coverage</strong> measures those Electron-specific files
+                        separately.</li>
+                </ul>
+
+                <h3 id="add-tests-to-ci">Add the Tests to CI</h3>
+                <p>GitLab runs the application coverage command from .gitlab-ci.yml. Because the command uses node
+                    --test, test files ending in .test.js are automatically discovered, so new tests generally do not
+                    need to be listed individually in the YAML file. The CI job:</p>
+                <ul>
+                    <li>Installs dependencies</li>
+                    <li>Runs all tests</li>
+                    <li>Generates coverage</li>
+                    <li>Extracts the application line-coverage percentage</li>
+                    <li>Publishes the Cobertura coverage report</li>
+                </ul>
+
+                <h3 id="review-results">Review the Results</h3>
+                <ul>
+                    <li>Confirm the total number of tests increased.</li>
+                    <li>Confirm all tests passed.</li>
+                    <li>Check whether the relevant source file's coverage increased.</li>
+                    <li>Make sure the coverage percentage is labeled accurately.</li>
+                </ul>
+                <p><strong>Note:</strong> Coverage measures executed code, not whether every possible user scenario has
+                    been tested.</p>
+                <!-- #endregion -->
+
+                <!-- #region Integration Testing -->
+                <h1 id="integration-testing">Integration Testing</h1>
+                <h2 id="integration-overview">Overview</h2>
+                <p>Integration testing checks that the full chain works end to end: Ground Station UI, then
+                    window.backendAPI, then the C addon (USBCommunication.c), then USB, then the firmware, and back. It
+                    runs on real hardware from the Integration &amp; Regression Testing card on the Error Logging
+                    page.</p>
+                <p>For each call, the runner records:</p>
+                <ul>
+                    <li><strong>Verdict:</strong> pass, fail, or skip.</li>
+                    <li><strong>Round-trip time:</strong> from the frontend call to the response being received.</li>
+                    <li><strong>Attempts and retries:</strong> inferred from the "Attempt N..." log lines that
+                        write_to_port() emits, since the C addon doesn't return them.</li>
+                </ul>
+                <p>At the end it prints aggregate statistics: pass rate, packet-level USB accuracy, first-try success,
+                    retry counts, latency (avg, median, p95, min, max), the slowest calls, known quirks, failures, and
+                    skips.</p>
+                <p>Tests are organized into groups, selectable with the checkboxes:</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Group</th>
+                            <th>What it does</th>
+                            <th>Default</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Read commands</td>
+                            <td>Getter commands only</td>
+                            <td>Always on</td>
+                        </tr>
+                        <tr>
+                            <td>Settings</td>
+                            <td>Reads a value, then writes the same value back (no net change)</td>
+                            <td>On</td>
+                        </tr>
+                        <tr>
+                            <td>Streaming</td>
+                            <td>Starts each stream, counts packets for 2 s, then stops</td>
+                            <td>On</td>
+                        </tr>
+                        <tr>
+                            <td>Calibration &amp; reset ⚠</td>
+                            <td>Calibration and reset commands, which can overwrite stored data</td>
+                            <td>Off</td>
+                        </tr>
+                        <tr>
+                            <td>Motors ⚠</td>
+                            <td>Motor commands (props OFF)</td>
+                            <td>Off</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p>Other behavior:</p>
+                <ul>
+                    <li>Enabling Calibration or Motors triggers a confirmation dialog.</li>
+                    <li>A failed GetConnection preflight aborts the run so it doesn't trigger a port scan on every
+                        call.</li>
+                    <li>NotARealCommand is a deliberate negative test that must return an error. It is excluded from
+                        all statistics.</li>
+                    <li>Stop Tests halts after the current call.</li>
+                </ul>
+
+                <h2 id="integration-code-implementation">Code Implementation - Integration Tests</h2>
+                <h3 id="one-time-wiring">One-Time Wiring</h3>
+                <ul>
+                    <li>log.js forwards every incoming entry to logTaps inside appendLogEntry.</li>
+                    <li>log.html loads log.js before integrationTests.js.</li>
+                    <li>The preload exposes populateAll, updateValue, startStreaming, stopStreaming, onStreamData,
+                        offStreamData, and onLogData on window.backendAPI.</li>
+                    <li>The page contains #integrationOptions, #integrationTestStatus, #integrationTestResults,
+                        #runIntegrationTests, and #saveIntegrationResults.</li>
+                </ul>
+
+                <h3 id="updating-the-test-plan">Updating the Test Plan</h3>
+                <p>Whenever the firmware or software changes, update the test plan (INTEGRATION_TESTS):</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Change</th>
+                            <th>What to update</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>New read command</td>
+                            <td>Add { group: "read", kind: "populate", command, expect: [...] }</td>
+                        </tr>
+                        <tr>
+                            <td>New write command</td>
+                            <td>Add a kind: "update" entry with payload and expect</td>
+                        </tr>
+                        <tr>
+                            <td>New writable setting</td>
+                            <td>Add a kind: "roundtrip" entry with source.command and source.keys, plus valueMap or
+                                numericOnly if needed</td>
+                        </tr>
+                        <tr>
+                            <td>New stream</td>
+                            <td>Add a kind: "stream" entry, plus extraStop and extraExpect if it has its own stop
+                                command</td>
+                        </tr>
+                        <tr>
+                            <td>Renamed or removed JSON keys</td>
+                            <td>Fix the expect lists and the keys in roundtrip source</td>
+                        </tr>
+                        <tr>
+                            <td>Changed log messages in the C code</td>
+                            <td>Update the IT_*_TERMINALS regexes, or retry counts will show as "n/a"</td>
+                        </tr>
+                        <tr>
+                            <td>Changed meter source dropdown text</td>
+                            <td>Update IT_METER_SOURCE_MAP</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p><strong>expect syntax:</strong></p>
+                <ul>
+                    <li>"Key" means the key must exist anywhere in the response.</li>
+                    <li>"Key=Value" means the key must exist and equal the value (case-insensitive).</li>
+                    <li>Any miss fails the test.</li>
+                </ul>
+                <p><strong>quirk field:</strong> use it for a response that passes today but looks wrong. It shows as a
+                    warning in the row and summary. When the firmware is fixed, the expect check will start failing, so
+                    update expect and remove quirk.</p>
+                <p><strong>Tunable constants:</strong></p>
+                <ul>
+                    <li>IT_STREAM_SAMPLE_MS</li>
+                    <li>IT_STREAM_MIN_PACKETS</li>
+                    <li>IT_LOG_TIMEOUT_MS</li>
+                    <li>IT_PREVIEW_CHARS</li>
+                </ul>
+
+                <h3 id="integration-notes">Notes</h3>
+                <ul>
+                    <li>Setup, log levels, and filtering are covered in the <a
+                            href="./error-logging.html">Error Logging</a> documentation. The integration runner relies
+                        on the same log pipeline (TIMING, WARNING, and ERROR entries drive the retry and timing
+                        readouts).</li>
+                    <li>The command spelling GetFrimwareVersion is intentional. It matches map_command(), so don't "fix"
+                        it in the test plan alone.</li>
+                    <li>Retries are inferred from logs, not returned by the addon. If log forwarding is unavailable,
+                        attempts show as "n/a" and count as a single attempt in the statistics.</li>
+                    <li>The Settings group writes back the current value. If a field reports display text instead of
+                        the raw value, the test is skipped rather than writing a guess to the drone.</li>
+                    <li><strong class="red">Never run Motors or Calibration with propellers attached.</strong></li>
+                </ul>
+
+                <h2 id="how-to-use-integration">How to Use This Feature</h2>
+                <ol class="numbered-list">
+                    <li>Connect: Connect the drone over USB and open Error Logging.</li>
+                    <li>Power Check: Make sure the flight controller is powered and Ground Station can see it.</li>
+                    <li>Choose Groups: In Test Groups, leave the defaults (Read, Settings, Streaming), or tick
+                        Calibration and Motors if you need them. For Motors, remove all props first.</li>
+                    <li>Run: Click Run Integration Tests.</li>
+                    <li>Watch Results: Each row shows PASS or FAIL, time, attempts, retries, and a response preview.
+                        Yellow rows indicate retries, a port re-scan, or a known quirk.</li>
+                    <li>Read Statistics: Review the Statistics block at the end.</li>
+                    <li>Diagnose: Check the Ground Station Debug Log above for the underlying WARNING and ERROR entries
+                        on any failure.</li>
+                    <li>Save: Click Save Test Results to download oscar-integration-tests-&lt;timestamp&gt;.txt.</li>
+                    <li>Stop Early: Click Stop Tests (it stops after the current call).</li>
+                </ol>
+                <!-- #endregion -->
+
+                <!-- #region Regression Testing -->
+                <h1 id="regression-testing">Regression Testing</h1>
+                <h2 id="regression-overview">Overview</h2>
+                <p>Regression testing confirms that new work hasn't broken existing behavior. For OSCAR that means any
+                    change to firmware commands, JSON structure, the C addon, backendAPI, or UI logic should leave
+                    previously passing tests passing, with latency and retry behavior not noticeably worse. The same test
+                    plan is rerun before and after each change and the results compared.</p>
+
+                <h2 id="regression-unit">How the Unit Testing Setup Covers This</h2>
+                <p>Unit tests provide a fast way to check that individual functions and application behaviors continue
+                    working after changes are made. Existing tests should be rerun after every update to verify that
+                    previously supported behavior has not changed unexpectedly. These tests can confirm that:</p>
+                <ul>
+                    <li>Firmware command names are sent correctly through backendAPI.</li>
+                    <li>JSON responses are parsed and mapped to the correct UI fields.</li>
+                    <li>Missing or malformed responses are handled properly.</li>
+                    <li>Configuration values are validated before being sent to the flight controller.</li>
+                    <li>Retry, failure, and partial-application behavior remains consistent.</li>
+                </ul>
+                <p>Because the tests use mocked backend responses, firmware and controller failures can be tested
+                    without connecting real hardware. When a new command, JSON field, or user-facing behavior is added, a
+                    corresponding unit test should also be added. If an existing test fails after a change, that may
+                    indicate a regression or an intentional behavior change that needs to be documented. Unit tests do
+                    not replace integration tests; they validate application logic and API boundaries, while integration
+                    tests verify communication with the actual firmware and hardware.</p>
+
+                <h2 id="regression-integration">How the Integration Testing Features Cover This</h2>
+                <p>The integration runner is the firmware/software communication layer and software IPC layer
+                    regression suite:</p>
+                <ul>
+                    <li><strong>expect checks are the regression assertions.</strong> If a firmware change renames or
+                        drops a JSON key, the test fails with "unexpected response: missing key ...".</li>
+                    <li><strong>The negative test</strong> guards against error handling silently breaking.</li>
+                    <li><strong>quirk entries</strong> track known-bad behavior so it doesn't get forgotten, and they
+                        flip to failures once fixed.</li>
+                    <li><strong>Saved reports serve as baselines.</strong> Compare pass rate, packet-level accuracy,
+                        first-try success, retries, p95 latency, and slowest calls between runs. A rise in retries or
+                        latency is a regression even when everything still passes.</li>
+                    <li><strong>Updating the plan</strong> when commands or JSON values change is part of the regression
+                        process, so the suite doesn't produce misleading results.</li>
+                </ul>
+
+                <h2 id="regression-cicd">How CI/CD Can Be Used for Regression Testing</h2>
+                <p>GitLab CI/CD automatically runs the project's tests whenever changes are pushed or submitted through
+                    a merge request. This provides a consistent regression check in a clean Node.js environment instead
+                    of relying only on a developer's local computer. The pipeline installs the project dependencies, runs
+                    the unit tests, measures application, UI, and process-boundary coverage, and publishes the resulting
+                    Cobertura coverage report. The pipeline should fail when a test fails or when a required coverage
+                    command cannot complete, helping prevent regressions from being merged.</p>
+                <p>CI results should be reviewed for more than simple pass-or-fail status. Test count, failed or skipped
+                    tests, coverage percentage, retry count, first-attempt success rate, latency, and slowest operations
+                    should also be considered. A regression may exist even when all tests pass if latency increases,
+                    retries increase, coverage drops significantly, or the test plan no longer reflects the application's
+                    current commands and JSON structure.</p>
+
+                <h2 id="regression-steps">Steps to Run a Regression Check</h2>
+                <ol class="numbered-list">
+                    <li>Baseline: On a known-good firmware and software build, run the integration tests and save the
+                        report.</li>
+                    <li>Unit Tests: Run unit tests locally after making changes.</li>
+                    <li>Update the Plan: Update the test plan if you added or changed commands or JSON keys (see <a
+                            href="#updating-the-test-plan">Updating the Test Plan</a>).</li>
+                    <li>Rerun: Run the integration tests again on the new build with the same groups, and save the
+                        report.</li>
+                    <li>Compare: Compare the two reports.
+                        <ul>
+                            <li>Any new FAIL or SKIP is a regression.</li>
+                            <li>Look for increases in retries or latency, or drops in first-try success.</li>
+                            <li>Check whether any quirk notes disappeared or turned into failures.</li>
+                        </ul>
+                    </li>
+                    <li>Investigate: Use the row's response preview and the Ground Station Debug Log to investigate
+                        failures.</li>
+                    <li>Fix and Keep: Fix, rerun, and keep the final report with the release or pull request.</li>
+                    <li>Pre-Release: Before a release, also run Calibration and Motors manually with props removed.</li>
+                </ol>
+                <!-- #endregion -->
+
+                <!-- #region Automated Testing and CI/CD -->
+                <h1 id="automated-testing">Automated Testing and CI/CD</h1>
+                <p>According to GeeksforGeeks, "Automation Testing is a software testing approach in which test cases
+                    are executed using tools and scripts instead of being performed manually." CI/CD stands for
+                    Continuous Integration and Continuous Delivery (or Deployment). These concepts are closely related
+                    because automated testing is often included in CI/CD pipelines to verify that new code changes do
+                    not break existing functionality. In this project, GitLab CI/CD automatically runs the OSCAR Ground
+                    Station's test suite whenever changes are pushed or submitted for review. This provides faster
+                    feedback, improves consistency, and helps ensure that only tested and validated code is merged into
+                    the project.</p>
+
+                <h2 id="cicd-overview">Overview</h2>
+                <p>The GitLab CI/CD pipeline configuration is defined in .gitlab-ci.yml. The pipeline currently contains
+                    an application coverage job that:</p>
+                <ul>
+                    <li>Uses a Node.js 22 environment.</li>
+                    <li>Installs the project dependencies.</li>
+                    <li>Runs the automated tests.</li>
+                    <li>Measures application, UI, and process-boundary coverage.</li>
+                    <li>Publishes the application coverage report.</li>
+                </ul>
+                <p>Tests use Node.js's built-in node:test framework (see <a href="#unit-testing">Unit Testing</a>).
+                    Code coverage is measured with the c8 JavaScript library, which needs to be added as a development
+                    dependency in package.json.</p>
+                <p>Code coverage should be described as:</p>
+                <ul>
+                    <li>Application JavaScript line coverage.</li>
+                    <li>UI-specific JavaScript line coverage.</li>
+                    <li>Electron process-boundary line coverage.</li>
+                </ul>
+                <p>These percentages should not be described as coverage of the entire project or entire codebase, so
+                    as not to be misleading.</p>
+                <p>The project's test scripts are also defined in package.json. The main scripts include:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            npm test<br>
+                            npm run test:ui-coverage<br>
+                            npm run test:application-coverage<br>
+                            npm run test:process-coverage
+                        </div>
+                    </div>
+                </div>
+                <p><strong class="red">Note:</strong> When source files are loaded through a VM for testing, the real
+                    source path should be provided so c8 attributes coverage to the correct file. For example, in
+                    loadAndSave.test.js:</p>
+                <div class="terminal">
+                    <div class="terminal-body">
+                        <div class="t-cmd">
+                            <span class="light-red">const</span> sourcePath = require.resolve(<span
+                                class="light-green">"../Components/loadAndSave"</span>);<br>
+                            <span class="light-red">const</span> source = fs.readFileSync(sourcePath, <span
+                                class="light-green">"utf8"</span>);<br>
+                            <br>
+                            vm.runInNewContext(<br>
+                            &emsp;&emsp;`${source}\nglobalThis.loadSaveTestHooks = {<br>
+                            &emsp;&emsp;&emsp;&emsp;collectCurrentConfiguration,<br>
+                            &emsp;&emsp;&emsp;&emsp;refreshConfigurationPreview,<br>
+                            &emsp;&emsp;&emsp;&emsp;importConfigurationFile<br>
+                            &emsp;&emsp;};`,<br>
+                            &emsp;&emsp;context,<br>
+                            &emsp;&emsp;{ filename: sourcePath }<br>
+                            );
+                        </div>
+                    </div>
+                </div>
+                <p>The filename option tells c8 which source file the code comes from, so that it can determine the
+                    percentage of code covered by tests in the original file. Add generated coverage directories to
+                    .gitignore so reports are not accidentally committed.</p>
+
+                <h2 id="cicd-code-implementation">Code Implementation Necessary</h2>
+                <p>In addition to following the Code Implementation steps for Unit Testing, the tests can be added to
+                    your CI/CD pipeline. Add your test scripts to the scripts section of package.json. Also be sure
+                    you've added the required testing and coverage packages (c8) to your devDependencies. Make sure
+                    that you update package-lock.json anytime your dependencies change. (You may also need to run npx
+                    electron-rebuild to update the native C module.)</p>
+                <p>Next, configure your GitLab pipeline in .gitlab-ci.yml to:</p>
+                <ul>
+                    <li>Select a Node.js image.</li>
+                    <li>Move into the OSCAR application directory.</li>
+                    <li>Install dependencies with npm ci.</li>
+                    <li>Run the test scripts.</li>
+                    <li>Extract the desired coverage percentage.</li>
+                    <li>Publish coverage artifacts.</li>
+                </ul>
+                <p>Since the current application only works in a Windows environment, you can use --ignore-scripts in CI
+                    when installation scripts attempt to build Windows-only native dependencies in the Linux CI
+                    environment.</p>
+                <p>Make sure to configure c8 coverage scopes carefully:</p>
+                <ul>
+                    <li>UI coverage excludes main.js, preload.js, and addonWorker.js.</li>
+                    <li>Process-boundary coverage includes those Electron-specific files.</li>
+                    <li>Application coverage includes the broader Components JavaScript files.</li>
+                </ul>
+
+                <h2 id="cicd-steps">Steps to Run It</h2>
+                <ol class="numbered-list">
+                    <li>Create or Update Tests: Write tests and generate test coverage (see <a
+                            href="#how-to-write-unit-tests">How to Write Unit Tests</a>).</li>
+                    <li>Push: Push the changes to GitLab.</li>
+                    <li>Pipeline Starts: GitLab reads .gitlab-ci.yml, creates the configured test job, uses the
+                        specified Node.js environment, changes into Software/OSCAR-app, and runs npm ci
+                        --ignore-scripts.</li>
+                    <li>Coverage Runs: The pipeline runs npm run test:application-coverage, npm run test:ui-coverage,
+                        and npm run test:process-coverage.</li>
+                    <li>Report Publishes: c8 generates a Cobertura XML report, and GitLab uploads it as a coverage
+                        artifact. The report can be viewed from the pipeline or job results and provides file-level
+                        coverage details in addition to the overall percentage.</li>
+                    <li>Review Failures: If the pipeline fails, open the failed GitLab job and review whether the
+                        failure came from dependency installation, a failed test, coverage command configuration,
+                        coverage percentage parsing, or missing coverage artifacts. Fix the issue locally, run npm test
+                        and the relevant coverage command again, then push the correction and allow GitLab to run a new
+                        pipeline.</li>
+                    <li>Merge After Validation: Confirm the pipeline passes, all automated tests pass, and the
+                        coverage report has been reviewed. Verify that the coverage percentage is labeled according to
+                        its scope. Merge only after the required CI checks succeed.</li>
+                </ol>
+                <p><strong class="red">Note:</strong> The application coverage value is used as GitLab's primary coverage
+                    percentage. UI and process-boundary values are printed separately in the job log. This prevents
+                    GitLab from incorrectly averaging coverage percentages from different test scopes.</p>
+                <!-- #endregion -->
+
+                <!-- #region Acceptance Testing -->
+                <h1 id="acceptance-testing">Acceptance Testing</h1>
+                <h2 id="acceptance-overview">Overview</h2>
+                <p>Acceptance testing is the final check that a build meets its requirements and is ready for release or
+                    merging. The unit, integration, and regression tests described above verify that the software works.
+                    Acceptance testing uses their results, plus some manual user checks, to decide whether a given build
+                    is good enough to ship.</p>
+                <p>A build is accepted when all of the criteria below are met. If any are not, the failure should be
+                    investigated and either fixed or documented as a known issue before release.</p>
+
+                <h2 id="acceptance-integration">Integration</h2>
+                <p>Integration acceptance is based on a saved report from the Integration &amp; Regression Testing card,
+                    run on real hardware. A build is accepted when:</p>
+                <ul>
+                    <li>The report can be successfully saved.</li>
+                    <li>There are no unexpected FAIL results.</li>
+                    <li>There are no unexplained SKIP results. A skip is acceptable only if its cause is understood
+                        (for example, the field reports display text instead of the raw value).</li>
+                    <li>NotARealCommand returned an error as intended.</li>
+                    <li>Retry counts and latency (avg, p95) are not noticeably worse than the baseline.</li>
+                </ul>
+
+                <h2 id="acceptance-unit">Unit</h2>
+                <p>Unit acceptance is based on the automated test suite and the CI pipeline. A build is accepted
+                    when:</p>
+                <ul>
+                    <li>npm test passes with no failed tests.</li>
+                    <li>The GitLab pipeline completes successfully, including all three coverage commands.</li>
+                    <li>The test count has not decreased.</li>
+                    <li>The coverage report was published, and coverage did not drop significantly. Coverage should be
+                        labeled by scope (application, UI, or process-boundary), not as coverage of the whole
+                        project.</li>
+                </ul>
+
+                <h2 id="acceptance-regression">Regression</h2>
+                <p>Regression acceptance compares the new build against a known-good baseline. A build is accepted
+                    when:</p>
+                <ul>
+                    <li>No test that passed in the baseline now fails or is skipped.</li>
+                    <li>Pass rate, packet-level USB accuracy, and first-try success are equal to or better than the
+                        baseline.</li>
+                    <li>Retries, p95 latency, and the slowest calls have not noticeably increased.</li>
+                    <li>Any quirk that disappeared was an intentional firmware fix, and the test plan was updated to
+                        match.</li>
+                    <li>The test plan reflects the current commands and JSON structure, so the results are not
+                        misleading.</li>
+                </ul>
+                <!-- #endregion -->
 
             </section>
 
@@ -81,13 +738,13 @@
     <footer>
         <div class="footer-brand">OSCAR <span>Docs</span></div>
         <ul class="footer-links">
-            <li><a href="./contact.html">Contact Us</a></li>
+            <li><a href="../contact.html">Contact Us</a></li>
             <li><a href="https://sddec26-05.sd.ece.iastate.edu/">Senior Design Website</a></li>
             <li><a href="https://github.com/gracefinger/OSCAR_Documentation.github.io">GitHub</a></li>
         </ul>
     </footer>
 
-    <script src="../components/main.js"></script>
+    <script src="../../components/main.js"></script>
 
 </body>
 
