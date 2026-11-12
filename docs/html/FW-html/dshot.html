@@ -179,6 +179,71 @@
                     match the bits found in a standard DShot frame.
                 </p>
 
+
+                                <h3 id="telemetry">Telemetry</h3>
+                <p>
+                    The ESC sends a telemetry packet once every second over a separate <strong
+                        class="emphasis">UART</strong> line. The telemetry is separate from all the DShot
+                    information and is sent on its own timer. Each packet is <code class="amber">10 bytes</code>,
+                    following the KISS/BLHeli_32 telemetry format, except that byte 0, which is normally temperature,
+                    carries the ESC's motor number instead. This lets the flight controller tell which of the four ESCs
+                    sent a packet.
+                </p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Byte</th>
+                            <th>Contents</th>
+                            <th>Units</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>0</td>
+                            <td>Motor Number</td>
+                            <td>1–4</td>
+                        </tr>
+                        <tr>
+                            <td>1–2</td>
+                            <td>Voltage</td>
+                            <td>0.01 V</td>
+                        </tr>
+                        <tr>
+                            <td>3–4</td>
+                            <td>Current</td>
+                            <td>0.01 A</td>
+                        </tr>
+                        <tr>
+                            <td>5–6</td>
+                            <td>Consumption</td>
+                            <td>mAh</td>
+                        </tr>
+                        <tr>
+                            <td>7–8</td>
+                            <td>Electrical RPM</td>
+                            <td>eRPM / 100</td>
+                        </tr>
+                        <tr>
+                            <td>9</td>
+                            <td>CRC8</td>
+                            <td>–</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>
+                    The packet is sent by the <code class="light-blue">Telem_Service()</code> function in the ESC main
+                    loop. The last byte is a CRC8 calculated over bytes 0–8 using polynomial
+                    <code class="amber">0x07</code>, standard KISS telemetry. The flight controller recalculates the
+                    CRC on every packet and discards any packet that does not match.
+                </p>
+                <p>
+                    The flight controller receives telemetry using a receive interrupt. Once the 10 bytes arrive, the
+                    interrupt releases a semaphore that wakes the ESC telemetry task. The task checks the CRC, decodes
+                    the values, and stores them for the USB communication code to send to the desktop.
+                </p>
+                
                 <h3 id="bit-breakdown">Bit Breakdown</h3>
                 <p>The bits of the DShot frame are broken down as follows:</p>
                 <br><br><img src="../../FirmwareImages/DShot2.png" alt="DSHOT Signal Example"
