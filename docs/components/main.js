@@ -71,6 +71,16 @@ if (docSidebar) {
     });
 }
 
+// ── Responsive Table Wrappers ──
+document.querySelectorAll('table').forEach(table => {
+    if (!table.parentElement.classList.contains('table-wrapper')) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'table-wrapper';
+        table.parentNode.insertBefore(wrapper, table);
+        wrapper.appendChild(table);
+    }
+});
+
 // ── Smooth scroll ──
 document.querySelectorAll('a[href^="#"]').forEach(a => {
     a.addEventListener('click', e => {
