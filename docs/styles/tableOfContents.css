@@ -231,7 +231,7 @@ body {
         scroll-margin-top: 80px;
     }
 
-    /* ── Collapsed Side Tab on the Right ── */
+    /* ── Collapsed Floating Side Tab on the Right ── */
     #doc-sidebar {
         position: fixed;
         top: 76px;
@@ -252,11 +252,17 @@ body {
         -webkit-backdrop-filter: blur(14px);
         box-shadow: -4px 4px 18px rgba(0, 0, 0, 0.55), 0 0 12px var(--green-glow);
         cursor: pointer;
-        transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
         overflow: hidden;
     }
 
-    /* Side tab header / trigger */
+    /* Subtle hover animation on collapsed tab */
+    #doc-sidebar:not(.open):hover {
+        transform: translateX(-4px);
+        box-shadow: -6px 6px 24px rgba(0, 0, 0, 0.65), 0 0 18px var(--green-glow);
+    }
+
+    /* Tab header / trigger badge */
     #doc-sidebar .sidebar-title {
         display: flex;
         align-items: center;
@@ -275,28 +281,25 @@ body {
         cursor: pointer;
     }
 
-    #doc-sidebar .sidebar-title::before {
+    #doc-sidebar:not(.open) .sidebar-title::before {
         content: '📑';
         font-size: 0.8rem;
     }
 
-    #doc-sidebar .sidebar-title::after {
+    #doc-sidebar:not(.open) .sidebar-title::after {
         content: '◀';
         font-size: 0.62rem;
         color: var(--green-bright);
         margin-left: 2px;
-        transition: transform 0.2s ease;
     }
 
-    /* List is hidden when collapsed — prevents auto-scroll bug from scrollIntoView! */
-    #doc-sidebar ul {
-        display: none;
+    /* List is hidden when collapsed: prevents scrollIntoView from auto-scrolling the page! */
+    #doc-sidebar:not(.open) ul {
+        display: none !important;
     }
 
-    /* ── Expanded Drawer (on .open, :hover, or :focus-within) ── */
-    #doc-sidebar.open,
-    #doc-sidebar:hover,
-    #doc-sidebar:focus-within {
+    /* ── Expanded Drawer (Strictly Controlled by .open Class) ── */
+    #doc-sidebar.open {
         top: 0;
         bottom: 0;
         right: 0;
@@ -306,7 +309,7 @@ body {
         border-top: none;
         border-bottom: none;
         border-left: 1px solid var(--border-strong);
-        background: rgba(13, 15, 14, 0.96);
+        background: rgba(13, 15, 14, 0.97);
         backdrop-filter: blur(20px) saturate(1.4);
         -webkit-backdrop-filter: blur(20px) saturate(1.4);
         box-shadow: -10px 0 40px rgba(0, 0, 0, 0.85), 0 0 32px var(--green-glow);
@@ -317,12 +320,13 @@ body {
         overscroll-behavior: contain;
         cursor: default;
         animation: drawerSlide 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+        transform: none;
     }
 
     @keyframes drawerSlide {
         from {
-            transform: translateX(20px);
-            opacity: 0.85;
+            transform: translateX(30px);
+            opacity: 0.7;
         }
         to {
             transform: translateX(0);
@@ -330,9 +334,7 @@ body {
         }
     }
 
-    #doc-sidebar.open .sidebar-title,
-    #doc-sidebar:hover .sidebar-title,
-    #doc-sidebar:focus-within .sidebar-title {
+    #doc-sidebar.open .sidebar-title {
         padding: 0.75rem 0.5rem 1rem;
         margin-bottom: 0.75rem;
         border-bottom: 1px solid var(--border);
@@ -341,32 +343,35 @@ body {
         justify-content: space-between;
         align-items: center;
         width: 100%;
+        cursor: pointer;
     }
 
-    #doc-sidebar.open .sidebar-title::before,
-    #doc-sidebar:hover .sidebar-title::before,
-    #doc-sidebar:focus-within .sidebar-title::before {
+    #doc-sidebar.open .sidebar-title::before {
         content: '📑 ON THIS PAGE';
         letter-spacing: 0.12em;
     }
 
-    #doc-sidebar.open .sidebar-title::after,
-    #doc-sidebar:hover .sidebar-title::after,
-    #doc-sidebar:focus-within .sidebar-title::after {
+    #doc-sidebar.open .sidebar-title::after {
         content: '✕ CLOSE';
         font-size: 0.65rem;
         padding: 4px 8px;
         background: var(--bg-card);
-        border: 1px solid var(--border);
+        border: 1px solid var(--border-strong);
         border-radius: var(--radius-sm);
-        color: var(--text-dim);
+        color: var(--green-accent);
         font-weight: 600;
+        transition: var(--transition);
     }
 
-    #doc-sidebar.open ul,
-    #doc-sidebar:hover ul,
-    #doc-sidebar:focus-within ul {
-        display: block;
+    #doc-sidebar.open .sidebar-title:hover::after {
+        background: var(--green-dim);
+        border-color: var(--green-accent);
+        color: var(--text-primary);
+        box-shadow: 0 0 10px var(--green-glow);
+    }
+
+    #doc-sidebar.open ul {
+        display: block !important;
         flex: 1;
         overflow-y: auto;
         list-style: none;
@@ -468,9 +473,7 @@ body {
 
 /* Full-width drawer on small phones */
 @media (max-width: 480px) {
-    #doc-sidebar.open,
-    #doc-sidebar:hover,
-    #doc-sidebar:focus-within {
+    #doc-sidebar.open {
         width: 100vw;
         border-left: none;
     }

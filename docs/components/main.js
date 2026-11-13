@@ -48,16 +48,24 @@ if (docSidebar) {
         });
     }
 
-    // Close sidebar when clicking a link
+    // Close sidebar when clicking any link inside it
     docSidebar.addEventListener('click', (e) => {
-        if (e.target.tagName === 'A' || e.target.closest('a')) {
+        const link = e.target.closest('a');
+        if (link) {
             docSidebar.classList.remove('open');
         }
     });
 
     // Close sidebar when clicking outside on mobile
     document.addEventListener('click', (e) => {
-        if (!docSidebar.contains(e.target)) {
+        if (docSidebar.classList.contains('open') && !docSidebar.contains(e.target)) {
+            docSidebar.classList.remove('open');
+        }
+    });
+
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && docSidebar.classList.contains('open')) {
             docSidebar.classList.remove('open');
         }
     });
