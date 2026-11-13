@@ -10,22 +10,22 @@ body {
     flex: 1;
     position: relative;
     padding-top: 64px; /* offset for fixed nav */
+    width: 100%;
 }
 
-/* ── Sidebar ── */
+/* ── Sidebar (Desktop) ── */
 #doc-sidebar {
     position: sticky;
     top: 64px; /* sit below fixed nav */
     height: calc(100vh - 64px);
-    width: 220px;
-    min-width: 220px;
+    width: 240px;
+    min-width: 240px;
     overflow-y: auto;
     padding: 1.5rem 0 2rem 0;
     border-right: 1px solid var(--border);
     background: var(--bg-surface);
     font-size: 0.82rem;
     z-index: 100;
-    scrollbar-width: thin;
 
     /* Firefox */
     scrollbar-width: thin;
@@ -34,7 +34,7 @@ body {
 
 /* Chrome, Edge, Safari */
 #doc-sidebar::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
 }
 
 #doc-sidebar::-webkit-scrollbar-track {
@@ -71,7 +71,7 @@ body {
 
 #doc-sidebar li a {
     display: block;
-    padding: 0.3rem 1.25rem;
+    padding: 0.35rem 1.25rem;
     color: var(--text-secondary);
     text-decoration: none;
     border-left: 2px solid transparent;
@@ -79,6 +79,8 @@ body {
     line-height: 1.4;
     font-family: var(--font-mono);
     font-size: 0.78rem;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 
 #doc-sidebar li a:hover {
@@ -115,11 +117,24 @@ body {
 .doc-content {
     flex: 1;
     min-width: 0;
-    padding: 2rem 2rem 3rem; /* top padding so h1 isn't flush */
+    padding: 2rem clamp(1.25rem, 4vw, 3rem) 3rem;
     max-width: none;
+    width: 100%;
 }
 
-/* ── Table of Contents block ── */
+.doc-content h1 {
+    font-size: clamp(1.85rem, 5vw, 2.75rem);
+    line-height: 1.15;
+    margin-bottom: 1.5rem;
+}
+
+.doc-content section {
+    padding: 1.5rem 0;
+    max-width: none;
+    margin: 0;
+}
+
+/* ── Table of Contents block (in-page) ── */
 #toc-block {
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -128,6 +143,7 @@ body {
     margin: 1.5rem 0 2.5rem;
     position: relative;
     overflow: hidden;
+    max-width: 100%;
 }
 
 /* subtle green top accent */
@@ -143,28 +159,27 @@ body {
 
 #toc-block h2 {
     margin: 0 0 1rem;
-    font-size: 1.5rem;
+    font-size: 1.35rem;
     font-weight: 700;
     font-family: var(--font-mono);
     color: var(--green-accent);
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    /* reset h2 sizing from main.css */
     line-height: 1.4;
 }
 
 #toc-block ol {
     margin: 0;
-    padding-left: .95rem;
-    line-height: 1.9;
+    padding-left: 1.25rem;
+    line-height: 1.8;
     font-family: var(--font-mono);
-    font-size: 1.25rem;
+    font-size: 1.05rem;
     color: var(--text-secondary);
 }
 
 #toc-block ol ol {
     padding-left: 1.25rem;
-    font-size: 0.82em;
+    font-size: 0.88em;
     color: var(--text-dim);
 }
 
@@ -173,7 +188,7 @@ body {
     font-family: var(--font-mono);
     font-size: inherit;
     color: inherit;
-    margin-bottom: 0;
+    margin-bottom: 0.2rem;
     padding-left: 0;
 }
 
@@ -201,4 +216,270 @@ body {
     background: var(--green-accent);
     z-index: 9999;
     transition: width 0.1s linear;
+}
+
+/* ── Mobile & Tablet Responsiveness: Slide-Out Side Drawer ── */
+@media (max-width: 860px) {
+    .page-layout {
+        flex-direction: column;
+        padding-top: 64px;
+        width: 100%;
+        overflow-x: hidden;
+    }
+
+    [id] {
+        scroll-margin-top: 80px;
+    }
+
+    /* ── Collapsed Floating Side Tab on the Right ── */
+    #doc-sidebar {
+        position: fixed;
+        top: 76px;
+        right: 0;
+        z-index: 200;
+        width: auto;
+        min-width: 0;
+        height: auto;
+        max-height: none;
+        padding: 0;
+        border-right: none;
+        border-top: 1px solid var(--border-strong);
+        border-bottom: 1px solid var(--border-strong);
+        border-left: 1px solid var(--border-strong);
+        border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+        background: rgba(19, 23, 21, 0.95);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        box-shadow: -4px 4px 18px rgba(0, 0, 0, 0.55), 0 0 12px var(--green-glow);
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        overflow: hidden;
+    }
+
+    /* Subtle hover animation on collapsed tab */
+    #doc-sidebar:not(.open):hover {
+        transform: translateX(-4px);
+        box-shadow: -6px 6px 24px rgba(0, 0, 0, 0.65), 0 0 18px var(--green-glow);
+    }
+
+    /* Tab header / trigger badge */
+    #doc-sidebar .sidebar-title {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0.55rem 0.85rem;
+        margin: 0;
+        border-bottom: none;
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--green-accent);
+        white-space: nowrap;
+        user-select: none;
+        cursor: pointer;
+    }
+
+    #doc-sidebar:not(.open) .sidebar-title::before {
+        content: '📑';
+        font-size: 0.8rem;
+    }
+
+    #doc-sidebar:not(.open) .sidebar-title::after {
+        content: '◀';
+        font-size: 0.62rem;
+        color: var(--green-bright);
+        margin-left: 2px;
+    }
+
+    /* List is hidden when collapsed: prevents scrollIntoView from auto-scrolling the page! */
+    #doc-sidebar:not(.open) ul {
+        display: none !important;
+    }
+
+    /* ── Expanded Drawer (Strictly Controlled by .open Class) ── */
+    #doc-sidebar.open {
+        top: 0;
+        bottom: 0;
+        right: 0;
+        width: min(340px, 85vw);
+        height: 100vh;
+        border-radius: 0;
+        border-top: none;
+        border-bottom: none;
+        border-left: 1px solid var(--border-strong);
+        background: rgba(13, 15, 14, 0.97);
+        backdrop-filter: blur(20px) saturate(1.4);
+        -webkit-backdrop-filter: blur(20px) saturate(1.4);
+        box-shadow: -10px 0 40px rgba(0, 0, 0, 0.85), 0 0 32px var(--green-glow);
+        padding: 1.25rem 1rem 2rem;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        cursor: default;
+        animation: drawerSlide 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+        transform: none;
+    }
+
+    @keyframes drawerSlide {
+        from {
+            transform: translateX(30px);
+            opacity: 0.7;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    #doc-sidebar.open .sidebar-title {
+        padding: 0.75rem 0.5rem 1rem;
+        margin-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border);
+        font-size: 0.78rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        cursor: pointer;
+    }
+
+    #doc-sidebar.open .sidebar-title::before {
+        content: '📑 ON THIS PAGE';
+        letter-spacing: 0.12em;
+    }
+
+    #doc-sidebar.open .sidebar-title::after {
+        content: '✕ CLOSE';
+        font-size: 0.65rem;
+        padding: 4px 8px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-sm);
+        color: var(--green-accent);
+        font-weight: 600;
+        transition: var(--transition);
+    }
+
+    #doc-sidebar.open .sidebar-title:hover::after {
+        background: var(--green-dim);
+        border-color: var(--green-accent);
+        color: var(--text-primary);
+        box-shadow: 0 0 10px var(--green-glow);
+    }
+
+    #doc-sidebar.open ul {
+        display: block !important;
+        flex: 1;
+        overflow-y: auto;
+        list-style: none;
+        margin: 0;
+        padding: 0.25rem 0 2rem;
+        scrollbar-width: thin;
+        scrollbar-color: var(--green-mid) var(--bg-surface);
+    }
+
+    #doc-sidebar li {
+        margin: 0;
+        padding: 0;
+    }
+
+    #doc-sidebar li::before {
+        display: none !important;
+    }
+
+    #doc-sidebar li a {
+        display: flex;
+        align-items: center;
+        padding: 0.55rem 0.75rem !important;
+        border-radius: var(--radius-sm);
+        border: none !important;
+        border-left: 2px solid transparent !important;
+        background: transparent;
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        line-height: 1.4;
+        text-decoration: none;
+        white-space: normal;
+        min-height: 38px;
+        transition: var(--transition);
+    }
+
+    #doc-sidebar li a:hover {
+        color: var(--text-primary);
+        background: rgba(80, 200, 122, 0.08);
+        border-left-color: var(--green-mid) !important;
+    }
+
+    #doc-sidebar li a.active {
+        color: var(--green-accent);
+        background: rgba(80, 200, 122, 0.12);
+        border-left-color: var(--green-accent) !important;
+        font-weight: 600;
+    }
+
+    #doc-sidebar li.sidebar-h1 > a {
+        font-weight: 700;
+        color: var(--text-primary);
+        padding-top: 0.6rem;
+        padding-bottom: 0.6rem;
+    }
+
+    #doc-sidebar li.sidebar-h2 > a {
+        padding-left: 1.25rem !important;
+        font-weight: 500;
+    }
+
+    #doc-sidebar li.sidebar-h3 > a {
+        padding-left: 2rem !important;
+        font-size: 0.74rem;
+        color: var(--gray-light);
+    }
+
+    /* Content adjustments */
+    .doc-content {
+        padding: 1.25rem clamp(1rem, 4vw, 2rem) 2.5rem;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    .doc-content section {
+        padding: 0.75rem 0;
+    }
+
+    #toc-block {
+        padding: 1.25rem 1.25rem;
+        margin: 1.25rem 0 2rem;
+    }
+
+    #toc-block h2 {
+        font-size: 1.15rem;
+    }
+
+    #toc-block ol {
+        font-size: 0.95rem;
+        line-height: 1.7;
+        padding-left: 1.1rem;
+    }
+
+    #toc-block ol ol {
+        padding-left: 1rem;
+        font-size: 0.85em;
+    }
+}
+
+/* Full-width drawer on small phones */
+@media (max-width: 480px) {
+    #doc-sidebar.open {
+        width: 100vw;
+        border-left: none;
+    }
+
+    #doc-sidebar .sidebar-title {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.68rem;
+    }
 }
