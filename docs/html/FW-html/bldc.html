@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="../../components/disclaimer.js" defer></script>
+    <title>OSCAR BLDC Implementation</title>
+    <link rel="stylesheet" href="../../styles/main.css">
+    <link rel="stylesheet" href="../../styles/tableOfContents.css">
+</head>
+
+<body>
+    <nav>
+        <ul class="nav-links">
+            <li><a href="../../index.html"><span class="nav-dot"></span>Home</a></li>
+            <li><a href="../hardware.html"><span class="nav-dot"></span>Hardware</a></li>
+            <li><a href="../firmware.html" class="active"><span class="nav-dot"></span>Firmware</a></li>
+            <li><a href="../software.html"><span class="nav-dot"></span>Software</a></li>
+            <li><a href="../disclaimer.html"><span class="nav-dot"></span>Disclaimer</a></li>
+        </ul>
+    </nav>
+
+    <div class="page-layout">
+
+        <!-- ── Sidebar ── -->
+        <aside id="doc-sidebar">
+            <div class="sidebar-title">On this page</div>
+            <ul id="sidebar-nav"></ul>
+        </aside>
+
+        <!-- ── Main content ── -->
+        <main class="doc-content">
+
+            <h1>OSCAR BLDC Implementation</h1>
+
+            <section>
+                <h2 id="six-step-commutation">6 Step Commutation</h2>
+                <p>
+                    The motor turns by cycling through six drive patterns. In each step, one phase is driven high,
+                    one is driven low, and the third floats.
+                </p>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Step</th>
+                            <th>Phase A</th>
+                            <th>Phase B</th>
+                            <th>Phase C</th>
+                            <th>Floating (Watched)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>0</td>
+                            <td>High</td>
+                            <td>Low</td>
+                            <td>Float</td>
+                            <td>C</td>
+                        </tr>
+                        <tr>
+                            <td>1</td>
+                            <td>High</td>
+                            <td>Float</td>
+                            <td>Low</td>
+                            <td>B</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>Float</td>
+                            <td>High</td>
+                            <td>Low</td>
+                            <td>A</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>Low</td>
+                            <td>High</td>
+                            <td>Float</td>
+                            <td>C</td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td>Low</td>
+                            <td>Float</td>
+                            <td>High</td>
+                            <td>B</td>
+                        </tr>
+                        <tr>
+                            <td>5</td>
+                            <td>Float</td>
+                            <td>Low</td>
+                            <td>High</td>
+                            <td>A</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>
+                    Six steps make one electrical revolution, so each step covers
+                    <code class="amber">60 electrical degrees</code>. With 7 pole pairs, one full turn of the rotor
+                    takes <code class="amber">42 steps</code>.
+                </p>
+
+                <h2 id="back-emf">Back EMF</h2>
+                <p>
+                    A spinning rotor induces a voltage, called back-EMF, in every coil. On the floating phase,
+                    that voltage crosses the motor's center-point voltage halfway through each step. At that
+                    moment, the zero crossing tells the firmware where the rotor is.
+                </p>
+
+                <h3 id="crossing-detection">How a Crossing Is Detected</h3>
+                <p>
+                    Each phase reaches the MCU through a resistor divider. We use the MCU comparator built into
+                    the MCU rather than an ADC.
+                </p>
+                <ul>
+                    <li>
+                        The <strong>back-EMF common (PA3)</strong> is the center-point reference on
+                        <code class="light-blue">COMP2's plus input</code>.
+                    </li>
+                    <li>
+                        Every step, <code class="light-blue">COMP2's minus input</code> is switched to whichever
+                        phase is floating:
+                        <code class="amber">A = PB7</code>, <code class="amber">B = PB3</code>,
+                        and <code class="amber">C = PA2</code>.
+                    </li>
+                    <li>
+                        On half the steps, the floating voltage rises through the center; on the other half,
+                        it falls.
+                    </li>
+                    <li>
+                        The code flips COMP2's output polarity per step so that a crossing always looks like
+                        the output going from <code class="amber">0 to 1</code>.
+                    </li>
+                    <li>
+                        That 0-to-1 edge raises an interrupt.
+                    </li>
+                </ul>
+
+                <h2 id="motor-states">Motor States</h2>
+                <p>
+                    The motor is always in one of four states in the main loop:
+                    <strong class="emphasis">IDLE</strong>, <strong class="emphasis">ALIGN</strong>,
+                    <strong class="emphasis">OPEN LOOP</strong>, and
+                    <strong class="emphasis">CLOSED LOOP</strong>.
+                </p>
+
+                <img src="../../FirmwareImages/motor-states.png" alt="Motor State Diagram" class="diagram">
+                <br>
+
+                <p>
+                    Every failure coasts back to IDLE and retries after
+                    <code class="amber">500 ms</code>; a closed-loop stall re-aligns straight away instead.
+                </p>
+
+                <ul>
+                    <li>
+                        <strong>IDLE:</strong> all FETs and the comparator are off. When throttle is
+                        <code class="amber">48 or more</code>, it moves to ALIGN, as long as 500 ms have
+                        passed since the last failed try and there have been fewer than 5 failures in a row.
+                    </li>
+                    <li>
+                        <strong>ALIGN:</strong> holds step 0 at <code class="amber">8% duty</code> for
+                        <code class="amber">300 ms</code>. This parks the rotor in a known position so the
+                        first blind steps push it the right way.
+                    </li>
+                    <li>
+                        <strong>OPEN LOOP:</strong> steps the motor blind at <code class="amber">8% duty</code>.
+                        The first step lasts <code class="amber">5,000 µs</code>, and each step is
+                        <code class="amber">10 µs shorter</code>, down to <code class="amber">600 µs</code>,
+                        which takes about <code class="amber">1.2 s</code>. Once steps are under
+                        <code class="amber">1,000 µs</code>, the main loop also polls the comparator to check
+                        that real crossings are showing up.
+                    </li>
+                    <li>
+                        <strong>CLOSED LOOP:</strong> crossings now set the timing. The main loop just ramps
+                        the duty toward the throttle target at <code class="amber">2 counts per ms</code> and
+                        watches for trouble.
+                    </li>
+                </ul>
+
+                <p>The handoff from OPEN LOOP to CLOSED LOOP needs all three of these:</p>
+                <ol class="numbered-list">
+                    <li>Steps have reached the <code class="amber">600 µs minimum</code>.</li>
+                    <li>At least <code class="amber">12 steps</code> have run at that minimum.</li>
+                    <li>
+                        The last <code class="amber">6 steps</code> in a row each showed a crossing,
+                        confirmed by <code class="amber">3 matching comparator polls</code>.
+                    </li>
+                </ol>
+
+                <p>
+                    At handoff, the speed estimate starts at <code class="amber">600 µs</code> and the first
+                    blanking timer is started. If there is no handoff after
+                    <code class="amber">300 steps at the minimum</code>, or the attempt runs past
+                    <code class="amber">3 s</code>, it counts as a failure and the motor coasts back to IDLE.
+                </p>
+
+                <h3 id="motor-pwm">Motor PWM and Phase Position</h3>
+                <p>
+                    The speed of the motors is set through 6 PWM signals that are driven to the gate drivers.
+                    They are implemented as the high and low sides of 3 different PWM signals. These are used
+                    to get the phase positions from the commutation table.
+                </p>
+                <p>
+                    As the commutation steps through the table, these PWM signals are altered to match and
+                    drive the motor.
+                </p>
+            </section>
+
+            <section>
+                <h2>Back to Firmware</h2>
+                <a href="../firmware.html" class="back-link">← Return to Firmware Overview</a>
+            </section>
+
+        </main>
+    </div>
+
+    <footer>
+        <div class="footer-brand">OSCAR <span>Docs</span></div>
+        <ul class="footer-links">
+            <li><a href="../contact.html">Contact Us</a></li>
+            <li><a href="https://sddec26-05.sd.ece.iastate.edu/">Senior Design Website</a></li>
+            <li><a href="https://github.com/gracefinger/OSCAR_Documentation.github.io">GitHub</a></li>
+        </ul>
+    </footer>
+
+    <script src="../../components/main.js"></script>
+
+</body>
+
+</html>
